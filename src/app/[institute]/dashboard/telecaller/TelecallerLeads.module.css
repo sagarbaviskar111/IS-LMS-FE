@@ -1,0 +1,127 @@
+/* Scoped polish for the telecaller leads table: semantic status badges
+   (using the shared design tokens instead of the generic brand/pending
+   badges from admin.module.css), a hoverable/clickable row, and a bit of
+   visual weight for the empty/loading states. */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.badgeNew {
+  composes: badge;
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.badgeContacted {
+  composes: badge;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.badgeInterested {
+  composes: badge;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+.badgeConverted {
+  composes: badge;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.badgeLost {
+  composes: badge;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.badgeNotInterested {
+  composes: badge;
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.row {
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: var(--surface-alt);
+  outline: none;
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 44px 16px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.emptyTitle {
+  font-weight: 600;
+  color: var(--foreground);
+  font-size: 0.95rem;
+}
+
+.emptySubtitle {
+  font-size: 0.85rem;
+  max-width: 280px;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 40px 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--brand);
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 600px) {
+  .emptyState,
+  .loadingState {
+    padding: 32px 12px;
+  }
+}

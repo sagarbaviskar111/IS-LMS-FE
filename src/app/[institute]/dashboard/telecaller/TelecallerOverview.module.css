@@ -1,0 +1,57 @@
+/* Small polish for the stat cards: a semantic accent stripe per status
+   (matches the badge colors used on the leads table) and a skeleton
+   shimmer instead of a bare "…" while loading. */
+
+.card {
+  position: relative;
+  overflow: hidden;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--brand);
+}
+
+.accentTotal::before {
+  background: var(--brand);
+}
+
+.accentNew::before {
+  background: var(--info);
+}
+
+.accentContacted::before {
+  background: var(--warning);
+}
+
+.accentInterested::before {
+  background: var(--brand);
+}
+
+.accentConverted::before {
+  background: var(--success);
+}
+
+.loadingValue {
+  display: inline-block;
+  width: 42px;
+  height: 1.5rem;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--border) 37%, var(--surface-alt) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}

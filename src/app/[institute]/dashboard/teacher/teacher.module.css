@@ -1,0 +1,261 @@
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  color: var(--muted);
+}
+
+.emptyState {
+  max-width: 420px;
+  margin: 10vh auto 0;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 40px 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.emptyStateIcon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyStateIcon::before {
+  content: "";
+  width: 18px;
+  height: 14px;
+  border: 2px solid var(--brand-dark);
+  border-radius: 2px;
+}
+
+.emptyStateTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 6px;
+}
+
+.emptyStateText {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* Reusable in-section empty state (table/list has no rows yet) — a little
+   more visual weight than a bare sentence. */
+.emptyBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+}
+
+.emptyIcon {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px dashed var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.emptyIcon::before {
+  content: "";
+  width: 12px;
+  height: 9px;
+  border: 1.5px solid var(--muted);
+  border-radius: 2px;
+}
+
+.emptyIconSuccess {
+  border-style: solid;
+  border-color: var(--success);
+  background: var(--success-soft);
+}
+
+.emptyIconSuccess::before {
+  width: 9px;
+  height: 5px;
+  border: none;
+  border-left: 2px solid var(--success);
+  border-bottom: 2px solid var(--success);
+  border-radius: 0;
+  transform: rotate(-45deg) translate(1px, -2px);
+}
+
+.emptyText {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+/* Loading state with a small spinner instead of bare "Loading..." text. */
+.loadingRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  padding: 24px 0;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--brand);
+  animation: teacherSpin 0.7s linear infinite;
+}
+
+@keyframes teacherSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Subtle row-hover on data tables for readability/scan-ability. Combine
+   with adminStyles.tableWrap on the same wrapping div. */
+.tableHoverWrap :global(tbody tr) {
+  transition: background 0.12s ease;
+}
+
+.tableHoverWrap :global(tbody tr:hover) {
+  background: var(--surface-alt);
+}
+
+.gate {
+  max-width: 640px;
+  margin: 6vh auto 0;
+}
+
+.gateTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 6px;
+  text-align: center;
+}
+
+.gateSubtitle {
+  color: var(--muted);
+  text-align: center;
+  margin: 0 0 28px;
+}
+
+.gateGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.gateCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.gateCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand);
+}
+
+.gateCardName {
+  font-weight: 700;
+  color: var(--foreground);
+  font-size: 1.02rem;
+}
+
+.gateCardDesc {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.switcherRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.switcherLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.switcherSelect {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.switcherSelect:focus {
+  outline: none;
+  border-color: var(--brand);
+  background: var(--surface);
+}
+
+.weekdayRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.weekdayChip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-width: 56px;
+}
+
+.weekdayChipActive {
+  composes: weekdayChip;
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+
+.weekdayChipDate {
+  font-size: 0.68rem;
+  font-weight: 500;
+  opacity: 0.8;
+}

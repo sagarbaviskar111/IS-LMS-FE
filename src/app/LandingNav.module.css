@@ -1,0 +1,99 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(244, 245, 247, 0.82);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .header {
+    background: rgba(11, 15, 25, 0.82);
+  }
+}
+
+:global(:root[data-theme="dark"]) .header {
+  background: rgba(11, 15, 25, 0.82);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  height: 68px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.brandMark {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: -0.02em;
+}
+
+.brandName {
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.link {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.link:hover {
+  color: var(--foreground);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.navCta {
+  padding: 9px 18px !important;
+  font-size: 0.9rem !important;
+}
+
+@media (max-width: 860px) {
+  .links {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .brandName {
+    display: none;
+  }
+  .actions :global(.buttonSecondary) {
+    display: none;
+  }
+}

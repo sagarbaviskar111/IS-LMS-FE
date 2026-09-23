@@ -1,0 +1,44 @@
+.toggle {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+.toggle:hover {
+  color: var(--brand);
+  border-color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.toggle:active {
+  transform: scale(0.92);
+}
+
+/* Default (light, or data-theme not yet applied): show the moon — click to
+   go dark. Once data-theme="dark" is on <html>, swap to the sun. Driven
+   purely by the attribute (not React state) so it's correct from the very
+   first paint with no hydration mismatch and no flash. */
+.sunIcon {
+  display: none;
+}
+
+.moonIcon {
+  display: block;
+}
+
+:global(:root[data-theme="dark"]) .toggle .sunIcon {
+  display: block;
+}
+
+:global(:root[data-theme="dark"]) .toggle .moonIcon {
+  display: none;
+}
