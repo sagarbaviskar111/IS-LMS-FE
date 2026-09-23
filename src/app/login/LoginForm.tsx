@@ -4,18 +4,10 @@ import { CSSProperties, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, Institute, Role } from "@/lib/api";
+import { ApiError, Institute } from "@/lib/api";
 import { shade } from "@/lib/color";
 import ThemeToggle from "@/components/ThemeToggle";
 import styles from "./login.module.css";
-
-const TEST_ACCOUNTS: { role: Role; label: string; email: string; password: string }[] = [
-  { role: "superadmin", label: "Super Admin", email: "superadmin@dashboard.com", password: "SuperAdmin@123" },
-  { role: "admin", label: "Admin", email: "admin@dashboard.com", password: "Admin@123" },
-  { role: "student", label: "Student", email: "student@dashboard.com", password: "Student@123" },
-  { role: "teacher", label: "Teacher", email: "teacher@dashboard.com", password: "Teacher@123" },
-  { role: "telecaller", label: "Telecaller", email: "telecaller@dashboard.com", password: "Telecaller@123" },
-];
 
 export default function LoginForm({
   institute,
@@ -114,28 +106,6 @@ export default function LoginForm({
             Student, teacher or telecaller? <Link href={`${basePath}/signup`}>Create an account</Link>
           </p>
         </form>
-
-        {process.env.NODE_ENV !== "production" && (
-          <div className={styles.testCard}>
-            <div className={styles.testHeader}>
-              <span className={styles.testDot} />
-              <p className={styles.testLabel}>Quick login (test only)</p>
-            </div>
-            <div className={styles.testGrid}>
-              {TEST_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.role}
-                  type="button"
-                  className={styles.testButton}
-                  disabled={submitting}
-                  onClick={() => doLogin(acc.email, acc.password)}
-                >
-                  {acc.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

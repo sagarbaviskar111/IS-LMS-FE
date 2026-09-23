@@ -139,68 +139,6 @@
   padding: 8px 10px;
 }
 
-.testCard {
-  composes: card;
-  padding: 20px 24px;
-  gap: 12px;
-}
-
-.testHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.testDot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
-}
-
-.testLabel {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: #b45309;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.testGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.testButton {
-  padding: 9px 10px;
-  background: var(--surface-alt);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--foreground);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
-}
-
-.testButton:hover:not(:disabled) {
-  background: var(--brand-soft);
-  border-color: var(--brand);
-  color: var(--brand-dark);
-}
-
-.testButton:active:not(:disabled) {
-  transform: translateY(1px);
-}
-
-.testButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .footerLink {
   text-align: center;
   font-size: 0.85rem;
@@ -214,12 +152,7 @@
 }
 
 @media (max-width: 420px) {
-  .card,
-  .testCard {
+  .card {
     padding: 24px 20px;
-  }
-
-  .testGrid {
-    grid-template-columns: 1fr;
   }
 }
