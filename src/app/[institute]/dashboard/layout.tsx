@@ -34,7 +34,14 @@ function getNavSections(
 
   switch (role) {
     case "superadmin":
-      return [{ items: [{ href: `${base}/dashboard/superadmin`, label: "Overview" }, notifications] }];
+      return [
+        { items: [{ href: `${base}/dashboard/superadmin`, label: "Overview" }] },
+        {
+          title: "Settings",
+          items: [{ href: `${base}/dashboard/superadmin/email`, label: "Email Settings" }],
+        },
+        { items: [notifications] },
+      ];
     case "admin":
       return [
         { items: [{ href: `${base}/dashboard/admin`, label: "Overview" }] },

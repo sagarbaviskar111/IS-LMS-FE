@@ -633,6 +633,12 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  getEmailSettings: () => request<{ address: string | null; hasCredentials: boolean }>("/api/users/email-settings"),
+  updateEmailSettings: (payload: { address: string; appPassword: string }) =>
+    request<{ message: string }>("/api/users/email-settings", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   listBatches: (opts?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));

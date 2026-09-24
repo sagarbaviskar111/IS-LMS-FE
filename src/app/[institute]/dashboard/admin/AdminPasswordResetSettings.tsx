@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
+import EmailSenderSettings from "../EmailSenderSettings";
 
 export default function AdminPasswordResetSettings() {
   const [allowSelfPasswordReset, setAllowSelfPasswordReset] = useState(false);
@@ -42,7 +43,9 @@ export default function AdminPasswordResetSettings() {
         Choose how teachers, students and telecallers get a new password when they forget theirs.
       </p>
 
-      <section className={adminStyles.section}>
+      <EmailSenderSettings />
+
+      <section className={adminStyles.section} style={{ marginTop: 16 }}>
         {loading ? (
           <p className={adminStyles.empty}>Loading...</p>
         ) : (
