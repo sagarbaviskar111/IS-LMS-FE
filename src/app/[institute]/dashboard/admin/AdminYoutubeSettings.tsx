@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { api, ApiError, YoutubeStatus } from "@/lib/api";
-import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 
 export default function AdminYoutubeSettings() {
@@ -39,10 +38,10 @@ export default function AdminYoutubeSettings() {
     if (searchParams.get("connected")) {
       setMessage({ type: "success", text: "YouTube account connected." });
       load();
-      router.replace(`/${institute}/dashboard/admin/youtube`);
+      router.replace(`/${institute}/dashboard/admin/settings?tab=youtube`);
     } else if (searchParams.get("error")) {
       setMessage({ type: "error", text: `Couldn't connect YouTube: ${searchParams.get("error")}` });
-      router.replace(`/${institute}/dashboard/admin/youtube`);
+      router.replace(`/${institute}/dashboard/admin/settings?tab=youtube`);
     }
   }, [searchParams, router, institute]);
 
@@ -104,13 +103,6 @@ export default function AdminYoutubeSettings() {
 
   return (
     <div>
-      <h1 className={dashboardStyles.pageTitle}>YouTube Settings</h1>
-      <p className={dashboardStyles.pageSubtitle}>
-        Connect your institute&apos;s own YouTube account so teachers can upload session
-        recordings straight to it. Videos are uploaded as <strong>unlisted</strong> — not
-        searchable on YouTube, viewable only by students inside this dashboard.
-      </p>
-
       {loading ? (
         <p className={adminStyles.empty}>Loading...</p>
       ) : (

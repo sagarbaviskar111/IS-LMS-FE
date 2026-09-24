@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 import EmailSenderSettings from "../EmailSenderSettings";
 
@@ -38,11 +37,6 @@ export default function AdminPasswordResetSettings() {
 
   return (
     <div>
-      <h1 className={dashboardStyles.pageTitle}>Password Resets</h1>
-      <p className={dashboardStyles.pageSubtitle}>
-        Choose how teachers, students and telecallers get a new password when they forget theirs.
-      </p>
-
       <EmailSenderSettings />
 
       <section className={adminStyles.section} style={{ marginTop: 16 }}>

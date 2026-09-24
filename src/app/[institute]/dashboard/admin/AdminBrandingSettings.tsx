@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { api, ApiError, OwnInstitute } from "@/lib/api";
-import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 
 export default function AdminBrandingSettings() {
@@ -87,12 +86,6 @@ export default function AdminBrandingSettings() {
 
   return (
     <div>
-      <h1 className={dashboardStyles.pageTitle}>Branding</h1>
-      <p className={dashboardStyles.pageSubtitle}>
-        Your institute&apos;s own login address, logo and accent color — shown to your students,
-        teachers and telecallers.
-      </p>
-
       <section className={adminStyles.section}>
         <form className={adminStyles.form} onSubmit={handleSubmit}>
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>

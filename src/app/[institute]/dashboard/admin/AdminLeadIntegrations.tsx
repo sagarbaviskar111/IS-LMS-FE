@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
-import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 
 const appsScript = (webhookUrl: string) => `function sendLeadToWebhook(e) {
@@ -111,12 +110,6 @@ export default function AdminLeadIntegrations() {
 
   return (
     <div>
-      <h1 className={dashboardStyles.pageTitle}>Lead Integrations</h1>
-      <p className={dashboardStyles.pageSubtitle}>
-        Feed leads in automatically from a Google Sheet, another website, or any tool that can make
-        a web request — no password needed, they just show up in your Leads list.
-      </p>
-
       {loading ? (
         <p className={adminStyles.empty}>Loading...</p>
       ) : (
