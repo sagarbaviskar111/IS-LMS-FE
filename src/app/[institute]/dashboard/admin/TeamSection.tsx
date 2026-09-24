@@ -10,6 +10,7 @@ import Pagination from "../Pagination";
 import StudentPaymentModal from "./StudentPaymentModal";
 import StudentAccessModal from "./StudentAccessModal";
 import ResetPasswordModal from "./ResetPasswordModal";
+import BulkUploadModal from "./BulkUploadModal";
 
 const PAGE_SIZE = 10;
 
@@ -46,6 +47,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
   const [paymentStudent, setPaymentStudent] = useState<User | null>(null);
   const [accessStudent, setAccessStudent] = useState<User | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const code = (user?.[INVITE_FIELDS[role]] as string | undefined) || "—";
@@ -168,6 +170,14 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
           onChanged={load}
         />
       )}
+      {bulkUploadOpen && (
+        <BulkUploadModal
+          role={role}
+          label={label}
+          onClose={() => setBulkUploadOpen(false)}
+          onChanged={load}
+        />
+      )}
       <h1 className={dashboardStyles.pageTitle}>{label}</h1>
       <p className={dashboardStyles.pageSubtitle}>
         Manage {label.toLowerCase()} in your coaching class.
@@ -199,6 +209,9 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
               <h2 className={styles.sectionTitle}>Add a {singular.toLowerCase()}</h2>
               <p className={styles.sectionSubtitle}>Created here, they&apos;re active immediately.</p>
             </div>
+            <button className={styles.smallButton} type="button" onClick={() => setBulkUploadOpen(true)}>
+              Bulk upload
+            </button>
           </div>
 
           <form className={styles.form} onSubmit={handleCreate}>

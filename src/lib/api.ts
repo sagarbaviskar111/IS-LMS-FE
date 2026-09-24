@@ -609,6 +609,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  bulkCreateUsers: (payload: {
+    role: "student" | "teacher" | "telecaller";
+    rows: { name: string; email: string; phone?: string; password?: string; batch?: string; batches?: string }[];
+  }) =>
+    request<{
+      created: { row: number; name: string; email: string; password?: string }[];
+      skipped: { row: number; name: string; email: string; reason: string }[];
+    }>("/api/users/bulk", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
   updateUser: (
     id: string,
     payload: {
