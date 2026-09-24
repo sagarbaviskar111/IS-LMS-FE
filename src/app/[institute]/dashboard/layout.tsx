@@ -67,6 +67,7 @@ function getNavSections(
             { href: `${base}/dashboard/admin/branding`, label: "Branding" },
             { href: `${base}/dashboard/admin/youtube`, label: "YouTube Settings" },
             { href: `${base}/dashboard/admin/password-resets`, label: "Password Resets" },
+            { href: `${base}/dashboard/admin/lead-integrations`, label: "Lead Integrations" },
           ],
         },
         { items: [notifications] },

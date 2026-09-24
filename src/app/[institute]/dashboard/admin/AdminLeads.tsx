@@ -178,6 +178,7 @@ export default function AdminLeads() {
                   <tr>
                     <th>Name</th>
                     <th>Phone</th>
+                    <th>Source</th>
                     <th>Status</th>
                     <th>Telecaller</th>
                     <th>Calls</th>
@@ -190,6 +191,13 @@ export default function AdminLeads() {
                     <tr key={l._id}>
                       <td>{l.name}</td>
                       <td>{l.phone}</td>
+                      <td>
+                        {l.source === "webhook" ? (
+                          <span className={styles.badgePending}>{l.sourceLabel || "Integration"}</span>
+                        ) : (
+                          <span style={{ color: "var(--muted)" }}>Manual</span>
+                        )}
+                      </td>
                       <td>
                         <span className={STATUS_BADGE[l.status]}>{l.status.replace("_", " ")}</span>
                       </td>

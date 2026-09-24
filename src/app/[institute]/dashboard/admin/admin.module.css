@@ -114,6 +114,20 @@
   white-space: nowrap;
 }
 
+.codeBlock {
+  display: block;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-alt);
+  color: var(--foreground);
+  font-family: var(--font-geist-mono, monospace);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  white-space: pre;
+}
+
 .smallButton {
   padding: 9px 14px;
   border-radius: var(--radius-sm);

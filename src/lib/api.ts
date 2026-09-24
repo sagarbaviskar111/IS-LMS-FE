@@ -434,6 +434,8 @@ export interface Lead {
   registrationToken?: string;
   feeAmount?: number;
   callLogs: CallLog[];
+  source?: "manual" | "webhook";
+  sourceLabel?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -639,6 +641,9 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
+  getLeadWebhookSettings: () => request<{ apiKey: string; webhookUrl: string }>("/api/users/lead-webhook"),
+  regenerateLeadWebhookKey: () =>
+    request<{ apiKey: string; webhookUrl: string }>("/api/users/lead-webhook/regenerate", { method: "POST" }),
   listBatches: (opts?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
