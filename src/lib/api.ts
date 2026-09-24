@@ -552,6 +552,16 @@ export const api = {
     ),
   logout: () => request<{ message: string }>("/api/auth/logout", { method: "POST" }),
   me: () => request<{ user: User; institute: Institute | null }>("/api/auth/me"),
+  forgotPassword: (email: string) =>
+    request<{ message: string }>("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+  resetPassword: (token: string, password: string) =>
+    request<{ message: string }>("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ token, password }),
+    }),
   publicInstitute: (slug: string) => request<{ institute: Institute }>(`/api/institutes/${encodeURIComponent(slug)}`),
   getBranding: () => request<{ institute: OwnInstitute }>("/api/institutes/branding"),
   updateBranding: async (payload: {
@@ -617,6 +627,12 @@ export const api = {
     }),
   deleteUser: (id: string) =>
     request<{ message: string }>(`/api/users/${id}`, { method: "DELETE" }),
+  getTeamSettings: () => request<{ allowSelfPasswordReset: boolean }>("/api/users/team-settings"),
+  updateTeamSettings: (payload: { allowSelfPasswordReset: boolean }) =>
+    request<{ allowSelfPasswordReset: boolean }>("/api/users/team-settings", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   listBatches: (opts?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));

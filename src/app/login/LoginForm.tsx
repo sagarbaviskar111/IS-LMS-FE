@@ -98,6 +98,10 @@ export default function LoginForm({
             />
           </label>
 
+          <p className={styles.footerLink} style={{ textAlign: "right", margin: "-8px 0 0" }}>
+            <Link href="/forgot-password">Forgot password?</Link>
+          </p>
+
           {error && <p className={styles.error}>{error}</p>}
 
           <button className={styles.button} type="submit" disabled={submitting}>

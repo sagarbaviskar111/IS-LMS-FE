@@ -9,6 +9,7 @@ import styles from "./admin.module.css";
 import Pagination from "../Pagination";
 import StudentPaymentModal from "./StudentPaymentModal";
 import StudentAccessModal from "./StudentAccessModal";
+import ResetPasswordModal from "./ResetPasswordModal";
 
 const PAGE_SIZE = 10;
 
@@ -44,6 +45,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
   const [rowError, setRowError] = useState("");
   const [paymentStudent, setPaymentStudent] = useState<User | null>(null);
   const [accessStudent, setAccessStudent] = useState<User | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const code = (user?.[INVITE_FIELDS[role]] as string | undefined) || "—";
@@ -156,6 +158,13 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
         <StudentAccessModal
           student={accessStudent}
           onClose={() => setAccessStudent(null)}
+          onChanged={load}
+        />
+      )}
+      {resetPasswordUser && (
+        <ResetPasswordModal
+          user={resetPasswordUser}
+          onClose={() => setResetPasswordUser(null)}
           onChanged={load}
         />
       )}
@@ -380,6 +389,9 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
                                 Access
                               </button>
                             )}
+                            <button className={styles.smallButton} onClick={() => setResetPasswordUser(u)}>
+                              Reset Password
+                            </button>
                             <button className={styles.smallButton} onClick={() => toggleActive(u)}>
                               {u.isActive ? "Deactivate" : "Activate"}
                             </button>
