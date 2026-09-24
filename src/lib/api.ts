@@ -328,6 +328,9 @@ export interface AssignmentSubmissionRow {
 export interface YoutubeStatus {
   connected: boolean;
   channelTitle: string | null;
+  hasCredentials?: boolean;
+  googleClientId?: string | null;
+  redirectUri?: string;
 }
 
 export type ExamStatus = "draft" | "published" | "closed";
@@ -1051,6 +1054,11 @@ export const api = {
 
   // Admin: YouTube integration for session recordings
   getYoutubeStatus: () => request<YoutubeStatus>("/api/admin/youtube/status"),
+  saveYoutubeCredentials: (payload: { clientId: string; clientSecret: string }) =>
+    request<{ message: string }>("/api/admin/youtube/credentials", {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   getYoutubeConnectUrl: () => request<{ url: string }>("/api/admin/youtube/connect"),
   disconnectYoutube: () =>
     request<{ message: string }>("/api/admin/youtube/disconnect", { method: "DELETE" }),
