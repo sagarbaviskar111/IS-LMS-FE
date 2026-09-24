@@ -230,7 +230,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className={styles.topBrandSide}>
           {institute &&
             (institute.logoUrl ? (
-              <img src={institute.logoUrl} alt={institute.name} className={styles.instituteLogo} />
+              <span className={styles.instituteLogoChip}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={institute.logoUrl} alt={institute.name} className={styles.instituteLogo} />
+              </span>
             ) : (
               <span className={styles.topBrandText}>{institute.name}</span>
             ))}

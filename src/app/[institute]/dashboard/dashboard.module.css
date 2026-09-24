@@ -44,10 +44,23 @@
   text-overflow: ellipsis;
 }
 
+.instituteLogoChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  padding: 0 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
 .instituteLogo {
-  height: 30px;
-  max-width: 160px;
+  max-height: 26px;
+  max-width: 140px;
   object-fit: contain;
+  display: block;
 }
 
 .shell {

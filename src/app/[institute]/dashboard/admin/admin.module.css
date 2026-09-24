@@ -281,6 +281,54 @@
   box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
+/* The browser's native file-picker button ignores most input styling, so
+   its own pseudo-element needs targeting directly to match the rest of the
+   form instead of showing the OS-default grey button. */
+.fileInput {
+  composes: input;
+  padding: 6px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.fileInput::file-selector-button {
+  padding: 7px 12px;
+  margin-right: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.fileInput::file-selector-button:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+  color: var(--brand-dark);
+}
+
+.logoPreviewChip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 12px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.logoPreviewChip img {
+  max-height: 32px;
+  max-width: 140px;
+  object-fit: contain;
+  display: block;
+}
+
 .formActions {
   grid-column: 1 / -1;
   display: flex;

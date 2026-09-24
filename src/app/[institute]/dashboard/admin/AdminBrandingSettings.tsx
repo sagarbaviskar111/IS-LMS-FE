@@ -135,21 +135,22 @@ export default function AdminBrandingSettings() {
             Logo
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               {(logoPreview || institute?.logoUrl) && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoPreview || institute?.logoUrl || ""}
-                  alt="Institute logo"
-                  style={{ height: 40, maxWidth: 140, objectFit: "contain", borderRadius: 6, background: "var(--surface-alt)", padding: 4 }}
-                />
+                <span className={adminStyles.logoPreviewChip}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={logoPreview || institute?.logoUrl || ""} alt="Institute logo" />
+                </span>
               )}
               <input
-                className={adminStyles.input}
+                className={adminStyles.fileInput}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={(e) => handleFile(e.target.files?.[0] || null)}
                 style={{ flex: 1 }}
               />
             </div>
+            <span style={{ fontWeight: 400, color: "var(--muted)" }}>
+              PNG, JPG or WebP. A wide logo with a transparent background looks best.
+            </span>
           </label>
 
           <div className={adminStyles.formActions}>

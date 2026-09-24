@@ -190,8 +190,10 @@ export default function SignupShared({
       <div className={styles.stack}>
         <div className={styles.brandRow}>
           {institute?.logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={institute.logoUrl} alt={institute.name} style={{ height: 34, maxWidth: 200, objectFit: "contain" }} />
+            <span className={styles.instituteLogoChip}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={institute.logoUrl} alt={institute.name} className={styles.instituteLogo} />
+            </span>
           ) : (
             <>
               <div className={styles.brandMark} />
