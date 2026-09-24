@@ -15,64 +15,97 @@ interface NavItem {
   badge?: number;
 }
 
-function getNavItems(
+interface NavSection {
+  // Omitted for a section that shouldn't show a header (e.g. the lone
+  // "Overview" link, or roles with too few items to bother grouping).
+  title?: string;
+  items: NavItem[];
+}
+
+function getNavSections(
   base: string,
   role: Role,
   pendingCount: number,
   unreadCount: number,
   chatUnreadCount: number
-): NavItem[] {
+): NavSection[] {
   const notifications = { href: `${base}/dashboard/${role}/notifications`, label: "Notifications", badge: unreadCount };
   const network = { href: `${base}/dashboard/${role}/network`, label: "Class Network", badge: chatUnreadCount };
 
   switch (role) {
     case "superadmin":
-      return [{ href: `${base}/dashboard/superadmin`, label: "Overview" }, notifications];
+      return [{ items: [{ href: `${base}/dashboard/superadmin`, label: "Overview" }, notifications] }];
     case "admin":
       return [
-        { href: `${base}/dashboard/admin`, label: "Overview" },
-        { href: `${base}/dashboard/admin/students`, label: "Students" },
-        { href: `${base}/dashboard/admin/groups`, label: "Student Groups" },
-        { href: `${base}/dashboard/admin/teachers`, label: "Teachers" },
-        { href: `${base}/dashboard/admin/telecallers`, label: "Telecallers" },
-        { href: `${base}/dashboard/admin/batches`, label: "Batches" },
-        { href: `${base}/dashboard/admin/leads`, label: "Leads" },
-        { href: `${base}/dashboard/admin/pending`, label: "Pending Approvals", badge: pendingCount },
-        { href: `${base}/dashboard/admin/branding`, label: "Branding" },
-        { href: `${base}/dashboard/admin/youtube`, label: "YouTube Settings" },
-        notifications,
+        { items: [{ href: `${base}/dashboard/admin`, label: "Overview" }] },
+        {
+          title: "Students",
+          items: [
+            { href: `${base}/dashboard/admin/leads`, label: "Leads" },
+            { href: `${base}/dashboard/admin/students`, label: "Students" },
+            { href: `${base}/dashboard/admin/groups`, label: "Student Groups" },
+          ],
+        },
+        {
+          items: [
+            { href: `${base}/dashboard/admin/teachers`, label: "Teachers" },
+            { href: `${base}/dashboard/admin/telecallers`, label: "Telecallers" },
+            { href: `${base}/dashboard/admin/batches`, label: "Batches" },
+            { href: `${base}/dashboard/admin/pending`, label: "Pending Approvals", badge: pendingCount },
+          ],
+        },
+        {
+          title: "Settings",
+          items: [
+            { href: `${base}/dashboard/admin/branding`, label: "Branding" },
+            { href: `${base}/dashboard/admin/youtube`, label: "YouTube Settings" },
+          ],
+        },
+        { items: [notifications] },
       ];
     case "teacher":
       return [
-        { href: `${base}/dashboard/teacher`, label: "Overview" },
-        { href: `${base}/dashboard/teacher/sessions`, label: "Sessions" },
-        { href: `${base}/dashboard/teacher/attendance`, label: "Attendance" },
-        { href: `${base}/dashboard/teacher/materials/study`, label: "Study Material" },
-        { href: `${base}/dashboard/teacher/materials/recordings`, label: "Session Recording" },
-        { href: `${base}/dashboard/teacher/exams`, label: "Exams" },
-        { href: `${base}/dashboard/teacher/assignments`, label: "Assignments" },
-        network,
-        notifications,
+        {
+          items: [
+            { href: `${base}/dashboard/teacher`, label: "Overview" },
+            { href: `${base}/dashboard/teacher/sessions`, label: "Sessions" },
+            { href: `${base}/dashboard/teacher/attendance`, label: "Attendance" },
+            { href: `${base}/dashboard/teacher/materials/study`, label: "Study Material" },
+            { href: `${base}/dashboard/teacher/materials/recordings`, label: "Session Recording" },
+            { href: `${base}/dashboard/teacher/exams`, label: "Exams" },
+            { href: `${base}/dashboard/teacher/assignments`, label: "Assignments" },
+            network,
+            notifications,
+          ],
+        },
       ];
     case "student":
       return [
-        { href: `${base}/dashboard/student`, label: "Overview" },
-        { href: `${base}/dashboard/student/materials/study`, label: "Study Material" },
-        { href: `${base}/dashboard/student/materials/recordings`, label: "Session Recording" },
-        { href: `${base}/dashboard/student/exams`, label: "Exams" },
-        { href: `${base}/dashboard/student/assignments`, label: "Assignments" },
-        { href: `${base}/dashboard/student/payments`, label: "Payments" },
-        network,
-        notifications,
+        {
+          items: [
+            { href: `${base}/dashboard/student`, label: "Overview" },
+            { href: `${base}/dashboard/student/materials/study`, label: "Study Material" },
+            { href: `${base}/dashboard/student/materials/recordings`, label: "Session Recording" },
+            { href: `${base}/dashboard/student/exams`, label: "Exams" },
+            { href: `${base}/dashboard/student/assignments`, label: "Assignments" },
+            { href: `${base}/dashboard/student/payments`, label: "Payments" },
+            network,
+            notifications,
+          ],
+        },
       ];
     case "telecaller":
       return [
-        { href: `${base}/dashboard/telecaller`, label: "Overview" },
-        { href: `${base}/dashboard/telecaller/leads`, label: "My Leads" },
-        notifications,
+        {
+          items: [
+            { href: `${base}/dashboard/telecaller`, label: "Overview" },
+            { href: `${base}/dashboard/telecaller/leads`, label: "My Leads" },
+            notifications,
+          ],
+        },
       ];
     default:
-      return [{ href: `${base}/dashboard/${role}`, label: "Overview" }, notifications];
+      return [{ items: [{ href: `${base}/dashboard/${role}`, label: "Overview" }, notifications] }];
   }
 }
 
@@ -122,7 +155,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return <div className={styles.loading}>Loading...</div>;
   }
 
-  const navItems = getNavItems(base, user.role, pendingCount, unreadCount, chatUnreadCount);
+  const navSections = getNavSections(base, user.role, pendingCount, unreadCount, chatUnreadCount);
   const baseHref = `${base}/dashboard/${user.role}`;
 
   const initials = user.name
@@ -147,22 +180,27 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </div>
 
       <nav className={styles.nav}>
-        {navItems.map((item) => {
-          const isActive =
-            item.href === pathname || (item.href !== baseHref && pathname.startsWith(`${item.href}/`));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => setMenuOpen(false)}
-              className={isActive ? styles.navItemActive : styles.navItem}
-            >
-              <span className={styles.navDot} />
-              {item.label}
-              {!!item.badge && <span className={styles.navBadge}>{item.badge}</span>}
-            </Link>
-          );
-        })}
+        {navSections.map((section, i) => (
+          <div className={styles.navSection} key={section.title || `section-${i}`}>
+            {section.title && <p className={styles.navSectionTitle}>{section.title}</p>}
+            {section.items.map((item) => {
+              const isActive =
+                item.href === pathname || (item.href !== baseHref && pathname.startsWith(`${item.href}/`));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMenuOpen(false)}
+                  className={isActive ? styles.navItemActive : styles.navItem}
+                >
+                  <span className={styles.navDot} />
+                  {item.label}
+                  {!!item.badge && <span className={styles.navBadge}>{item.badge}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className={styles.spacer} />
