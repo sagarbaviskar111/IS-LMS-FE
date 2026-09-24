@@ -1,5 +1,10 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
+// Mirrors Backend/utils/upload.js — checked client-side so an oversized file
+// is rejected instantly instead of after uploading most of it.
+export const VIDEO_MAX_SIZE = 1024 * 1024 * 1024; // 1GB
+export const DOCUMENT_MAX_SIZE = 100 * 1024 * 1024; // 100MB
+
 export type Role = "superadmin" | "admin" | "student" | "teacher" | "telecaller";
 
 export interface PageMeta {
@@ -484,6 +489,47 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+// fetch() has no cross-browser way to report upload progress, so a large
+// file upload (a recording can run to hundreds of MB) needs XHR instead.
+function uploadWithProgress<T>(
+  path: string,
+  formData: FormData,
+  onProgress?: (percent: number) => void
+): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `${API_URL}${path}`);
+    xhr.withCredentials = true;
+
+    xhr.upload.onprogress = (e) => {
+      if (onProgress && e.lengthComputable) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      let data: { message?: string } = {};
+      try {
+        data = JSON.parse(xhr.responseText || "{}");
+      } catch {
+        // non-JSON response — fall through with the status text below
+      }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(data as T);
+      } else {
+        reject(new ApiError(data.message || "Upload failed", xhr.status));
+      }
+    };
+
+    xhr.onerror = () => reject(new ApiError("Upload failed — check your connection", 0));
+    xhr.ontimeout = () => reject(new ApiError("Upload timed out", 0));
+    // Generous ceiling for a large recording on a slow connection.
+    xhr.timeout = 20 * 60 * 1000;
+
+    xhr.send(formData);
+  });
+}
+
 export type UserStatus = "pending" | "team" | "active" | "inactive";
 
 export const api = {
@@ -685,13 +731,16 @@ export const api = {
     ),
   listMaterials: (batch: string) =>
     request<{ materials: Material[] }>(`/api/teacher/materials?batch=${batch}`),
-  uploadMaterial: async (payload: {
-    batch: string;
-    title: string;
-    description?: string;
-    session?: string;
-    file: File;
-  }): Promise<{ material: Material }> => {
+  uploadMaterial: (
+    payload: {
+      batch: string;
+      title: string;
+      description?: string;
+      session?: string;
+      file: File;
+    },
+    onProgress?: (percent: number) => void
+  ): Promise<{ material: Material }> => {
     const formData = new FormData();
     formData.append("batch", payload.batch);
     formData.append("title", payload.title);
@@ -699,14 +748,7 @@ export const api = {
     if (payload.session) formData.append("session", payload.session);
     formData.append("file", payload.file);
 
-    const res = await fetch(`${API_URL}/api/teacher/materials`, {
-      method: "POST",
-      credentials: "include",
-      body: formData,
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new ApiError(data.message || "Upload failed", res.status);
-    return data;
+    return uploadWithProgress<{ material: Material }>("/api/teacher/materials", formData, onProgress);
   },
   deleteMaterial: (id: string) =>
     request<{ message: string }>(`/api/teacher/materials/${id}`, { method: "DELETE" }),

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useTeacherBatch } from "@/context/TeacherBatchContext";
-import { api, ApiError, Material, Session } from "@/lib/api";
+import { api, ApiError, DOCUMENT_MAX_SIZE, Material, Session, VIDEO_MAX_SIZE } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
@@ -45,7 +45,11 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
   const [viewing, setViewing] = useState<Material | null>(null);
   const [watching, setWatching] = useState<Material | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [youtubeConnected, setYoutubeConnected] = useState(true);
+
+  const maxSize = isVideo ? VIDEO_MAX_SIZE : DOCUMENT_MAX_SIZE;
+  const maxSizeLabel = isVideo ? "1GB" : "100MB";
 
   useEffect(() => {
     if (!isVideo) return;
@@ -79,20 +83,40 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
     if (el) el.value = "";
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0] || null;
+    if (picked && picked.size > maxSize) {
+      setError(`That file is too large — the limit is ${maxSizeLabel}.`);
+      setFile(null);
+      resetFileInput();
+      return;
+    }
+    setError("");
+    setFile(picked);
+  };
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeBatchId || !file) return;
     if (isVideo && !sessionId) return;
+    if (file.size > maxSize) {
+      setError(`That file is too large — the limit is ${maxSizeLabel}.`);
+      return;
+    }
     setError("");
     setUploading(true);
+    setUploadProgress(0);
     try {
-      await api.uploadMaterial({
-        batch: activeBatchId,
-        title,
-        description,
-        session: sessionId || undefined,
-        file,
-      });
+      await api.uploadMaterial(
+        {
+          batch: activeBatchId,
+          title,
+          description,
+          session: sessionId || undefined,
+          file,
+        },
+        setUploadProgress
+      );
       setTitle("");
       setDescription("");
       setSessionId("");
@@ -103,6 +127,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
       setError(err instanceof ApiError ? err.message : "Upload failed");
     } finally {
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -130,8 +155,8 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
               <h2 className={adminStyles.sectionTitle}>Upload {noun}</h2>
               <p className={adminStyles.sectionSubtitle}>
                 {isVideo
-                  ? "MP4, WebM or MOV, up to 200MB. Must be linked to a session."
-                  : "PDF, Word, PPT, Excel or text, up to 200MB. Optionally link it to a session."}
+                  ? "MP4, WebM or MOV, up to 1GB. Must be linked to a session."
+                  : "PDF, Word, PPT, Excel or text, up to 100MB. Optionally link it to a session."}
               </p>
             </div>
           </div>
@@ -193,16 +218,31 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
               </label>
 
               <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                File
+                File (up to {maxSizeLabel})
                 <input
                   id={`${type}-file`}
                   className={adminStyles.input}
                   type="file"
                   accept={isVideo ? VIDEO_ACCEPT : DOCUMENT_ACCEPT}
-                  onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  onChange={handleFileChange}
                   required
                 />
               </label>
+
+              {file && (
+                <p className={adminStyles.sectionSubtitle} style={{ gridColumn: "1 / -1", margin: 0 }}>
+                  {file.name} — {formatSize(file.size)}
+                </p>
+              )}
+
+              {uploading && (
+                <div className={styles.progressWrap} style={{ gridColumn: "1 / -1" }}>
+                  <div className={styles.progressTrack}>
+                    <div className={styles.progressFill} style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                  <span className={styles.progressLabel}>{uploadProgress}%</span>
+                </div>
+              )}
 
               <div className={adminStyles.formActions}>
                 <button
@@ -210,7 +250,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
                   type="submit"
                   disabled={uploading || !file || (isVideo && !sessionId)}
                 >
-                  {uploading ? "Uploading..." : `Upload ${noun}`}
+                  {uploading ? `Uploading... ${uploadProgress}%` : `Upload ${noun}`}
                 </button>
                 {error && <p className={adminStyles.messageError}>{error}</p>}
               </div>
