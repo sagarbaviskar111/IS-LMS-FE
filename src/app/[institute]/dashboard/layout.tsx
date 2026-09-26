@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { api, Role } from "@/lib/api";
 import { shade } from "@/lib/color";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import styles from "./dashboard.module.css";
 
 interface NavItem {
@@ -51,6 +52,7 @@ function getNavSections(
             { href: `${base}/dashboard/admin/leads`, label: "Leads" },
             { href: `${base}/dashboard/admin/students`, label: "Students" },
             { href: `${base}/dashboard/admin/groups`, label: "Student Groups" },
+            { href: `${base}/dashboard/admin/placements`, label: "Job Placements" },
           ],
         },
         {
@@ -59,6 +61,7 @@ function getNavSections(
             { href: `${base}/dashboard/admin/telecallers`, label: "Telecallers" },
             { href: `${base}/dashboard/admin/batches`, label: "Batches" },
             { href: `${base}/dashboard/admin/pending`, label: "Pending Approvals", badge: pendingCount },
+            { href: `${base}/dashboard/admin/tools`, label: "Tools" },
           ],
         },
         {
@@ -79,6 +82,7 @@ function getNavSections(
             { href: `${base}/dashboard/teacher/materials/recordings`, label: "Session Recording" },
             { href: `${base}/dashboard/teacher/exams`, label: "Exams" },
             { href: `${base}/dashboard/teacher/assignments`, label: "Assignments" },
+            { href: `${base}/dashboard/teacher/tools`, label: "Tools" },
             network,
             notifications,
           ],
@@ -94,6 +98,8 @@ function getNavSections(
             { href: `${base}/dashboard/student/exams`, label: "Exams" },
             { href: `${base}/dashboard/student/assignments`, label: "Assignments" },
             { href: `${base}/dashboard/student/payments`, label: "Payments" },
+            { href: `${base}/dashboard/student/placements`, label: "Job Placements" },
+            { href: `${base}/dashboard/student/tools`, label: "Tools" },
             network,
             notifications,
           ],
@@ -173,15 +179,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const themeStyle = institute?.brandColor
     ? ({
         "--brand": institute.brandColor,
-        "--brand-dark": shade(institute.brandColor, -12),
+        "--brand-dark": institute.brandColorPrimary || shade(institute.brandColor, -12),
+        ...(institute.brandColorBackground ? { "--background": institute.brandColorBackground } : {}),
       } as CSSProperties)
     : undefined;
 
   const sidebarContent = (
     <>
       <div className={styles.brand}>
-        <div className={styles.brandMark} />
-        <span className={styles.brandText}>InstituteSathi</span>
+        <BrandLogo height={32} />
       </div>
 
       <nav className={styles.nav}>
@@ -229,8 +235,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <div className={styles.pageShell} style={themeStyle}>
       <header className={styles.topBrandBar}>
         <div className={styles.topBrandSide}>
-          <div className={styles.topBrandMark} />
-          <span className={styles.topBrandText}>InstituteSathi</span>
+          <BrandLogo height={28} />
         </div>
         <div className={styles.topBrandSide}>
           {institute &&
@@ -264,7 +269,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             >
               <span />
             </button>
-            <span className={styles.topbarBrand}>InstituteSathi</span>
+            <BrandLogo height={26} className={styles.topbarBrand} />
             <div className={styles.topbarActions}>
               <ThemeToggle />
               <div className={styles.avatar}>{initials}</div>
