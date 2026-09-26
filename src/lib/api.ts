@@ -49,6 +49,8 @@ export interface Institute {
   name: string;
   slug: string;
   brandColor: string | null;
+  brandColorPrimary: string | null;
+  brandColorBackground: string | null;
   logoUrl: string | null;
 }
 
@@ -56,6 +58,8 @@ export interface OwnInstitute {
   name: string;
   instituteSlug: string | null;
   brandColor: string | null;
+  brandColorPrimary: string | null;
+  brandColorBackground: string | null;
   logoUrl: string | null;
 }
 
@@ -163,6 +167,44 @@ export interface StudentGroup {
   name: string;
   admin: string;
   students: StudentGroupMember[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type JobVisibility = "all" | "batch";
+export type JobApplicationMode = "link" | "interest";
+export type JobStatus = "open" | "closed";
+
+export interface Job {
+  _id: string;
+  admin: string;
+  title: string;
+  company: string;
+  description: string;
+  salary?: string;
+  location?: string;
+  visibility: JobVisibility;
+  batch?: { _id: string; name: string } | string | null;
+  applicationMode: JobApplicationMode;
+  applyLink?: string | null;
+  status: JobStatus;
+  interestedCount?: number;
+  interested?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobInterestRow {
+  _id: string;
+  student: { _id: string; name: string; email: string; phone?: string };
+  createdAt: string;
+}
+
+export interface Tool {
+  _id: string;
+  name: string;
+  url: string;
+  admin: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -452,6 +494,28 @@ export interface Notification {
   createdAt: string;
 }
 
+export interface SentNotificationSummary {
+  sendBatchId: string;
+  title: string;
+  message: string;
+  createdAt: string;
+  totalRecipients: number;
+  readCount: number;
+}
+
+export interface SentNotificationRecipient {
+  recipient: { _id: string; name: string; email: string; role: Role };
+  read: boolean;
+  readAt?: string | null;
+}
+
+export interface SentNotificationDetail {
+  title: string;
+  message: string;
+  createdAt: string;
+  recipients: SentNotificationRecipient[];
+}
+
 export interface ClassPerson {
   _id: string;
   name: string;
@@ -569,11 +633,17 @@ export const api = {
   updateBranding: async (payload: {
     instituteSlug?: string;
     brandColor?: string | null;
+    brandColorPrimary?: string | null;
+    brandColorBackground?: string | null;
     logo?: File | null;
   }): Promise<{ institute: OwnInstitute }> => {
     const formData = new FormData();
     if (payload.instituteSlug !== undefined) formData.append("instituteSlug", payload.instituteSlug);
     if (payload.brandColor !== undefined) formData.append("brandColor", payload.brandColor || "");
+    if (payload.brandColorPrimary !== undefined)
+      formData.append("brandColorPrimary", payload.brandColorPrimary || "");
+    if (payload.brandColorBackground !== undefined)
+      formData.append("brandColorBackground", payload.brandColorBackground || "");
     if (payload.logo) formData.append("logo", payload.logo);
 
     const res = await fetch(`${API_URL}/api/institutes/branding`, {
@@ -702,6 +772,65 @@ export const api = {
     }),
   deleteStudentGroup: (id: string) =>
     request<{ message: string }>(`/api/student-groups/${id}`, { method: "DELETE" }),
+  listTools: () => request<{ tools: Tool[] }>("/api/tools"),
+  createTool: (payload: { name: string; url: string }) =>
+    request<{ tool: Tool }>("/api/tools", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  updateTool: (id: string, payload: { name?: string; url?: string }) =>
+    request<{ tool: Tool }>(`/api/tools/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteTool: (id: string) => request<{ message: string }>(`/api/tools/${id}`, { method: "DELETE" }),
+  teacherTools: () => request<{ tools: Tool[] }>("/api/teacher/tools"),
+  studentTools: () => request<{ tools: Tool[] }>("/api/student/tools"),
+
+  listJobs: (opts?: { page?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.page) params.set("page", String(opts.page));
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    return request<PageMeta & { jobs: Job[] }>(`/api/jobs${qs ? `?${qs}` : ""}`);
+  },
+  createJob: (payload: {
+    title: string;
+    company: string;
+    description: string;
+    salary?: string;
+    location?: string;
+    visibility: JobVisibility;
+    batchId?: string;
+    applicationMode: JobApplicationMode;
+    applyLink?: string;
+  }) => request<{ job: Job }>("/api/jobs", { method: "POST", body: JSON.stringify(payload) }),
+  updateJob: (
+    id: string,
+    payload: Partial<{
+      title: string;
+      company: string;
+      description: string;
+      salary: string;
+      location: string;
+      visibility: JobVisibility;
+      batchId: string;
+      applicationMode: JobApplicationMode;
+      applyLink: string;
+      status: JobStatus;
+    }>
+  ) => request<{ job: Job }>(`/api/jobs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteJob: (id: string) => request<{ message: string }>(`/api/jobs/${id}`, { method: "DELETE" }),
+  listJobInterests: (id: string) => request<{ interests: JobInterestRow[] }>(`/api/jobs/${id}/interests`),
+  studentListJobs: (opts?: { page?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.page) params.set("page", String(opts.page));
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    return request<PageMeta & { jobs: Job[] }>(`/api/student/jobs${qs ? `?${qs}` : ""}`);
+  },
+  studentExpressInterest: (id: string) =>
+    request<{ message: string }>(`/api/student/jobs/${id}/interest`, { method: "POST" }),
   myBatches: () => request<{ batches: Batch[] }>("/api/teacher/batches"),
   batchStudents: (batchId: string) =>
     request<{ students: User[] }>(`/api/teacher/batches/${batchId}/students`),
@@ -1020,10 +1149,21 @@ export const api = {
     batchId?: string;
     broadcast?: boolean;
   }) =>
-    request<{ count: number }>("/api/notifications", {
+    request<{ count: number; sendBatchId: string }>("/api/notifications", {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  listSentNotifications: (opts?: { page?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.page) params.set("page", String(opts.page));
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    return request<PageMeta & { sent: SentNotificationSummary[] }>(
+      `/api/notifications/sent${qs ? `?${qs}` : ""}`
+    );
+  },
+  getSentNotificationDetail: (sendBatchId: string) =>
+    request<SentNotificationDetail>(`/api/notifications/sent/${sendBatchId}`),
 
   // Class network + simple chat (student/teacher only, batch-scoped)
   studentClassmates: () =>
