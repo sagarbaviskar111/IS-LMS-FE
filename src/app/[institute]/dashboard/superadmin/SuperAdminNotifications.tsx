@@ -5,6 +5,7 @@ import { api, ApiError, User } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "../admin/admin.module.css";
 import NotificationInbox from "../NotificationInbox";
+import SentNotifications from "../SentNotifications";
 
 export default function SuperAdminNotifications() {
   const [admins, setAdmins] = useState<User[]>([]);
@@ -117,6 +118,8 @@ export default function SuperAdminNotifications() {
             </div>
           </form>
         </section>
+
+        <SentNotifications refreshKey={refreshKey} />
 
         <NotificationInbox refreshKey={refreshKey} />
       </div>

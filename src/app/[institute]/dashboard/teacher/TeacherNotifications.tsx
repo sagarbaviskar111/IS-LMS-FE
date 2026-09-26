@@ -6,6 +6,7 @@ import { api, ApiError, User } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "../admin/admin.module.css";
 import NotificationInbox from "../NotificationInbox";
+import SentNotifications from "../SentNotifications";
 import BatchSwitcher from "./BatchSwitcher";
 
 export default function TeacherNotifications() {
@@ -129,6 +130,8 @@ export default function TeacherNotifications() {
             </div>
           </form>
         </section>
+
+        <SentNotifications refreshKey={refreshKey} />
 
         <NotificationInbox refreshKey={refreshKey} />
       </div>

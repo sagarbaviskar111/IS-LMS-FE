@@ -5,6 +5,7 @@ import { api, ApiError, Role, User } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
 import NotificationInbox from "../NotificationInbox";
+import SentNotifications from "../SentNotifications";
 
 const RECIPIENT_ROLES: { value: Role; label: string }[] = [
   { value: "teacher", label: "Teachers" },
@@ -141,6 +142,8 @@ export default function AdminNotifications() {
             </div>
           </form>
         </section>
+
+        <SentNotifications refreshKey={refreshKey} />
 
         <NotificationInbox refreshKey={refreshKey} />
       </div>
