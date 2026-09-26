@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ApiError, Institute } from "@/lib/api";
 import { shade } from "@/lib/color";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import styles from "./login.module.css";
 
 export default function LoginForm({
@@ -49,7 +50,11 @@ export default function LoginForm({
   };
 
   const themeStyle = institute?.brandColor
-    ? ({ "--brand": institute.brandColor, "--brand-dark": shade(institute.brandColor, -12) } as CSSProperties)
+    ? ({
+        "--brand": institute.brandColor,
+        "--brand-dark": institute.brandColorPrimary || shade(institute.brandColor, -12),
+        ...(institute.brandColorBackground ? { "--background": institute.brandColorBackground } : {}),
+      } as CSSProperties)
     : undefined;
 
   return (
@@ -62,11 +67,13 @@ export default function LoginForm({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={institute.logoUrl} alt={institute.name} className={styles.instituteLogo} />
             </span>
-          ) : (
+          ) : institute ? (
             <>
               <div className={styles.brandMark} />
-              <span className={styles.brandName}>{institute?.name || "InstituteSathi"}</span>
+              <span className={styles.brandName}>{institute.name}</span>
             </>
+          ) : (
+            <BrandLogo height={40} />
           )}
         </div>
 

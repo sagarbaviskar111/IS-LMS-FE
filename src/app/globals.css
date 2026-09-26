@@ -1,13 +1,16 @@
 :root {
-  --background: #f4f5f7;
+  /* Brand identity: Deep Navy (primary) + Royal Blue (accent/CTA) + Soft
+     Off-White (background) — see BrandLogo and AdminBrandingSettings, which
+     let an institute pick its own 3 colors on top of this default. */
+  --background: #f8fafc;
   --surface: #ffffff;
-  --surface-alt: #f8fafc;
-  --foreground: #0f172a;
+  --surface-alt: #f1f5f9;
+  --foreground: #0b1f3a;
   --muted: #64748b;
   --border: #e2e8f0;
-  --brand: #4f46e5;
-  --brand-dark: #4338ca;
-  --brand-soft: #eef2ff;
+  --brand: #2563eb;
+  --brand-dark: #0b1f3a;
+  --brand-soft: #e8f0fe;
 
   /* Semantic status colors — use these instead of ad-hoc hex for anything
      that means "good/bad/pending/info" (payment status, attendance,
@@ -49,7 +52,15 @@
     --foreground: #e5e7eb;
     --muted: #94a3b8;
     --border: #263043;
-    --brand-soft: #1e2340;
+    --brand-soft: #16233d;
+    /* --brand-dark defaults to a deep navy — meant for the light-mode
+       primary-button gradient and institute-picked "primary color" — but
+       every badge/hover state that pairs it with --brand-soft as text-on-
+       tint assumes a LIGHT accent on a dark tint, same as --success/
+       --warning/--info below. Redefining it here (like they are) keeps
+       that pairing readable; an institute's own brandColorPrimary, set
+       inline on a descendant element, still overrides this default. */
+    --brand-dark: #60a5fa;
     --success: #4ade80;
     --success-soft: #0f2a1a;
     --warning: #fbbf24;
@@ -72,7 +83,8 @@
   --foreground: #e5e7eb;
   --muted: #94a3b8;
   --border: #263043;
-  --brand-soft: #1e2340;
+  --brand-soft: #16233d;
+  --brand-dark: #60a5fa;
   --success: #4ade80;
   --success-soft: #0f2a1a;
   --warning: #fbbf24;

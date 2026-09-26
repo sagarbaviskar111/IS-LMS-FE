@@ -5,13 +5,60 @@ import { useAuth } from "@/context/AuthContext";
 import { api, ApiError, OwnInstitute } from "@/lib/api";
 import adminStyles from "./admin.module.css";
 
+const DEFAULT_ACCENT = "#2563eb";
+const DEFAULT_PRIMARY = "#0b1f3a";
+const DEFAULT_BACKGROUND = "#f8fafc";
+
+function ColorField({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className={adminStyles.label}>
+      {label}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{
+            width: 44,
+            height: 38,
+            padding: 2,
+            border: "1px solid var(--border)",
+            borderRadius: 8,
+            background: "var(--surface-alt)",
+          }}
+        />
+        <input
+          className={adminStyles.input}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          pattern="^#[0-9a-fA-F]{6}$"
+          placeholder={placeholder}
+          style={{ flex: 1 }}
+        />
+      </div>
+    </label>
+  );
+}
+
 export default function AdminBrandingSettings() {
   const { setInstitute: setGlobalInstitute } = useAuth();
   const [institute, setInstitute] = useState<OwnInstitute | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [slugInput, setSlugInput] = useState("");
-  const [colorInput, setColorInput] = useState("#4f46e5");
+  const [accentInput, setAccentInput] = useState(DEFAULT_ACCENT);
+  const [primaryInput, setPrimaryInput] = useState(DEFAULT_PRIMARY);
+  const [backgroundInput, setBackgroundInput] = useState(DEFAULT_BACKGROUND);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -26,7 +73,9 @@ export default function AdminBrandingSettings() {
       .then((res) => {
         setInstitute(res.institute);
         setSlugInput(res.institute.instituteSlug || "");
-        setColorInput(res.institute.brandColor || "#4f46e5");
+        setAccentInput(res.institute.brandColor || DEFAULT_ACCENT);
+        setPrimaryInput(res.institute.brandColorPrimary || DEFAULT_PRIMARY);
+        setBackgroundInput(res.institute.brandColorBackground || DEFAULT_BACKGROUND);
       })
       .finally(() => setLoading(false));
   };
@@ -51,11 +100,13 @@ export default function AdminBrandingSettings() {
     try {
       const res = await api.updateBranding({
         instituteSlug: slugInput.trim(),
-        brandColor: colorInput,
+        brandColor: accentInput,
+        brandColorPrimary: primaryInput,
+        brandColorBackground: backgroundInput,
         logo: logoFile,
       });
       setInstitute(res.institute);
-      // Keep the header's logo/color in sync immediately — the slug in the
+      // Keep the header's logo/colors in sync immediately — the slug in the
       // JWT (used by middleware) still needs a re-login, but the visible
       // branding shouldn't require a reload.
       if (res.institute.instituteSlug) {
@@ -63,6 +114,8 @@ export default function AdminBrandingSettings() {
           name: res.institute.name,
           slug: res.institute.instituteSlug,
           brandColor: res.institute.brandColor,
+          brandColorPrimary: res.institute.brandColorPrimary,
+          brandColorBackground: res.institute.brandColorBackground,
           logoUrl: res.institute.logoUrl,
         });
       }
@@ -104,25 +157,22 @@ export default function AdminBrandingSettings() {
             </div>
           </label>
 
-          <label className={adminStyles.label}>
-            Accent color
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="color"
-                value={colorInput}
-                onChange={(e) => setColorInput(e.target.value)}
-                style={{ width: 44, height: 38, padding: 2, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface-alt)" }}
-              />
-              <input
-                className={adminStyles.input}
-                value={colorInput}
-                onChange={(e) => setColorInput(e.target.value)}
-                pattern="^#[0-9a-fA-F]{6}$"
-                placeholder="#4f46e5"
-                style={{ flex: 1 }}
-              />
-            </div>
-          </label>
+          <p
+            className={adminStyles.sectionSubtitle}
+            style={{ gridColumn: "1 / -1", margin: "4px 0 0" }}
+          >
+            Pick 3 colors for your dashboard, login and signup pages — an accent for buttons and
+            links, a primary color for headings and hover states, and a background color.
+          </p>
+
+          <ColorField label="Accent color" value={accentInput} onChange={setAccentInput} placeholder={DEFAULT_ACCENT} />
+          <ColorField label="Primary color" value={primaryInput} onChange={setPrimaryInput} placeholder={DEFAULT_PRIMARY} />
+          <ColorField
+            label="Background color"
+            value={backgroundInput}
+            onChange={setBackgroundInput}
+            placeholder={DEFAULT_BACKGROUND}
+          />
 
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
             Logo

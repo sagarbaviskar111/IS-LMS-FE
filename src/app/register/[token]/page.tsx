@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api, ApiError } from "@/lib/api";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import styles from "../../signup/signup.module.css";
 
 declare global {
@@ -145,8 +146,7 @@ export default function RegisterViaLeadPage() {
       <ThemeToggle className={styles.themeToggleFixed} />
       <div className={styles.stack}>
         <div className={styles.brandRow}>
-          <div className={styles.brandMark} />
-          <span className={styles.brandName}>InstituteSathi</span>
+          <BrandLogo height={40} />
         </div>
 
         {loadState === "loading" && (

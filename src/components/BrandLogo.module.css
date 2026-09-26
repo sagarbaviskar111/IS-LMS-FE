@@ -1,0 +1,33 @@
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.wrap img {
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  border-radius: var(--radius-sm);
+}
+
+/* Default (light, or data-theme not yet applied): the light-background
+   variant reads best against the app's off-white surfaces. Both images are
+   always in the DOM (see BrandLogo.tsx) — these rules just pick one, keyed
+   off the same data-theme attribute ThemeToggle uses, so there's no flash
+   and no hydration mismatch. */
+.wrap img.light {
+  display: block;
+}
+
+.wrap img.dark {
+  display: none;
+}
+
+:global(:root[data-theme="dark"]) .wrap img.light {
+  display: none;
+}
+
+:global(:root[data-theme="dark"]) .wrap img.dark {
+  display: block;
+}

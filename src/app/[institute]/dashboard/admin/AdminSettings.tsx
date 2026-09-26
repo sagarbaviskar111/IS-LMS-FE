@@ -13,7 +13,7 @@ const TABS = [
   {
     key: "branding",
     label: "Branding",
-    hint: "Your institute's own login address, logo and accent color — shown to your students, teachers and telecallers.",
+    hint: "Your institute's own login address, logo and colors — shown to your students, teachers and telecallers.",
   },
   {
     key: "youtube",

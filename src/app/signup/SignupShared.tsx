@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { api, ApiError, Institute, Role } from "@/lib/api";
 import { shade } from "@/lib/color";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import styles from "./signup.module.css";
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -181,7 +182,11 @@ export default function SignupShared({
   basePath: string;
 }) {
   const themeStyle = institute?.brandColor
-    ? ({ "--brand": institute.brandColor, "--brand-dark": shade(institute.brandColor, -12) } as CSSProperties)
+    ? ({
+        "--brand": institute.brandColor,
+        "--brand-dark": institute.brandColorPrimary || shade(institute.brandColor, -12),
+        ...(institute.brandColorBackground ? { "--background": institute.brandColorBackground } : {}),
+      } as CSSProperties)
     : undefined;
 
   return (
@@ -194,11 +199,13 @@ export default function SignupShared({
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={institute.logoUrl} alt={institute.name} className={styles.instituteLogo} />
             </span>
-          ) : (
+          ) : institute ? (
             <>
               <div className={styles.brandMark} />
-              <span className={styles.brandName}>{institute?.name || "InstituteSathi"}</span>
+              <span className={styles.brandName}>{institute.name}</span>
             </>
+          ) : (
+            <BrandLogo height={40} />
           )}
         </div>
 

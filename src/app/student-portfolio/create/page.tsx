@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { api, ApiError, PortfolioOwn } from "@/lib/api";
 import PortfolioForm from "../PortfolioForm";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import styles from "../PortfolioAuth.module.css";
 
 export default function CreatePortfolioPage() {
@@ -90,8 +91,7 @@ export default function CreatePortfolioPage() {
       <ThemeToggle className={styles.themeToggleFixed} />
       <div className={styles.stack}>
         <div className={styles.brandRow}>
-          <div className={styles.brandMark} />
-          <span className={styles.brandName}>InstituteSathi</span>
+          <BrandLogo height={40} />
         </div>
 
         <h1 className={styles.pageTitle}>Create your portfolio</h1>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import styles from "./landing.module.css";
 import navStyles from "./LandingNav.module.css";
 
@@ -17,8 +18,7 @@ export default function LandingNav() {
     <header className={navStyles.header}>
       <div className={`${styles.container} ${navStyles.inner}`}>
         <Link href="/" className={navStyles.brand}>
-          <span className={navStyles.brandMark}>IS</span>
-          <span className={navStyles.brandName}>InstituteSathi</span>
+          <BrandLogo height={40} />
         </Link>
 
         <nav className={navStyles.links}>

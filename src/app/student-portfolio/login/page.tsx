@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import styles from "../PortfolioAuth.module.css";
 
 export default function PortfolioLoginPage() {
@@ -32,8 +33,7 @@ export default function PortfolioLoginPage() {
       <ThemeToggle className={styles.themeToggleFixed} />
       <div className={styles.stack}>
         <div className={styles.brandRow}>
-          <div className={styles.brandMark} />
-          <span className={styles.brandName}>InstituteSathi</span>
+          <BrandLogo height={40} />
         </div>
 
         <form className={styles.card} onSubmit={handleSubmit}>

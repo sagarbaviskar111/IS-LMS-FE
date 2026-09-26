@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
+import BrandLogo from "@/components/BrandLogo";
 import landingStyles from "../landing.module.css";
 import styles from "./StudentPortfolioIntro.module.css";
 
@@ -20,8 +21,7 @@ export default function StudentPortfolioIntroPage() {
       <header className={styles.header}>
         <div className={`${landingStyles.container} ${styles.headerInner}`}>
           <Link href="/" className={styles.brand}>
-            <span className={styles.brandMark}>IS</span>
-            <span className={styles.brandName}>InstituteSathi</span>
+            <BrandLogo height={36} />
           </Link>
           <div className={landingStyles.buttonRow}>
             <ThemeToggle />
