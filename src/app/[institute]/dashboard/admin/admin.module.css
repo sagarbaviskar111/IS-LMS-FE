@@ -1,6 +1,7 @@
 .grid {
   display: grid;
   gap: 20px;
+  min-width: 0;
 }
 
 .section {
@@ -9,6 +10,7 @@
   border-radius: var(--radius-md);
   padding: 24px;
   box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .sectionHead {
@@ -182,6 +184,8 @@
 
 .tableWrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 .table {
@@ -219,6 +223,35 @@
 
 .table tbody tr:hover {
   background: var(--surface-alt);
+}
+
+/* Action buttons live in the last column on every table in this app. On a
+   narrow screen the row can be wider than the viewport, and a plain
+   overflow-x:auto table hides those buttons off-screen with no visible hint
+   that there's more to scroll to — practically unreachable on mobile. Pinning
+   the last column keeps actions visible at all times, at any width, with no
+   scroll gesture required. */
+.table th:last-child,
+.table td:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--surface);
+}
+
+.table tbody tr:hover td:last-child {
+  background: var(--surface-alt);
+}
+
+.table th:last-child::before,
+.table td:last-child::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -8px;
+  width: 8px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.12));
 }
 
 .rowActions {
@@ -266,6 +299,7 @@
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   align-items: end;
+  min-width: 0;
 }
 
 .label {
@@ -425,4 +459,20 @@
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 640px) {
+  /* Bigger tap targets for table row actions (Approve/Reject, Present/Absent,
+     Edit/Save, etc.) — the desktop padding is comfortable for a mouse but
+     too tight to tap reliably on a phone. */
+  .smallButton {
+    padding: 10px 14px;
+    min-height: 40px;
+  }
+
+  .rowActions {
+    gap: 10px;
+  }
 }
