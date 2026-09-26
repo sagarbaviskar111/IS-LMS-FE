@@ -81,6 +81,22 @@ function PauseIcon() {
   );
 }
 
+function FullscreenEnterIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3" />
+    </svg>
+  );
+}
+
+function FullscreenExitIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 3v3a2 2 0 0 1-2 2H4M15 3v3a2 2 0 0 0 2 2h3M9 21v-3a2 2 0 0 0-2-2H4M15 21v-3a2 2 0 0 1 2-2h3" />
+    </svg>
+  );
+}
+
 function SkipIcon({ direction }: { direction: "back" | "forward" }) {
   return (
     <svg
@@ -112,7 +128,21 @@ function SkipIcon({ direction }: { direction: "back" | "forward" }) {
 // native UI (controls, logo, title, related videos) and made unclickable —
 // every interaction goes through our own YouTube-styled overlay controls
 // below, so nothing in the UI is a link a viewer could click through on.
+// Safari (desktop and iOS) only exposes the Fullscreen API under a
+// -webkit- prefix, and iOS Safari specifically refuses it altogether on
+// anything but a <video> element — the pseudoFullscreen fallback below
+// covers that case.
+interface PrefixedFullscreenElement extends HTMLDivElement {
+  webkitRequestFullscreen?: () => void;
+}
+interface PrefixedFullscreenDocument extends Document {
+  webkitExitFullscreen?: () => void;
+  webkitFullscreenElement?: Element | null;
+  webkitFullscreenEnabled?: boolean;
+}
+
 export default function YoutubePlayer({ videoId }: { videoId: string }) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -124,6 +154,9 @@ export default function YoutubePlayer({ videoId }: { videoId: string }) {
   const [duration, setDuration] = useState(0);
   const [seeking, setSeeking] = useState(false);
   const [hovering, setHovering] = useState(false);
+  const [nativeFullscreen, setNativeFullscreen] = useState(false);
+  const [pseudoFullscreen, setPseudoFullscreen] = useState(false);
+  const isFullscreen = nativeFullscreen || pseudoFullscreen;
 
   useEffect(() => {
     let cancelled = false;
@@ -178,6 +211,50 @@ export default function YoutubePlayer({ videoId }: { videoId: string }) {
     };
   }, [playing, seeking]);
 
+  useEffect(() => {
+    const doc = document as PrefixedFullscreenDocument;
+    const onFullscreenChange = () => {
+      const current = document.fullscreenElement || doc.webkitFullscreenElement;
+      setNativeFullscreen(current === wrapperRef.current);
+    };
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    document.addEventListener("webkitfullscreenchange", onFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+      document.removeEventListener("webkitfullscreenchange", onFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    const el = wrapperRef.current as PrefixedFullscreenElement | null;
+    const doc = document as PrefixedFullscreenDocument;
+    if (!el) return;
+
+    const activeNativeFullscreen = document.fullscreenElement || doc.webkitFullscreenElement;
+    if (activeNativeFullscreen) {
+      if (doc.exitFullscreen) doc.exitFullscreen();
+      else doc.webkitExitFullscreen?.();
+      return;
+    }
+
+    if (pseudoFullscreen) {
+      setPseudoFullscreen(false);
+      return;
+    }
+
+    const fullscreenEnabled = doc.fullscreenEnabled || doc.webkitFullscreenEnabled;
+    if (!fullscreenEnabled) {
+      setPseudoFullscreen(true);
+      return;
+    }
+
+    // requestFullscreen() can still reject at runtime even when the API is
+    // reported as enabled (e.g. permissions policy) — fall back rather than
+    // leave the button looking like it did nothing.
+    const request = el.requestFullscreen ? el.requestFullscreen() : el.webkitRequestFullscreen?.();
+    Promise.resolve(request).catch(() => setPseudoFullscreen(true));
+  };
+
   const wake = () => {
     setHovering(true);
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
@@ -202,7 +279,8 @@ export default function YoutubePlayer({ videoId }: { videoId: string }) {
 
   return (
     <div
-      className={styles.wrapper}
+      ref={wrapperRef}
+      className={`${styles.wrapper} ${pseudoFullscreen ? styles.pseudoFullscreen : ""}`}
       onMouseEnter={wake}
       onMouseMove={wake}
       onMouseLeave={() => hideTimerRef.current && clearTimeout(hideTimerRef.current)}
@@ -248,6 +326,14 @@ export default function YoutubePlayer({ videoId }: { videoId: string }) {
           <span className={styles.time}>
             {formatTime(current)} / {formatTime(duration)}
           </span>
+          <span style={{ flex: 1 }} />
+          <button
+            className={styles.iconButton}
+            onClick={toggleFullscreen}
+            aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+          >
+            {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
+          </button>
         </div>
       </div>
     </div>

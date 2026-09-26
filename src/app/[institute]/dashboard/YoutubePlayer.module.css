@@ -7,6 +7,33 @@
   background: #000;
 }
 
+/* Fullscreen targets this wrapper (video + our overlay controls together),
+   not the surrounding modal — same as YouTube's own player. The UA default
+   for a fullscreened element keeps its normal box sizing, which would
+   letterbox at the fixed 16:9 aspect-ratio instead of filling the screen. */
+.wrapper:fullscreen,
+.wrapper:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: unset;
+  border-radius: 0;
+}
+
+/* Fallback for browsers that don't support (or reject) the real Fullscreen
+   API on a non-<video> element — notably iOS Safari. Covers the viewport
+   with a fixed-position box instead; the Modal it's inside is already
+   portaled straight onto <body>, so this just needs a z-index above the
+   modal overlay (100) to visually take over the whole screen. */
+.pseudoFullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  aspect-ratio: unset;
+  border-radius: 0;
+  z-index: 1000;
+}
+
 .videoArea {
   width: 100%;
   height: 100%;
