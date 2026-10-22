@@ -164,11 +164,11 @@
   composes: smallButton;
   background: linear-gradient(135deg, var(--brand), var(--brand-dark));
   border: none;
-  color: #fff;
+  color: var(--on-brand, #fff);
 }
 
 .primaryButton:hover {
-  color: #fff;
+  color: var(--on-brand, #fff);
   opacity: 0.92;
 }
 
@@ -458,7 +458,7 @@
   composes: tab;
   background: var(--brand);
   border-color: var(--brand);
-  color: #fff;
+  color: var(--on-brand, #fff);
 }
 
 /* ---------- Responsive ---------- */

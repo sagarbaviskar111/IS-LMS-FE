@@ -131,7 +131,7 @@
   margin-top: 4px;
   padding: 11px 12px;
   background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  color: #fff;
+  color: var(--on-brand, #fff);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 0.95rem;

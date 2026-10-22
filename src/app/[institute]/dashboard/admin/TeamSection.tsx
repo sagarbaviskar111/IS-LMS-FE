@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { api, ApiError, Batch, User } from "@/lib/api";
+import { api, ApiError, Batch, Course, User } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
 import Pagination from "../Pagination";
@@ -11,6 +11,11 @@ import StudentPaymentModal from "./StudentPaymentModal";
 import StudentAccessModal from "./StudentAccessModal";
 import ResetPasswordModal from "./ResetPasswordModal";
 import BulkUploadModal from "./BulkUploadModal";
+import RegisterStudentModal from "./RegisterStudentModal";
+import StudentDetailsModal from "./StudentDetailsModal";
+import ListToolbar from "./ListToolbar";
+import RowMenu, { MenuItem } from "./RowMenu";
+import { useDebounced } from "./useDebounced";
 
 const PAGE_SIZE = 10;
 
@@ -30,6 +35,15 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
 
   const [team, setTeam] = useState<User[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+
+  // search / filters / sorting
+  const [search, setSearch] = useState("");
+  const q = useDebounced(search, 300);
+  const [stateF, setStateF] = useState("all");
+  const [courseF, setCourseF] = useState("all");
+  const [batchF, setBatchF] = useState("all");
+  const [sort, setSort] = useState("newest");
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [page, setPage] = useState(1);
@@ -48,6 +62,8 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
   const [accessStudent, setAccessStudent] = useState<User | null>(null);
   const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const [registerOpen, setRegisterOpen] = useState(false);
+  const [detailsStudent, setDetailsStudent] = useState<User | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const code = (user?.[INVITE_FIELDS[role]] as string | undefined) || "—";
@@ -58,23 +74,71 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [teamRes, batchesRes] = await Promise.all([
-        api.listUsers({ role, status: "team", page, limit: PAGE_SIZE }),
+      const [teamRes, batchesRes, coursesRes] = await Promise.all([
+        api.listUsers({
+          role,
+          status: "team",
+          page,
+          limit: PAGE_SIZE,
+          q,
+          sort,
+          active: stateF === "active" ? "1" : stateF === "inactive" ? "0" : undefined,
+          registration: stateF === "pending" ? "pending" : undefined,
+          course: courseF !== "all" ? courseF : undefined,
+          batch: batchF !== "all" ? batchF : undefined,
+        }),
         // Full batch list for name lookups below — not the browsable page.
         usesBatches ? api.listBatches({ limit: 500 }) : Promise.resolve({ batches: [] as Batch[] }),
+        role === "student" ? api.listCourses({ limit: 500 }) : Promise.resolve({ courses: [] as Course[] }),
       ]);
       setTeam(teamRes.users);
       setTotalPages(teamRes.totalPages);
       setTotal(teamRes.total);
       setBatches(batchesRes.batches);
+      setCourses(coursesRes.courses);
     } finally {
       setLoading(false);
     }
-  }, [role, usesBatches, page]);
+  }, [role, usesBatches, page, q, sort, stateF, courseF, batchF]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Changing any filter goes back to the first page.
+  const onFilter = (set: (v: string) => void) => (v: string) => {
+    set(v);
+    setPage(1);
+  };
+  const filtering = !!q.trim() || stateF !== "all" || courseF !== "all" || batchF !== "all";
+  const clearFilters = () => {
+    setSearch("");
+    setStateF("all");
+    setCourseF("all");
+    setBatchF("all");
+    setSort("newest");
+    setPage(1);
+  };
+  const courseName = (u: User) => (u.course && typeof u.course === "object" ? u.course.name : "—");
+
+  const statusOptions = [
+    { value: "all", label: "All statuses" },
+    { value: "active", label: "Active" },
+    { value: "inactive", label: "Inactive" },
+    ...(role === "student" ? [{ value: "pending", label: "Registration pending" }] : []),
+  ];
+
+  const menuFor = (u: User): MenuItem[] => {
+    const incomplete = role === "student" && u.registrationComplete === false;
+    return [
+      { label: "Edit name / phone", onClick: () => startEdit(u), hidden: role === "student" ? false : true },
+      { label: "Payments", onClick: () => setPaymentStudent(u), hidden: role !== "student" },
+      { label: "Access & recordings", onClick: () => setAccessStudent(u), hidden: role !== "student" },
+      { label: "Reset password", onClick: () => setResetPasswordUser(u) },
+      { label: u.isActive ? "Deactivate" : "Activate", onClick: () => toggleActive(u), hidden: incomplete },
+      { label: "Delete", onClick: () => removeMember(u), danger: true },
+    ];
+  };
 
   const handleCopy = async () => {
     try {
@@ -170,6 +234,19 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
           onChanged={load}
         />
       )}
+      {registerOpen && (
+        <RegisterStudentModal
+          onClose={() => setRegisterOpen(false)}
+          onRegistered={(student) => {
+            setRegisterOpen(false);
+            load();
+            setDetailsStudent(student); // straight on to making their registration link
+          }}
+        />
+      )}
+      {detailsStudent && (
+        <StudentDetailsModal student={detailsStudent} onClose={() => setDetailsStudent(null)} onChanged={load} />
+      )}
       {bulkUploadOpen && (
         <BulkUploadModal
           role={role}
@@ -185,6 +262,8 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
       </p>
 
       <div className={styles.grid}>
+        {role !== "student" && (
+          <>
         <section className={styles.section}>
           <div className={styles.sectionHead}>
             <div>
@@ -267,13 +346,79 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
           </form>
         </section>
 
+          </>
+        )}
+
         <section className={styles.section}>
           <div className={styles.sectionHead}>
             <div>
               <h2 className={styles.sectionTitle}>All {label.toLowerCase()}</h2>
               <p className={styles.sectionSubtitle}>{total} total, active and deactivated.</p>
             </div>
+            {role === "student" && (
+              <div className={styles.rowActions}>
+                <button className={styles.smallButton} type="button" onClick={() => setBulkUploadOpen(true)}>
+                  Bulk upload
+                </button>
+                <button className={styles.primaryButton} type="button" onClick={() => setRegisterOpen(true)}>
+                  + Register student
+                </button>
+              </div>
+            )}
           </div>
+
+          <ListToolbar
+            search={search}
+            onSearch={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder={`Search ${label.toLowerCase()} by name, email or phone...`}
+            filters={[
+              { key: "state", label: "Status", value: stateF, options: statusOptions, onChange: onFilter(setStateF) },
+              ...(role === "student"
+                ? [
+                    {
+                      key: "course",
+                      label: "Course",
+                      value: courseF,
+                      options: [{ value: "all", label: "All courses" }, ...courses.map((c) => ({ value: c._id, label: c.name }))],
+                      onChange: onFilter(setCourseF),
+                    },
+                  ]
+                : []),
+              ...(usesBatches
+                ? [
+                    {
+                      key: "batch",
+                      label: "Batch",
+                      value: batchF,
+                      options: [
+                        { value: "all", label: "All batches" },
+                        { value: "none", label: "Unassigned" },
+                        ...batches.map((b) => ({ value: b._id, label: b.name })),
+                      ],
+                      onChange: onFilter(setBatchF),
+                    },
+                  ]
+                : []),
+            ]}
+            sort={{
+              key: "sort",
+              label: "Sort by",
+              value: sort,
+              options: [
+                { value: "newest", label: "Newest first" },
+                { value: "oldest", label: "Oldest first" },
+                { value: "name_asc", label: "Name A–Z" },
+                { value: "name_desc", label: "Name Z–A" },
+                { value: "email_asc", label: "Email A–Z" },
+              ],
+              onChange: onFilter(setSort),
+            }}
+            onClear={clearFilters}
+            total={total}
+          />
 
           {rowError && <p className={styles.messageError}>{rowError}</p>}
 
@@ -281,8 +426,11 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
             <div className={styles.emptyState}>
               <span className={styles.emptyStateIcon} aria-hidden="true">👤</span>
               <p className={styles.emptyStateText}>
-                No {label.toLowerCase()} yet — add one using the form above, or share the invite
-                link.
+                {filtering
+                  ? "No results match your search or filters."
+                  : role === "student"
+                  ? "No students yet — use Register student to add the first one."
+                  : `No ${label.toLowerCase()} yet — add one using the form above, or share the invite link.`}
               </p>
             </div>
           )}
@@ -294,128 +442,129 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
                   <tr>
                     <th>Name</th>
                     <th>Email</th>
-                    <th>Phone</th>
-                    {usesBatches && <th>{role === "student" ? "Batch" : "Batches"}</th>}
+                    {role === "student" ? (
+                      <th>Course</th>
+                    ) : (
+                      <>
+                        <th>Phone</th>
+                        {role === "teacher" && <th>Batches</th>}
+                      </>
+                    )}
                     <th>Status</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {team.map((u) =>
-                    editingId === u._id ? (
+                  {team.map((u) => {
+                    const statusCell = (
+                      <td>
+                        <span className={u.isActive ? styles.badgeSuccess : styles.badgeInactive}>
+                          {u.isActive ? "Active" : "Inactive"}
+                        </span>
+                        {role === "student" && u.registrationComplete === false && (
+                          <span className={styles.badgePending} style={{ marginLeft: 6 }}>
+                            Registration pending
+                          </span>
+                        )}
+                        {role === "student" && u.deactivatedForPayment && (
+                          <span className={styles.badgePending} style={{ marginLeft: 6 }}>
+                            Payment due
+                          </span>
+                        )}
+                        {role === "student" && u.recordingBlockFrom && (
+                          <span className={styles.badgePending} style={{ marginLeft: 6 }}>
+                            Recordings blocked
+                          </span>
+                        )}
+                      </td>
+                    );
+                    const batchesCell =
+                      u.batches && u.batches.length > 0 ? u.batches.map(batchName).join(", ") : "Unassigned";
+
+                    if (editingId === u._id) {
+                      return (
+                        <tr key={u._id}>
+                          <td>
+                            <input
+                              className={styles.input}
+                              value={editForm.name}
+                              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                              aria-label="Name"
+                            />
+                            {role === "student" && (
+                              <input
+                                className={styles.input}
+                                style={{ marginTop: 6 }}
+                                value={editForm.phone}
+                                placeholder="Phone"
+                                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                aria-label="Phone"
+                              />
+                            )}
+                          </td>
+                          <td>{u.email}</td>
+                          {role === "student" ? (
+                            <td>{courseName(u)}</td>
+                          ) : (
+                            <>
+                              <td>
+                                <input
+                                  className={styles.input}
+                                  value={editForm.phone}
+                                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                                  aria-label="Phone"
+                                />
+                              </td>
+                              {role === "teacher" && <td>{batchesCell}</td>}
+                            </>
+                          )}
+                          {statusCell}
+                          <td>
+                            <div className={styles.rowActions} style={{ flexWrap: "nowrap" }}>
+                              <button className={styles.primaryButton} onClick={() => saveEdit(u._id)}>
+                                Save
+                              </button>
+                              <button className={styles.smallButton} onClick={cancelEdit}>
+                                Cancel
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return (
                       <tr key={u._id}>
                         <td>
-                          <input
-                            className={styles.input}
-                            value={editForm.name}
-                            onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                          />
+                          <strong>{u.name}</strong>
                         </td>
                         <td>{u.email}</td>
-                        <td>
-                          <input
-                            className={styles.input}
-                            value={editForm.phone}
-                            onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                          />
-                        </td>
-                        {usesBatches && (
-                          <td>
-                            {role === "student"
-                              ? u.batch
-                                ? batchName(u.batch)
-                                : "Unassigned"
-                              : u.batches && u.batches.length > 0
-                              ? u.batches.map(batchName).join(", ")
-                              : "Unassigned"}
-                          </td>
+                        {role === "student" ? (
+                          <td>{courseName(u)}</td>
+                        ) : (
+                          <>
+                            <td>{u.phone || "—"}</td>
+                            {role === "teacher" && <td>{batchesCell}</td>}
+                          </>
                         )}
+                        {statusCell}
                         <td>
-                          <span className={u.isActive ? styles.badgeSuccess : styles.badgeInactive}>
-                            {u.isActive ? "Active" : "Inactive"}
-                          </span>
-                          {role === "student" && u.deactivatedForPayment && (
-                            <span className={styles.badgePending} style={{ marginLeft: 6 }}>
-                              Payment due
-                            </span>
-                          )}
-                          {role === "student" && u.recordingBlockFrom && (
-                            <span className={styles.badgePending} style={{ marginLeft: 6 }}>
-                              Recordings blocked
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <div className={styles.rowActions}>
-                            <button className={styles.primaryButton} onClick={() => saveEdit(u._id)}>
-                              Save
-                            </button>
-                            <button className={styles.smallButton} onClick={cancelEdit}>
-                              Cancel
-                            </button>
+                          <div className={styles.rowActions} style={{ flexWrap: "nowrap", alignItems: "center" }}>
+                            {role === "student" ? (
+                              <button className={styles.primaryButton} onClick={() => setDetailsStudent(u)}>
+                                Details
+                              </button>
+                            ) : (
+                              <button className={styles.smallButton} onClick={() => startEdit(u)}>
+                                Edit
+                              </button>
+                            )}
+                            <RowMenu items={menuFor(u)} />
                           </div>
                         </td>
                       </tr>
-                    ) : (
-                      <tr key={u._id}>
-                        <td>{u.name}</td>
-                        <td>{u.email}</td>
-                        <td>{u.phone || "—"}</td>
-                        {usesBatches && (
-                          <td>
-                            {role === "student"
-                              ? u.batch
-                                ? batchName(u.batch)
-                                : "Unassigned"
-                              : u.batches && u.batches.length > 0
-                              ? u.batches.map(batchName).join(", ")
-                              : "Unassigned"}
-                          </td>
-                        )}
-                        <td>
-                          <span className={u.isActive ? styles.badgeSuccess : styles.badgeInactive}>
-                            {u.isActive ? "Active" : "Inactive"}
-                          </span>
-                          {role === "student" && u.deactivatedForPayment && (
-                            <span className={styles.badgePending} style={{ marginLeft: 6 }}>
-                              Payment due
-                            </span>
-                          )}
-                          {role === "student" && u.recordingBlockFrom && (
-                            <span className={styles.badgePending} style={{ marginLeft: 6 }}>
-                              Recordings blocked
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          <div className={styles.rowActions}>
-                            <button className={styles.smallButton} onClick={() => startEdit(u)}>
-                              Edit
-                            </button>
-                            {role === "student" && (
-                              <button className={styles.smallButton} onClick={() => setPaymentStudent(u)}>
-                                Payments
-                              </button>
-                            )}
-                            {role === "student" && (
-                              <button className={styles.smallButton} onClick={() => setAccessStudent(u)}>
-                                Access
-                              </button>
-                            )}
-                            <button className={styles.smallButton} onClick={() => setResetPasswordUser(u)}>
-                              Reset Password
-                            </button>
-                            <button className={styles.smallButton} onClick={() => toggleActive(u)}>
-                              {u.isActive ? "Deactivate" : "Activate"}
-                            </button>
-                            <button className={styles.dangerButton} onClick={() => removeMember(u)}>
-                              Delete
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  )}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

@@ -23,7 +23,7 @@ export default function TeacherNotifications() {
 
   const loadStudents = useCallback(async () => {
     if (!activeBatchId) return;
-    const res = await api.batchStudents(activeBatchId);
+    const res = await api.batchStudents(activeBatchId, { limit: 500 });
     setStudents(res.students);
     setRecipientId("");
     setBroadcast(false);

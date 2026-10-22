@@ -1,13 +1,14 @@
 "use client";
 
-import { CSSProperties, ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { api, Role } from "@/lib/api";
-import { shade } from "@/lib/color";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
+import BrandStyle from "@/components/BrandStyle";
+import ProfileEditModal from "./ProfileEditModal";
 import styles from "./dashboard.module.css";
 
 interface NavItem {
@@ -36,7 +37,12 @@ function getNavSections(
   switch (role) {
     case "superadmin":
       return [
-        { items: [{ href: `${base}/dashboard/superadmin`, label: "Overview" }] },
+        {
+          items: [
+            { href: `${base}/dashboard/superadmin`, label: "Overview" },
+            { href: `${base}/dashboard/superadmin/job-emails`, label: "Job Email Contacts" },
+          ],
+        },
         {
           title: "Settings",
           items: [{ href: `${base}/dashboard/superadmin/email`, label: "Email Settings" }],
@@ -50,6 +56,7 @@ function getNavSections(
           title: "Students",
           items: [
             { href: `${base}/dashboard/admin/leads`, label: "Leads" },
+            { href: `${base}/dashboard/admin/inquiry-forms`, label: "Inquiry Forms" },
             { href: `${base}/dashboard/admin/students`, label: "Students" },
             { href: `${base}/dashboard/admin/groups`, label: "Student Groups" },
             { href: `${base}/dashboard/admin/placements`, label: "Job Placements" },
@@ -59,6 +66,7 @@ function getNavSections(
           items: [
             { href: `${base}/dashboard/admin/teachers`, label: "Teachers" },
             { href: `${base}/dashboard/admin/telecallers`, label: "Telecallers" },
+            { href: `${base}/dashboard/admin/courses`, label: "Courses" },
             { href: `${base}/dashboard/admin/batches`, label: "Batches" },
             { href: `${base}/dashboard/admin/pending`, label: "Pending Approvals", badge: pendingCount },
             { href: `${base}/dashboard/admin/tools`, label: "Tools" },
@@ -111,7 +119,9 @@ function getNavSections(
           items: [
             { href: `${base}/dashboard/telecaller`, label: "Overview" },
             { href: `${base}/dashboard/telecaller/leads`, label: "My Leads" },
+            { href: `${base}/dashboard/telecaller/inquiry-forms`, label: "Inquiry Forms" },
             notifications,
+            { href: `${base}/dashboard/telecaller/quick-messages`, label: "Quick Messages" },
           ],
         },
       ];
@@ -127,9 +137,19 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const params = useParams<{ institute: string }>();
   const base = `/${params.institute}`;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [chatUnreadCount, setChatUnreadCount] = useState(0);
+
+  // Modals render in a portal on <body>, outside this shell — scope the brand
+  // palette to <body> too so they pick up the institute colours.
+  const hasBrand = !!institute?.brandColor;
+  useEffect(() => {
+    if (!hasBrand) return;
+    document.body.setAttribute("data-brand-scope", "");
+    return () => document.body.removeAttribute("data-brand-scope");
+  }, [hasBrand]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -176,14 +196,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     .join("")
     .toUpperCase();
 
-  const themeStyle = institute?.brandColor
-    ? ({
-        "--brand": institute.brandColor,
-        "--brand-dark": institute.brandColorPrimary || shade(institute.brandColor, -12),
-        ...(institute.brandColorBackground ? { "--background": institute.brandColorBackground } : {}),
-      } as CSSProperties)
-    : undefined;
-
   const sidebarContent = (
     <>
       <div className={styles.brand}>
@@ -214,16 +226,26 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         ))}
       </nav>
 
-      <div className={styles.spacer} />
-
       <div className={styles.userBlock}>
-        <div className={styles.userRow}>
-          <div className={styles.avatar}>{initials}</div>
+        <button
+          type="button"
+          className={styles.userRow}
+          onClick={() => setProfileOpen(true)}
+          title="Edit profile"
+        >
+          <div className={styles.avatar}>
+            {user.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.avatarUrl} alt={user.name} />
+            ) : (
+              initials
+            )}
+          </div>
           <div className={styles.userInfo}>
             <div className={styles.userName}>{user.name}</div>
             <div className={styles.userRole}>{user.role}</div>
           </div>
-        </div>
+        </button>
         <button className={styles.logoutButton} onClick={logout}>
           Logout
         </button>
@@ -232,7 +254,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div className={styles.pageShell} style={themeStyle}>
+    <div className={styles.pageShell} data-brand-scope="">
+      <BrandStyle color={institute?.brandColor} />
       <header className={styles.topBrandBar}>
         <div className={styles.topBrandSide}>
           <BrandLogo height={28} />
@@ -272,13 +295,30 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <BrandLogo height={26} className={styles.topbarBrand} />
             <div className={styles.topbarActions}>
               <ThemeToggle />
-              <div className={styles.avatar}>{initials}</div>
+              <button
+                type="button"
+                className={styles.avatarButton}
+                onClick={() => setProfileOpen(true)}
+                title="Edit profile"
+                aria-label="Edit profile"
+              >
+                <div className={styles.avatar}>
+                  {user.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={user.avatarUrl} alt={user.name} />
+                  ) : (
+                    initials
+                  )}
+                </div>
+              </button>
             </div>
           </div>
 
           <main className={styles.main}>{children}</main>
         </div>
       </div>
+
+      {profileOpen && <ProfileEditModal user={user} onClose={() => setProfileOpen(false)} />}
     </div>
   );
 }

@@ -4,10 +4,16 @@ import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, Tool } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 export default function AdminTools() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const [form, setForm] = useState({ name: "", url: "" });
   const [formError, setFormError] = useState("");
@@ -21,12 +27,14 @@ export default function AdminTools() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.listTools();
+      const res = await api.listTools({ page, limit: PAGE_SIZE });
       setTools(res.tools);
+      setTotalPages(res.totalPages);
+      setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     load();
@@ -133,7 +141,7 @@ export default function AdminTools() {
           <div className={styles.sectionHead}>
             <div>
               <h2 className={styles.sectionTitle}>All tools</h2>
-              <p className={styles.sectionSubtitle}>{tools.length} total</p>
+              <p className={styles.sectionSubtitle}>{total} total</p>
             </div>
           </div>
 
@@ -224,6 +232,8 @@ export default function AdminTools() {
               </table>
             </div>
           )}
+
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </section>
       </div>
     </div>

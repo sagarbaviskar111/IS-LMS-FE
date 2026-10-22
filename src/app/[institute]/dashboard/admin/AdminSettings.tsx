@@ -5,8 +5,9 @@ import { useSearchParams } from "next/navigation";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 import AdminBrandingSettings from "./AdminBrandingSettings";
-import AdminYoutubeSettings from "./AdminYoutubeSettings";
+import AdminVideoSettings from "./AdminVideoSettings";
 import AdminPasswordResetSettings from "./AdminPasswordResetSettings";
+import AdminSenderEmailSettings from "./AdminSenderEmailSettings";
 import AdminLeadIntegrations from "./AdminLeadIntegrations";
 
 const TABS = [
@@ -17,13 +18,18 @@ const TABS = [
   },
   {
     key: "youtube",
-    label: "YouTube",
-    hint: "Connect the YouTube account teachers upload session recordings to.",
+    label: "Video Storage",
+    hint: "Set up where teachers' session recordings are stored — a guided, step-by-step setup.",
+  },
+  {
+    key: "sender-email",
+    label: "Sender Email",
+    hint: "Connect your own Gmail so emails to your students, teachers and telecallers go out from your address.",
   },
   {
     key: "password-resets",
     label: "Password Resets",
-    hint: "How your team gets a new password when they forget theirs, and the Gmail sender it goes out from.",
+    hint: "How your team gets a new password when they forget theirs.",
   },
   {
     key: "lead-integrations",
@@ -59,8 +65,9 @@ function AdminSettingsInner() {
       </div>
 
       {tab === "branding" && <AdminBrandingSettings />}
-      {tab === "youtube" && <AdminYoutubeSettings />}
-      {tab === "password-resets" && <AdminPasswordResetSettings />}
+      {tab === "youtube" && <AdminVideoSettings />}
+      {tab === "sender-email" && <AdminSenderEmailSettings />}
+      {tab === "password-resets" && <AdminPasswordResetSettings onOpenSenderEmail={() => setTab("sender-email")} />}
       {tab === "lead-integrations" && <AdminLeadIntegrations />}
     </div>
   );

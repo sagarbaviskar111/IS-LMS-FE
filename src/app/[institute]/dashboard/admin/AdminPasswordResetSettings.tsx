@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import adminStyles from "./admin.module.css";
-import EmailSenderSettings from "../EmailSenderSettings";
 
-export default function AdminPasswordResetSettings() {
+export default function AdminPasswordResetSettings({ onOpenSenderEmail }: { onOpenSenderEmail: () => void }) {
+  const [senderReady, setSenderReady] = useState<boolean | null>(null);
   const [allowSelfPasswordReset, setAllowSelfPasswordReset] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -13,6 +13,10 @@ export default function AdminPasswordResetSettings() {
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
+    api
+      .getEmailSettings()
+      .then((res) => setSenderReady(res.hasCredentials))
+      .catch(() => setSenderReady(null));
     api
       .getTeamSettings()
       .then((res) => setAllowSelfPasswordReset(res.allowSelfPasswordReset))
@@ -37,7 +41,24 @@ export default function AdminPasswordResetSettings() {
 
   return (
     <div>
-      <EmailSenderSettings />
+      <section className={adminStyles.section}>
+        {senderReady === null ? null : senderReady ? (
+          <p>
+            <span className={adminStyles.badgeSuccess}>Sender email set up</span>
+          </p>
+        ) : (
+          <p className={adminStyles.messageError}>
+            Reset emails can&apos;t be sent until you connect your Gmail.{" "}
+            <button
+              type="button"
+              onClick={onOpenSenderEmail}
+              style={{ background: "none", border: 0, padding: 0, color: "inherit", textDecoration: "underline", cursor: "pointer", font: "inherit" }}
+            >
+              Set up sender email
+            </button>
+          </p>
+        )}
+      </section>
 
       <section className={adminStyles.section} style={{ marginTop: 16 }}>
         {loading ? (

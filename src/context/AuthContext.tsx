@@ -13,6 +13,9 @@ interface AuthContextValue {
   // Lets the branding settings page reflect a saved logo/color/slug in the
   // header immediately, without waiting for the next /me fetch.
   setInstitute: (institute: Institute | null) => void;
+  // Lets the profile-edit modal reflect a saved name/phone/photo in the
+  // sidebar immediately, without waiting for the next /me fetch.
+  setUser: (user: User | null) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -63,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, institute, loading, login, logout, setInstitute }}>
+    <AuthContext.Provider value={{ user, institute, loading, login, logout, setInstitute, setUser }}>
       {children}
     </AuthContext.Provider>
   );

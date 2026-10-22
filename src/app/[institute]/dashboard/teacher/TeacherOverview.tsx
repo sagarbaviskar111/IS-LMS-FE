@@ -7,19 +7,33 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 export default function TeacherOverview() {
   const { activeBatchId, activeBatch } = useTeacherBatch();
   const [students, setStudents] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (!activeBatchId) return;
     setLoading(true);
     api
-      .batchStudents(activeBatchId)
-      .then((res) => setStudents(res.students))
+      .batchStudents(activeBatchId, { page, limit: PAGE_SIZE })
+      .then((res) => {
+        setStudents(res.students);
+        setTotal(res.total);
+        setTotalPages(res.totalPages);
+      })
       .finally(() => setLoading(false));
+  }, [activeBatchId, page]);
+
+  useEffect(() => {
+    setPage(1);
   }, [activeBatchId]);
 
   return (
@@ -36,7 +50,7 @@ export default function TeacherOverview() {
         </div>
         <div className={dashboardStyles.card}>
           <p className={dashboardStyles.cardLabel}>My Students</p>
-          <p className={dashboardStyles.cardValue}>{loading ? "…" : students.length}</p>
+          <p className={dashboardStyles.cardValue}>{loading ? "…" : total}</p>
         </div>
       </div>
 
@@ -76,6 +90,8 @@ export default function TeacherOverview() {
             </table>
           </div>
         )}
+
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
       </section>
     </div>
   );

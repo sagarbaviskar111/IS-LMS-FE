@@ -9,6 +9,9 @@ import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
 import DocumentViewerModal from "../DocumentViewerModal";
 import VideoPlayerModal from "../VideoPlayerModal";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 const DOCUMENT_ACCEPT =
   ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain";
@@ -36,6 +39,9 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
   const [materials, setMaterials] = useState<Material[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const [sessionId, setSessionId] = useState("");
   const [title, setTitle] = useState("");
@@ -47,6 +53,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [youtubeConnected, setYoutubeConnected] = useState(true);
+  const [videoFlow, setVideoFlow] = useState<"youtube" | "storage">("youtube");
 
   const maxSize = isVideo ? VIDEO_MAX_SIZE : DOCUMENT_MAX_SIZE;
   const maxSizeLabel = isVideo ? "1GB" : "100MB";
@@ -55,7 +62,10 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
     if (!isVideo) return;
     api
       .teacherYoutubeStatus()
-      .then((res) => setYoutubeConnected(res.connected))
+      .then((res) => {
+        setYoutubeConnected(res.connected);
+        setVideoFlow(res.flow || "youtube");
+      })
       .catch(() => setYoutubeConnected(true));
   }, [isVideo]);
 
@@ -64,19 +74,27 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
     setLoading(true);
     try {
       const [materialsRes, sessionsRes] = await Promise.all([
-        api.listMaterials(activeBatchId),
+        api.listMaterials(activeBatchId, { type, page, limit: PAGE_SIZE }),
         api.listSessions(activeBatchId),
       ]);
-      setMaterials(materialsRes.materials.filter((m) => m.type === type));
+      setMaterials(materialsRes.materials);
+      setTotalPages(materialsRes.totalPages);
+      setTotal(materialsRes.total);
       setSessions(sessionsRes.sessions);
     } finally {
       setLoading(false);
     }
-  }, [activeBatchId, type]);
+  }, [activeBatchId, type, page]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Switching batch or tab (study material vs recordings) should land back
+  // on page 1 rather than an empty page from the previous selection.
+  useEffect(() => {
+    setPage(1);
+  }, [activeBatchId, type]);
 
   const resetFileInput = () => {
     const el = document.getElementById(`${type}-file`) as HTMLInputElement | null;
@@ -163,8 +181,9 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
 
           {isVideo && !youtubeConnected ? (
             <p className={adminStyles.messageError}>
-              Your institute hasn&apos;t connected a YouTube account yet — ask your admin to
-              connect one under Admin &gt; YouTube Settings before uploading recordings.
+              {videoFlow === "storage"
+                ? "Your institute hasn't set up its storage server yet — ask your admin to finish Settings > Video Storage before uploading recordings."
+                : "Your institute hasn't connected a YouTube account yet — ask your admin to connect one under Settings > Video Storage before uploading recordings."}
             </p>
           ) : isVideo && sessions.length === 0 ? (
             <p className={adminStyles.empty}>
@@ -264,7 +283,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
               <h2 className={adminStyles.sectionTitle}>
                 {isVideo ? "Recordings" : "Documents"} shared with this batch
               </h2>
-              <p className={adminStyles.sectionSubtitle}>{materials.length} file(s)</p>
+              <p className={adminStyles.sectionSubtitle}>{total} file(s)</p>
             </div>
           </div>
 
@@ -298,7 +317,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
                         <td>{new Date(m.createdAt).toLocaleDateString()}</td>
                         <td>
                           <div className={adminStyles.rowActions}>
-                            {m.youtubeVideoId ? (
+                            {m.youtubeVideoId || m.videoUrl ? (
                               <button className={adminStyles.smallButton} onClick={() => setWatching(m)}>
                                 Open
                               </button>
@@ -319,6 +338,8 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
               </table>
             </div>
           )}
+
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </section>
       </div>
 
@@ -331,10 +352,11 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
         />
       )}
 
-      {watching && watching.youtubeVideoId && (
+      {watching && (watching.youtubeVideoId || watching.videoUrl) && (
         <VideoPlayerModal
           title={watching.title}
           videoId={watching.youtubeVideoId}
+          videoUrl={watching.videoUrl}
           onClose={() => setWatching(null)}
         />
       )}

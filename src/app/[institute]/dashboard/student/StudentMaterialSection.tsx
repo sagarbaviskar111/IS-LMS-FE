@@ -9,6 +9,9 @@ import DocumentViewerModal from "../DocumentViewerModal";
 import VideoPlayerModal from "../VideoPlayerModal";
 import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 function sessionDateLabel(m: Material): string | null {
   if (typeof m.session !== "object" || !m.session) return null;
@@ -25,14 +28,24 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
   const [loading, setLoading] = useState(true);
   const [viewing, setViewing] = useState<Material | null>(null);
   const [watching, setWatching] = useState<Material | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    Promise.all([api.myStudentBatch(), api.studentMaterials()])
+    setLoading(true);
+    Promise.all([api.myStudentBatch(), api.studentMaterials({ type, page, limit: PAGE_SIZE })])
       .then(([batchRes, materialsRes]) => {
         setBatch(batchRes.batch);
-        setMaterials(materialsRes.materials.filter((m) => m.type === type));
+        setMaterials(materialsRes.materials);
+        setTotalPages(materialsRes.totalPages);
+        setTotal(materialsRes.total);
       })
       .finally(() => setLoading(false));
+  }, [type, page]);
+
+  useEffect(() => {
+    setPage(1);
   }, [type]);
 
   const title = isVideo ? "Session Recordings" : "Study Material";
@@ -90,9 +103,9 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
                         </span>
                       ) : (
                         <button
-                          className={`${adminStyles.smallButton} ${!v.youtubeVideoId ? studentStyles.disabledButton : ""}`}
+                          className={`${adminStyles.smallButton} ${!(v.youtubeVideoId || v.videoUrl) ? studentStyles.disabledButton : ""}`}
                           onClick={() => setWatching(v)}
-                          disabled={!v.youtubeVideoId}
+                          disabled={!(v.youtubeVideoId || v.videoUrl)}
                         >
                           Play
                         </button>
@@ -141,6 +154,8 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
         </section>
       )}
 
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+
       {viewing && viewing.fileUrl && (
         <DocumentViewerModal
           fileName={viewing.fileName}
@@ -150,10 +165,11 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
         />
       )}
 
-      {watching && watching.youtubeVideoId && (
+      {watching && (watching.youtubeVideoId || watching.videoUrl) && (
         <VideoPlayerModal
           title={watching.title}
           videoId={watching.youtubeVideoId}
+          videoUrl={watching.videoUrl}
           onClose={() => setWatching(null)}
         />
       )}

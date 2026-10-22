@@ -6,6 +6,9 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import studentStyles from "./student.module.css";
 import StudentEmptyState from "./StudentEmptyState";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 function weekdayLabel(dateStr: string): string {
   return new Date(dateStr.slice(0, 10) + "T00:00:00").toLocaleDateString(undefined, {
@@ -30,18 +33,28 @@ function percentageClass(pct: number | null): string {
 export default function StudentOverview() {
   const [batch, setBatch] = useState<Batch | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessionsTotal, setSessionsTotal] = useState(0);
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const [sessionsTotalPages, setSessionsTotalPages] = useState(1);
   const [attendance, setAttendance] = useState<StudentAttendance | null>(null);
+  const [attendancePage, setAttendancePage] = useState(1);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([api.myStudentBatch(), api.studentSessions(), api.studentAttendance()])
+    Promise.all([
+      api.myStudentBatch(),
+      api.studentSessions({ page: sessionsPage, limit: PAGE_SIZE }),
+      api.studentAttendance({ page: attendancePage, limit: PAGE_SIZE }),
+    ])
       .then(([batchRes, sessionsRes, attendanceRes]) => {
         setBatch(batchRes.batch);
         setSessions(sessionsRes.sessions);
+        setSessionsTotal(sessionsRes.total);
+        setSessionsTotalPages(sessionsRes.totalPages);
         setAttendance(attendanceRes);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [sessionsPage, attendancePage]);
 
   if (!loading && !batch) {
     return (
@@ -55,7 +68,7 @@ export default function StudentOverview() {
     );
   }
 
-  const missedCount = attendance?.sessions.filter((s) => s.status === "absent").length ?? 0;
+  const missedCount = attendance ? attendance.total - attendance.present : 0;
 
   return (
     <div>
@@ -69,7 +82,7 @@ export default function StudentOverview() {
         </div>
         <div className={dashboardStyles.card}>
           <p className={dashboardStyles.cardLabel}>Upcoming Sessions</p>
-          <p className={dashboardStyles.cardValue}>{loading ? "…" : sessions.length}</p>
+          <p className={dashboardStyles.cardValue}>{loading ? "…" : sessionsTotal}</p>
         </div>
         <div className={dashboardStyles.card}>
           <p className={dashboardStyles.cardLabel}>Attendance</p>
@@ -136,6 +149,15 @@ export default function StudentOverview() {
             </table>
           </div>
         )}
+
+        {attendance && (
+          <Pagination
+            page={attendancePage}
+            totalPages={attendance.totalPages}
+            total={attendance.total}
+            onPageChange={setAttendancePage}
+          />
+        )}
       </section>
 
       <section className={adminStyles.section}>
@@ -194,6 +216,13 @@ export default function StudentOverview() {
             </table>
           </div>
         )}
+
+        <Pagination
+          page={sessionsPage}
+          totalPages={sessionsTotalPages}
+          total={sessionsTotal}
+          onPageChange={setSessionsPage}
+        />
       </section>
     </div>
   );

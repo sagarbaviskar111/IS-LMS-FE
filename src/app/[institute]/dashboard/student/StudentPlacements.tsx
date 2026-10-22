@@ -6,24 +6,35 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 export default function StudentPlacements() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const load = () => {
     setLoading(true);
     return api
-      .studentListJobs({ limit: 200 })
-      .then((res) => setJobs(res.jobs))
+      .studentListJobs({ page, limit: PAGE_SIZE })
+      .then((res) => {
+        setJobs(res.jobs);
+        setTotalPages(res.totalPages);
+        setTotal(res.total);
+      })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const expressInterest = async (job: Job) => {
     setError("");
@@ -59,7 +70,6 @@ export default function StudentPlacements() {
                 <p className={adminStyles.sectionSubtitle}>
                   {job.company}
                   {job.location ? ` · ${job.location}` : ""}
-                  {job.salary ? ` · ${job.salary}` : ""}
                 </p>
               </div>
               <span className={job.status === "open" ? adminStyles.badge : adminStyles.badgeInactive}>
@@ -67,9 +77,23 @@ export default function StudentPlacements() {
               </span>
             </div>
 
-            <p style={{ color: "var(--foreground)", fontSize: "0.9rem", lineHeight: 1.6, margin: "10px 0 16px", whiteSpace: "pre-wrap" }}>
+            <p style={{ color: "var(--foreground)", fontSize: "0.9rem", lineHeight: 1.6, margin: "10px 0 12px", whiteSpace: "pre-wrap" }}>
               {job.description}
             </p>
+
+            {job.skills && (
+              <p style={{ color: "var(--foreground)", fontSize: "0.88rem", margin: "0 0 8px" }}>
+                <strong>Skills:</strong> {job.skills}
+              </p>
+            )}
+
+            {job.responsibilities && (
+              <p style={{ color: "var(--foreground)", fontSize: "0.88rem", lineHeight: 1.6, margin: "0 0 16px", whiteSpace: "pre-wrap" }}>
+                <strong>Responsibilities:</strong>
+                <br />
+                {job.responsibilities}
+              </p>
+            )}
 
             {job.status !== "open" ? (
               <span className={adminStyles.empty}>This posting is closed.</span>
@@ -98,6 +122,8 @@ export default function StudentPlacements() {
           </section>
         ))}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </div>
   );
 }

@@ -1,18 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { api, ApiError, CallResponse, Lead, User } from "@/lib/api";
+import { api, ApiError, Lead, User } from "@/lib/api";
+import { STATUS_LABELS } from "@/lib/leadStatus";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 import Modal from "../Modal";
-
-const RESPONSE_LABELS: Record<CallResponse, string> = {
-  no_answer: "No answer",
-  call_back_later: "Call back later",
-  interested: "Interested",
-  not_interested: "Not interested",
-  wrong_number: "Wrong number",
-};
 
 function who(ref: { name: string } | string | null | undefined): string {
   if (!ref) return "—";
@@ -167,7 +160,7 @@ export default function AdminLeadModal({
                 {[...lead.callLogs].reverse().map((c) => (
                   <tr key={c._id}>
                     <td>{new Date(c.createdAt).toLocaleString()}</td>
-                    <td>{RESPONSE_LABELS[c.response]}</td>
+                    <td>{STATUS_LABELS[c.response]}</td>
                     <td>{c.notes || "—"}</td>
                     <td>{who(c.calledBy)}</td>
                   </tr>

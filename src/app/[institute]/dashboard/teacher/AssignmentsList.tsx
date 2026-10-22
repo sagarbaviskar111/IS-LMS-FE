@@ -9,6 +9,9 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 const ATTACHMENT_ACCEPT =
   ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,image/jpeg,image/png,image/webp";
@@ -30,6 +33,9 @@ export default function AssignmentsList() {
   const { activeBatchId, activeBatch } = useTeacherBatch();
   const [assignments, setAssignments] = useState<AssignmentRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -42,17 +48,23 @@ export default function AssignmentsList() {
     if (!activeBatchId) return;
     setLoading(true);
     try {
-      const res = await api.listAssignments(activeBatchId);
+      const res = await api.listAssignments(activeBatchId, { page, limit: PAGE_SIZE });
       const now = Date.now();
       setAssignments(res.assignments.map((a) => ({ ...a, overdue: new Date(a.dueDate).getTime() < now })));
+      setTotalPages(res.totalPages);
+      setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, [activeBatchId]);
+  }, [activeBatchId, page]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeBatchId]);
 
   const resetFileInput = () => {
     const el = document.getElementById("assignment-file") as HTMLInputElement | null;
@@ -161,7 +173,7 @@ export default function AssignmentsList() {
           <div className={adminStyles.sectionHead}>
             <div>
               <h2 className={adminStyles.sectionTitle}>All assignments</h2>
-              <p className={adminStyles.sectionSubtitle}>{assignments.length} total</p>
+              <p className={adminStyles.sectionSubtitle}>{total} total</p>
             </div>
           </div>
 
@@ -216,6 +228,8 @@ export default function AssignmentsList() {
               </table>
             </div>
           )}
+
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </section>
       </div>
     </div>

@@ -1,21 +1,36 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api, Tool } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 export default function Tools() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    return api
+      .teacherTools({ page, limit: PAGE_SIZE })
+      .then((res) => {
+        setTools(res.tools);
+        setTotalPages(res.totalPages);
+        setTotal(res.total);
+      })
+      .finally(() => setLoading(false));
+  }, [page]);
 
   useEffect(() => {
-    api
-      .teacherTools()
-      .then((res) => setTools(res.tools))
-      .finally(() => setLoading(false));
-  }, []);
+    load();
+  }, [load]);
 
   return (
     <div>
@@ -60,6 +75,8 @@ export default function Tools() {
             </table>
           </div>
         )}
+
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
       </section>
     </div>
   );

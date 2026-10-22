@@ -1,13 +1,13 @@
 "use client";
 
-import { CSSProperties, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ApiError, Institute } from "@/lib/api";
-import { shade } from "@/lib/color";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
+import BrandStyle from "@/components/BrandStyle";
 import styles from "./login.module.css";
 
 export default function LoginForm({
@@ -49,16 +49,9 @@ export default function LoginForm({
     doLogin(email, password);
   };
 
-  const themeStyle = institute?.brandColor
-    ? ({
-        "--brand": institute.brandColor,
-        "--brand-dark": institute.brandColorPrimary || shade(institute.brandColor, -12),
-        ...(institute.brandColorBackground ? { "--background": institute.brandColorBackground } : {}),
-      } as CSSProperties)
-    : undefined;
-
   return (
-    <div className={styles.wrapper} style={themeStyle}>
+    <div className={styles.wrapper} data-brand-scope="">
+      <BrandStyle color={institute?.brandColor} />
       <ThemeToggle className={styles.themeToggleFixed} />
       <div className={styles.stack}>
         <div className={styles.brandRow}>

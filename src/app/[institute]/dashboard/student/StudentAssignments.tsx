@@ -8,6 +8,9 @@ import studentStyles from "./student.module.css";
 import DocumentViewerModal from "../DocumentViewerModal";
 import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 interface ViewingFile {
   fileName: string;
@@ -41,18 +44,26 @@ export default function StudentAssignments() {
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [viewing, setViewing] = useState<ViewingFile | null>(null);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const load = () => {
     setLoading(true);
     return api
-      .studentListAssignments()
-      .then((res) => setAssignments(res.assignments))
+      .studentListAssignments({ page, limit: PAGE_SIZE })
+      .then((res) => {
+        setAssignments(res.assignments);
+        setTotalPages(res.totalPages);
+        setTotal(res.total);
+      })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
     load();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const submit = async (id: string) => {
     const file = files[id];
@@ -173,6 +184,8 @@ export default function StudentAssignments() {
           </section>
         ))}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
 
       {viewing && (
         <DocumentViewerModal

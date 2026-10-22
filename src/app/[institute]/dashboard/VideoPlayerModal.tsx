@@ -7,10 +7,12 @@ import adminStyles from "./admin/admin.module.css";
 export default function VideoPlayerModal({
   title,
   videoId,
+  videoUrl,
   onClose,
 }: {
   title: string;
-  videoId: string;
+  videoId?: string | null;
+  videoUrl?: string | null;
   onClose: () => void;
 }) {
   return (
@@ -32,7 +34,20 @@ export default function VideoPlayerModal({
           Close
         </button>
       </div>
-      <YoutubePlayer videoId={videoId} />
+      {videoUrl ? (
+        // Recording hosted on the institute's own storage server (signed URL).
+        <video
+          src={videoUrl}
+          controls
+          autoPlay
+          controlsList="nodownload"
+          disablePictureInPicture
+          onContextMenu={(e) => e.preventDefault()}
+          style={{ width: "100%", maxHeight: "70vh", background: "#000", borderRadius: 8 }}
+        />
+      ) : videoId ? (
+        <YoutubePlayer videoId={videoId} />
+      ) : null}
     </Modal>
   );
 }

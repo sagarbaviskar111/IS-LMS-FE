@@ -1,0 +1,717 @@
+/* Public inquiry form — bright, soft, modern. Always light (no dark theme):
+   every colour below is set locally so the page ignores the app's theme. */
+
+.wrapper {
+  --ink: #0f172a;
+  --sub: #64748b;
+  --line: #e2e8f0;
+  --field: #f8fafc;
+  --danger: #dc2626;
+  --brand-dark: #0b1f3a;
+  --tint: color-mix(in srgb, var(--brand) 9%, #fff);
+  --ring: color-mix(in srgb, var(--brand) 18%, transparent);
+
+  color-scheme: light;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  padding: 40px 20px 64px;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 520px at 0% 0%, color-mix(in srgb, var(--brand) 13%, #fff), transparent 62%),
+    radial-gradient(800px 500px at 100% 100%, color-mix(in srgb, var(--brand) 9%, #fff), transparent 60%),
+    #ffffff;
+}
+
+.shell {
+  margin: auto;
+  width: 100%;
+  max-width: 1180px;
+  display: grid;
+  grid-template-columns: 380px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+/* ---------- Brand side panel ---------- */
+
+.aside {
+  position: sticky;
+  top: 32px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 36px 32px;
+  border-radius: 28px;
+  color: #fff;
+  background: linear-gradient(150deg, var(--brand), var(--brand-dark));
+  box-shadow: 0 30px 60px -28px color-mix(in srgb, var(--brand) 70%, transparent);
+}
+
+.aside::before,
+.aside::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.09);
+  pointer-events: none;
+}
+
+.aside::before {
+  width: 260px;
+  height: 260px;
+  top: -90px;
+  right: -90px;
+}
+
+.aside::after {
+  width: 200px;
+  height: 200px;
+  bottom: -70px;
+  left: -60px;
+}
+
+.aside > * {
+  position: relative;
+  z-index: 1;
+}
+
+.logoChip {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  padding: 10px 18px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 20px -8px rgba(15, 23, 42, 0.35);
+}
+
+.logo {
+  max-height: 44px;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.instituteName {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.asideBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.subject {
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 2.2rem);
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.description {
+  margin: 0;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 0.92rem;
+  font-weight: 500;
+}
+
+.facts li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.factIcon {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.progressTrack {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  background: #fff;
+  transition: width 0.35s ease;
+}
+
+/* ---------- Form card ---------- */
+
+.formCard {
+  min-width: 0;
+  padding: 44px;
+  border-radius: 28px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 24px 60px -30px rgba(15, 23, 42, 0.18);
+}
+
+.formHead {
+  margin-bottom: 32px;
+}
+
+.formTitle {
+  margin: 0 0 6px;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.formSub {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--sub);
+}
+
+.star {
+  margin-left: 3px;
+  color: var(--danger);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 30px 28px;
+}
+
+.span6 {
+  grid-column: span 6;
+}
+
+.span12 {
+  grid-column: span 12;
+}
+
+.field {
+  min-width: 0;
+}
+
+.label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.qIndex {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--brand);
+}
+
+.qTitle {
+  font-size: 0.98rem;
+  font-weight: 650;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.qDesc {
+  margin: 0 0 10px;
+  font-size: 0.85rem;
+  color: var(--sub);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.label + .input,
+.label + .select,
+.label + .textarea,
+.label + .optionList,
+.label + .scale,
+.label + .gridWrap {
+  margin-top: 10px;
+}
+
+/* ---------- Inputs ---------- */
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  max-width: 100%;
+  padding: 14px 16px;
+  font: inherit;
+  color: var(--ink);
+  background: var(--field);
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+  color: #94a3b8;
+}
+
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: #cbd5e1;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+.textarea {
+  min-height: 130px;
+  resize: vertical;
+  line-height: 1.55;
+}
+
+.select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 44px;
+  background-image:
+    linear-gradient(45deg, transparent 50%, #64748b 50%),
+    linear-gradient(135deg, #64748b 50%, transparent 50%);
+  background-position:
+    calc(100% - 22px) 52%,
+    calc(100% - 16px) 52%;
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.shortInput {
+  composes: input;
+}
+
+.nameRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.fieldError .input,
+.fieldError .select,
+.fieldError .textarea {
+  border-color: var(--danger);
+  background: #fff7f7;
+}
+
+.errorText {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+/* ---------- Choice chips ---------- */
+
+.optionList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.choice {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.choice:hover {
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--line));
+}
+
+.choice:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--tint);
+  box-shadow: 0 0 0 3px var(--ring);
+  font-weight: 600;
+}
+
+.choice:has(input:focus-visible) {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.choice input,
+.scaleBtn input,
+.dotWrap input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.mark,
+.markSquare {
+  flex: 0 0 auto;
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.markSquare {
+  border-radius: 6px;
+}
+
+.choice:has(input:checked) .mark {
+  border-color: var(--brand);
+  background: radial-gradient(circle, var(--brand) 0 38%, #fff 42%);
+}
+
+.choice:has(input:checked) .markSquare {
+  border-color: var(--brand);
+  background: var(--brand);
+}
+
+.choice:has(input:checked) .markSquare::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 5px;
+  height: 10px;
+  border: solid var(--on-brand, #fff);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+/* ---------- Linear scale ---------- */
+
+.scale {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.scaleLabel {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--sub);
+  max-width: 120px;
+  overflow-wrap: anywhere;
+}
+
+.scaleBtn {
+  position: relative;
+  cursor: pointer;
+}
+
+.scaleBtn span {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  font-weight: 700;
+  background: #fff;
+  transition: all 0.15s ease;
+}
+
+.scaleBtn:hover span {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.scaleBtn input:checked + span {
+  color: var(--on-brand, #fff);
+  border-color: var(--brand);
+  background: var(--brand);
+  box-shadow: 0 8px 18px -8px var(--brand);
+}
+
+.scaleBtn input:focus-visible + span {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ---------- Grid ---------- */
+
+.gridWrap {
+  overflow-x: auto;
+  border: 1.5px solid var(--line);
+  border-radius: 16px;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.grid th,
+.grid td {
+  padding: 14px 16px;
+  text-align: center;
+  font-size: 0.88rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.grid tr:last-child td {
+  border-bottom: none;
+}
+
+.grid thead th {
+  font-weight: 700;
+  color: var(--sub);
+  background: var(--field);
+}
+
+.grid th:first-child,
+.grid td:first-child {
+  text-align: left;
+  min-width: 140px;
+  font-weight: 600;
+}
+
+.dotWrap {
+  position: relative;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.dot,
+.dotSquare {
+  width: 22px;
+  height: 22px;
+  border: 2px solid #cbd5e1;
+  border-radius: 50%;
+  background: #fff;
+  transition: all 0.15s ease;
+}
+
+.dotSquare {
+  border-radius: 7px;
+}
+
+.dotWrap:hover .dot,
+.dotWrap:hover .dotSquare {
+  border-color: var(--brand);
+}
+
+.dotWrap input:checked + .dot,
+.dotWrap input:checked + .dotSquare {
+  border-color: var(--brand);
+  background: var(--brand);
+  box-shadow: inset 0 0 0 4px #fff;
+}
+
+.dotWrap input:focus-visible + .dot,
+.dotWrap input:focus-visible + .dotSquare {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* ---------- Actions ---------- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 40px;
+  padding-top: 28px;
+  border-top: 1px solid var(--line);
+}
+
+.submit {
+  padding: 15px 34px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--on-brand, #fff);
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  box-shadow: 0 14px 28px -12px color-mix(in srgb, var(--brand) 80%, transparent);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 32px -12px color-mix(in srgb, var(--brand) 85%, transparent);
+}
+
+.submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.clear,
+.secondaryButton {
+  padding: 13px 22px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--sub);
+  background: #fff;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clear:hover,
+.secondaryButton:hover {
+  color: var(--brand);
+  border-color: var(--brand);
+}
+
+/* ---------- Not found / closed / thank-you ---------- */
+
+.statusCard {
+  margin: auto;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 52px 36px;
+  text-align: center;
+  border-radius: 28px;
+  background: #fff;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 24px 60px -30px rgba(15, 23, 42, 0.18);
+}
+
+.statusIcon {
+  width: 76px;
+  height: 76px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--brand);
+  background: var(--tint);
+}
+
+.statusTitle {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+
+.statusText {
+  margin: 0;
+  max-width: 400px;
+  line-height: 1.6;
+  color: var(--sub);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1040px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* relative (not static) so the aside's decorative circles stay clipped. */
+  .aside {
+    position: relative;
+    top: 0;
+    padding: 30px 28px;
+  }
+}
+
+@media (max-width: 720px) {
+  /* 12 columns + their gaps would be wider than a phone; go single-column. */
+  .fields {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
+  }
+
+  .span6,
+  .span12 {
+    grid-column: auto;
+  }
+
+  .formCard {
+    padding: 28px 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .wrapper {
+    padding: 16px 12px 40px;
+  }
+
+  .submit,
+  .clear {
+    width: 100%;
+  }
+}

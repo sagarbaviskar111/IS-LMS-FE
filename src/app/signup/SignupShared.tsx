@@ -1,12 +1,12 @@
 "use client";
 
-import { CSSProperties, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api, ApiError, Institute, Role } from "@/lib/api";
-import { shade } from "@/lib/color";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
+import BrandStyle from "@/components/BrandStyle";
 import styles from "./signup.module.css";
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -181,16 +181,9 @@ export default function SignupShared({
   institute?: Institute | null;
   basePath: string;
 }) {
-  const themeStyle = institute?.brandColor
-    ? ({
-        "--brand": institute.brandColor,
-        "--brand-dark": institute.brandColorPrimary || shade(institute.brandColor, -12),
-        ...(institute.brandColorBackground ? { "--background": institute.brandColorBackground } : {}),
-      } as CSSProperties)
-    : undefined;
-
   return (
-    <div className={styles.wrapper} style={themeStyle}>
+    <div className={styles.wrapper} data-brand-scope="">
+      <BrandStyle color={institute?.brandColor} />
       <ThemeToggle className={styles.themeToggleFixed} />
       <div className={styles.stack}>
         <div className={styles.brandRow}>

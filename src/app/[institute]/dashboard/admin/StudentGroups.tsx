@@ -4,11 +4,17 @@ import { useEffect, useState, useCallback } from "react";
 import { api, ApiError, StudentGroup, User } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 export default function StudentGroups() {
   const [groups, setGroups] = useState<StudentGroup[]>([]);
   const [students, setStudents] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const [form, setForm] = useState({
     name: "",
@@ -29,16 +35,18 @@ export default function StudentGroups() {
     setLoading(true);
     try {
       const [groupsRes, studentsRes] = await Promise.all([
-        api.listStudentGroups(),
+        api.listStudentGroups({ page, limit: PAGE_SIZE }),
         // Full roster for the assignment picker below — not the browsable page.
         api.listUsers({ role: "student", status: "team", limit: 500 }),
       ]);
       setGroups(groupsRes.groups);
+      setTotalPages(groupsRes.totalPages);
+      setTotal(groupsRes.total);
       setStudents(studentsRes.users);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     load();
@@ -159,7 +167,7 @@ export default function StudentGroups() {
           <div className={styles.sectionHead}>
             <div>
               <h2 className={styles.sectionTitle}>All groups</h2>
-              <p className={styles.sectionSubtitle}>{groups.length} total</p>
+              <p className={styles.sectionSubtitle}>{total} total</p>
             </div>
           </div>
 
@@ -257,6 +265,8 @@ export default function StudentGroups() {
               </table>
             </div>
           )}
+
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </section>
       </div>
     </div>

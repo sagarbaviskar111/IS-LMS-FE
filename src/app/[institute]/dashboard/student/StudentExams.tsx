@@ -9,6 +9,9 @@ import adminStyles from "../admin/admin.module.css";
 import studentStyles from "./student.module.css";
 import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 const STATUS_BADGE: Record<string, string> = {
   published: adminStyles.badge,
@@ -19,13 +22,21 @@ export default function StudentExams() {
   const { institute } = useParams<{ institute: string }>();
   const [exams, setExams] = useState<StudentExamSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
+    setLoading(true);
     api
-      .studentListExams()
-      .then((res) => setExams(res.exams))
+      .studentListExams({ page, limit: PAGE_SIZE })
+      .then((res) => {
+        setExams(res.exams);
+        setTotalPages(res.totalPages);
+        setTotal(res.total);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [page]);
 
   return (
     <div>
@@ -87,6 +98,8 @@ export default function StudentExams() {
           </table>
         </div>
       )}
+
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
     </div>
   );
 }

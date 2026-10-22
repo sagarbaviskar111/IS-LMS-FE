@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { api, ApiError, User } from "@/lib/api";
+import { api, ApiError, User, VideoFlow } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "../admin/admin.module.css";
 import localStyles from "./SuperAdminDashboard.module.css";
@@ -44,6 +44,12 @@ export default function SuperAdminDashboard() {
 
   const toggleActive = async (admin: User) => {
     await api.updateUser(admin._id, { isActive: !admin.isActive });
+    load();
+  };
+
+  const changeFlow = async (admin: User, flow: VideoFlow) => {
+    if (flow === (admin.videoFlow || "youtube")) return;
+    await api.setAdminVideoFlow(admin._id, flow);
     load();
   };
 
@@ -195,6 +201,7 @@ export default function SuperAdminDashboard() {
                     <th>Name</th>
                     <th>Email</th>
                     <th>Invite codes (student / teacher / telecaller)</th>
+                    <th>Recording flow</th>
                     <th>Status</th>
                     <th></th>
                   </tr>
@@ -206,6 +213,17 @@ export default function SuperAdminDashboard() {
                       <td>{a.email}</td>
                       <td style={{ fontFamily: "var(--font-geist-mono, monospace)", fontSize: "0.8rem" }}>
                         {a.studentInviteCode} / {a.teacherInviteCode} / {a.telecallerInviteCode}
+                      </td>
+                      <td>
+                        <select
+                          className={styles.input}
+                          value={a.videoFlow || "youtube"}
+                          onChange={(e) => changeFlow(a, e.target.value as VideoFlow)}
+                          title="Where this institute's session recordings are stored"
+                        >
+                          <option value="youtube">YouTube (their channel)</option>
+                          <option value="storage">Own storage (AWS S3 / Cloudflare R2)</option>
+                        </select>
                       </td>
                       <td>
                         <span className={a.isActive ? localStyles.badgeActive : styles.badgeInactive}>

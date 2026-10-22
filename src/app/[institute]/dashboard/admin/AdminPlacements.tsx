@@ -5,12 +5,16 @@ import { api, ApiError, Batch, Job, JobApplicationMode, JobInterestRow, JobVisib
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
 import Modal from "../Modal";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 const emptyForm = {
   title: "",
   company: "",
   location: "",
-  salary: "",
+  skills: "",
+  responsibilities: "",
   description: "",
   visibility: "all" as JobVisibility,
   batchId: "",
@@ -22,10 +26,17 @@ export default function AdminPlacements() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [pasteText, setPasteText] = useState("");
+  const [parsing, setParsing] = useState(false);
+  const [parseError, setParseError] = useState("");
 
   const [rowError, setRowError] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -37,17 +48,44 @@ export default function AdminPlacements() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [jobsRes, batchesRes] = await Promise.all([api.listJobs({ limit: 200 }), api.listBatches({ limit: 200 })]);
+      const [jobsRes, batchesRes] = await Promise.all([
+        api.listJobs({ page, limit: PAGE_SIZE }),
+        api.listBatches({ limit: 200 }),
+      ]);
       setJobs(jobsRes.jobs);
+      setTotalPages(jobsRes.totalPages);
+      setTotal(jobsRes.total);
       setBatches(batchesRes.batches);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleAutoFill = async () => {
+    if (!pasteText.trim()) return;
+    setParseError("");
+    setParsing(true);
+    try {
+      const res = await api.parseJobText(pasteText);
+      setForm((prev) => ({
+        ...prev,
+        title: res.fields.title || prev.title,
+        company: res.fields.company || prev.company,
+        location: res.fields.location || prev.location,
+        skills: res.fields.skills || prev.skills,
+        responsibilities: res.fields.responsibilities || prev.responsibilities,
+        description: res.fields.description || prev.description,
+      }));
+    } catch (err) {
+      setParseError(err instanceof ApiError ? err.message : "Could not read that job post");
+    } finally {
+      setParsing(false);
+    }
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +96,8 @@ export default function AdminPlacements() {
         title: form.title,
         company: form.company,
         description: form.description,
-        salary: form.salary,
+        skills: form.skills,
+        responsibilities: form.responsibilities,
         location: form.location,
         visibility: form.visibility,
         batchId: form.visibility === "batch" ? form.batchId : undefined,
@@ -125,6 +164,31 @@ export default function AdminPlacements() {
             </div>
           </div>
 
+          <div style={{ marginBottom: 18 }}>
+            <label className={styles.label}>
+              Paste a job post — from WhatsApp, email, anywhere
+              <textarea
+                className={styles.input}
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                rows={4}
+                style={{ resize: "vertical", fontFamily: "inherit" }}
+                placeholder="Paste the whole message here and click Auto-fill — it'll read it and fill the fields below for you."
+              />
+            </label>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8 }}>
+              <button
+                type="button"
+                className={styles.smallButton}
+                disabled={parsing || !pasteText.trim()}
+                onClick={handleAutoFill}
+              >
+                {parsing ? "Reading..." : "Auto-fill ✨"}
+              </button>
+              {parseError && <p className={styles.messageError} style={{ margin: 0 }}>{parseError}</p>}
+            </div>
+          </div>
+
           <form className={styles.form} onSubmit={handleCreate}>
             <label className={styles.label}>
               Job title
@@ -158,13 +222,25 @@ export default function AdminPlacements() {
               />
             </label>
 
-            <label className={styles.label}>
-              Salary / payment
+            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
+              Skills
               <input
                 className={styles.input}
-                value={form.salary}
-                onChange={(e) => setForm({ ...form, salary: e.target.value })}
-                placeholder="e.g. ₹25,000/month"
+                value={form.skills}
+                onChange={(e) => setForm({ ...form, skills: e.target.value })}
+                placeholder="e.g. React, Node.js, 2+ years experience"
+              />
+            </label>
+
+            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
+              Responsibilities
+              <textarea
+                className={styles.input}
+                value={form.responsibilities}
+                onChange={(e) => setForm({ ...form, responsibilities: e.target.value })}
+                rows={3}
+                style={{ resize: "vertical", fontFamily: "inherit" }}
+                placeholder="Day-to-day duties for this role..."
               />
             </label>
 
@@ -176,7 +252,7 @@ export default function AdminPlacements() {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={4}
                 style={{ resize: "vertical", fontFamily: "inherit" }}
-                placeholder="Role, responsibilities, requirements..."
+                placeholder="Overview of the role..."
                 required
               />
             </label>
@@ -242,13 +318,13 @@ export default function AdminPlacements() {
 
             {form.applicationMode === "link" && (
               <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-                Apply link
+                Apply link or HR email
                 <input
                   className={styles.input}
-                  type="url"
+                  type="text"
                   value={form.applyLink}
                   onChange={(e) => setForm({ ...form, applyLink: e.target.value })}
-                  placeholder="https://company.com/careers/apply"
+                  placeholder="https://company.com/careers/apply — or hr@company.com"
                   required
                 />
               </label>
@@ -267,7 +343,7 @@ export default function AdminPlacements() {
           <div className={styles.sectionHead}>
             <div>
               <h2 className={styles.sectionTitle}>Posted jobs</h2>
-              <p className={styles.sectionSubtitle}>{jobs.length} total</p>
+              <p className={styles.sectionSubtitle}>{total} total</p>
             </div>
           </div>
 
@@ -335,6 +411,8 @@ export default function AdminPlacements() {
               </table>
             </div>
           )}
+
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </section>
       </div>
 

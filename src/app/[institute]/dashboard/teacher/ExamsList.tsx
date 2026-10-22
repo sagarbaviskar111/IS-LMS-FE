@@ -9,6 +9,9 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
+import Pagination from "../Pagination";
+
+const PAGE_SIZE = 10;
 
 const STATUS_BADGE: Record<ExamSummary["status"], string> = {
   draft: adminStyles.badgePending,
@@ -21,6 +24,9 @@ export default function ExamsList() {
   const { activeBatchId, activeBatch } = useTeacherBatch();
   const [exams, setExams] = useState<ExamSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -31,16 +37,22 @@ export default function ExamsList() {
     if (!activeBatchId) return;
     setLoading(true);
     try {
-      const res = await api.listExams(activeBatchId);
+      const res = await api.listExams(activeBatchId, { page, limit: PAGE_SIZE });
       setExams(res.exams);
+      setTotalPages(res.totalPages);
+      setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, [activeBatchId]);
+  }, [activeBatchId, page]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeBatchId]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +126,7 @@ export default function ExamsList() {
           <div className={adminStyles.sectionHead}>
             <div>
               <h2 className={adminStyles.sectionTitle}>All exams</h2>
-              <p className={adminStyles.sectionSubtitle}>{exams.length} total</p>
+              <p className={adminStyles.sectionSubtitle}>{total} total</p>
             </div>
           </div>
 
@@ -169,6 +181,8 @@ export default function ExamsList() {
               </table>
             </div>
           )}
+
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
         </section>
       </div>
     </div>
