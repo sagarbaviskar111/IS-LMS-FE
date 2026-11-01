@@ -41,6 +41,7 @@ function getNavSections(
           items: [
             { href: `${base}/dashboard/superadmin`, label: "Overview" },
             { href: `${base}/dashboard/superadmin/job-emails`, label: "Job Email Contacts" },
+            { href: `${base}/dashboard/superadmin/testimonials`, label: "Landing Reviews" },
           ],
         },
         {
@@ -68,6 +69,8 @@ function getNavSections(
             { href: `${base}/dashboard/admin/telecallers`, label: "Telecallers" },
             { href: `${base}/dashboard/admin/courses`, label: "Courses" },
             { href: `${base}/dashboard/admin/batches`, label: "Batches" },
+            { href: `${base}/dashboard/admin/finance`, label: "Finance" },
+            { href: `${base}/dashboard/admin/certificates`, label: "Certificates" },
             { href: `${base}/dashboard/admin/pending`, label: "Pending Approvals", badge: pendingCount },
             { href: `${base}/dashboard/admin/tools`, label: "Tools" },
           ],
@@ -106,6 +109,8 @@ function getNavSections(
             { href: `${base}/dashboard/student/exams`, label: "Exams" },
             { href: `${base}/dashboard/student/assignments`, label: "Assignments" },
             { href: `${base}/dashboard/student/payments`, label: "Payments" },
+            { href: `${base}/dashboard/student/documents`, label: "My Documents" },
+            { href: `${base}/dashboard/student/certificates`, label: "My Certificates" },
             { href: `${base}/dashboard/student/placements`, label: "Job Placements" },
             { href: `${base}/dashboard/student/tools`, label: "Tools" },
             network,

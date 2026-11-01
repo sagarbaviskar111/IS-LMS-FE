@@ -154,7 +154,7 @@ export default function StudentPortfolioPage() {
                 backgroundPosition: "center",
               }
             : {
-                background: "linear-gradient(135deg, var(--brand), var(--brand-dark))",
+                background: "var(--brand)",
               }
         }
       >

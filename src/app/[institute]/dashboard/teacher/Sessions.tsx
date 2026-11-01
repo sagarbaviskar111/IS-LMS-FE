@@ -6,6 +6,7 @@ import { api, ApiError, Session } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
+import TodaySessions, { todayFirst } from "../TodaySessions";
 import BatchSwitcher from "./BatchSwitcher";
 import AttendancePanel from "./AttendancePanel";
 
@@ -191,6 +192,8 @@ export default function Sessions() {
       </p>
 
       <BatchSwitcher />
+
+      <TodaySessions sessions={sessions} />
 
       {attendanceSession && (
         <AttendancePanel
@@ -423,7 +426,7 @@ export default function Sessions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.map((s) =>
+                  {todayFirst(sessions).map((s) =>
                     editingId === s._id ? (
                       <tr key={s._id}>
                         <td>

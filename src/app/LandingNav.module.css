@@ -2,20 +2,18 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(244, 245, 247, 0.82);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--background);
   border-bottom: 1px solid var(--border);
 }
 
 @media (prefers-color-scheme: dark) {
   :global(:root:not([data-theme="light"])) .header {
-    background: rgba(11, 15, 25, 0.82);
+    background: var(--background);
   }
 }
 
 :global(:root[data-theme="dark"]) .header {
-  background: rgba(11, 15, 25, 0.82);
+  background: var(--background);
 }
 
 .inner {
@@ -37,8 +35,8 @@
   width: 34px;
   height: 34px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   display: flex;
   align-items: center;
   justify-content: center;

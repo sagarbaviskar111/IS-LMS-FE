@@ -495,7 +495,7 @@ function MembersModal({
         {isStudent ? "A student can be in one batch only — picking one moves them here." : "A teacher can be in several batches."}
       </p>
 
-      <div style={{ display: "grid", gap: 10 }}>
+      <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
         <input className={styles.input} value={query} placeholder={`Search ${isStudent ? "students" : "teachers"}...`} onChange={(e) => setQuery(e.target.value)} />
         {isStudent && groups.length > 0 && (
           <select
@@ -522,10 +522,10 @@ function MembersModal({
             return (
               <label
                 key={p._id}
-                style={{ display: "flex", gap: 10, alignItems: "center", padding: "8px 12px", borderBottom: "1px solid var(--border)", cursor: "pointer" }}
+                style={{ display: "flex", gap: 14, alignItems: "center", padding: "12px 16px", borderBottom: "1px solid var(--border)", cursor: "pointer", background: checked ? "var(--brand-soft)" : "transparent" }}
               >
                 <input type="checkbox" checked={checked} onChange={() => toggle(p._id)} />
-                <span style={{ minWidth: 0 }}>
+                <span style={{ minWidth: 0, display: "grid", gap: 2, fontWeight: 600, fontSize: "0.92rem" }}>
                   {p.name}
                   <span className={styles.sectionSubtitle} style={{ margin: 0, display: "block" }}>
                     {p.email}
@@ -539,7 +539,7 @@ function MembersModal({
       </div>
 
       {error && <p className={styles.messageError}>{error}</p>}
-      <div className={styles.formActions} style={{ marginTop: 14 }}>
+      <div className={styles.formActions} style={{ marginTop: 20 }}>
         <button className={styles.primaryButton} type="button" onClick={save} disabled={busy}>
           {busy ? "Saving..." : "Save"}
         </button>

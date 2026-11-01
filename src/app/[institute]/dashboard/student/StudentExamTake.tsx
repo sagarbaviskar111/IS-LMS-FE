@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api, ApiError, ExamResult, StudentExamTake as TakeResponse } from "@/lib/api";
+import RichText from "../RichText";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import studentStyles from "./student.module.css";
@@ -108,8 +109,21 @@ export default function StudentExamTake() {
             <p className={dashboardStyles.cardValue}>
               {result.score} / {result.totalMarks}
             </p>
+            {!!result.adjustment && (
+              <p className={adminStyles.sectionSubtitle} style={{ margin: 0 }}>
+                Includes {result.adjustment > 0 ? "+" : "−"}
+                {Math.abs(result.adjustment)} from your teacher
+              </p>
+            )}
           </div>
         </div>
+
+        {result.review && (
+          <section className={adminStyles.section} style={{ marginBottom: 20 }}>
+            <h2 className={adminStyles.sectionTitle}>Teacher&apos;s review</h2>
+            <RichText html={result.review} />
+          </section>
+        )}
 
         <section className={adminStyles.section}>
           <div className={adminStyles.sectionHead}>

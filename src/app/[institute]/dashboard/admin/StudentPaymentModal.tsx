@@ -6,8 +6,16 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 import Modal from "../Modal";
 import Pagination from "../Pagination";
+import ReceiptModal from "../ReceiptModal";
 
 const PAGE_SIZE = 10;
+
+// <input type="datetime-local"> wants local time as YYYY-MM-DDTHH:mm.
+function toLocalInput(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 function who(ref: { name: string; role: string } | string | null | undefined): string {
   if (!ref) return "—";
@@ -37,16 +45,22 @@ export default function StudentPaymentModal({
   const [paySuccess, setPaySuccess] = useState("");
   const [paySubmitting, setPaySubmitting] = useState(false);
 
-  const [editForm, setEditForm] = useState({ installmentAmount: "", balanceDue: "" });
+  const [editForm, setEditForm] = useState({ installmentAmount: "", balanceDue: "", nextDueDate: "" });
   const [editError, setEditError] = useState("");
   const [editSuccess, setEditSuccess] = useState("");
   const [editSubmitting, setEditSubmitting] = useState(false);
 
-  const [extendUntil, setExtendUntil] = useState("");
+  const [receiptId, setReceiptId] = useState<string | null>(null);
+  const [dateEdits, setDateEdits] = useState<Record<string, string>>({});
+  const [savingItem, setSavingItem] = useState<string | null>(null);
+  const [scheduleError, setScheduleError] = useState("");
+
+  const [extendDays, setExtendDays] = useState("");
   const [extendError, setExtendError] = useState("");
   const [extendSuccess, setExtendSuccess] = useState("");
   const [extendSubmitting, setExtendSubmitting] = useState(false);
 
+  const [reactivateDays, setReactivateDays] = useState("3");
   const [reactivateError, setReactivateError] = useState("");
   const [reactivateSubmitting, setReactivateSubmitting] = useState(false);
 
@@ -62,6 +76,7 @@ export default function StudentPaymentModal({
       setEditForm({
         installmentAmount: String(res.student.installmentAmount ?? 0),
         balanceDue: String(res.student.balanceDue ?? 0),
+        nextDueDate: res.student.nextDueDate ? res.student.nextDueDate.slice(0, 10) : "",
       });
     } catch (err) {
       setLoadError(err instanceof ApiError ? err.message : "Could not load payment info");
@@ -107,6 +122,7 @@ export default function StudentPaymentModal({
       await api.updateStudentPayment(student._id, {
         installmentAmount: editForm.installmentAmount === "" ? undefined : Number(editForm.installmentAmount),
         balanceDue: editForm.balanceDue === "" ? undefined : Number(editForm.balanceDue),
+        nextDueDate: editForm.nextDueDate ? new Date(editForm.nextDueDate).toISOString() : undefined,
       });
       setEditSuccess("Payment details updated.");
       load();
@@ -117,18 +133,38 @@ export default function StudentPaymentModal({
     }
   };
 
+  const saveInstallmentDate = async (itemId: string) => {
+    setScheduleError("");
+    setSavingItem(itemId);
+    try {
+      await api.editInstallment(student._id, itemId, { dueDate: new Date(dateEdits[itemId]).toISOString() });
+      setDateEdits((prev) => {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
+      load();
+      onChanged();
+    } catch (err) {
+      setScheduleError(err instanceof ApiError ? err.message : "Could not update the due date");
+    } finally {
+      setSavingItem(null);
+    }
+  };
+
   const submitExtend = async () => {
     setExtendError("");
     setExtendSuccess("");
-    if (!extendUntil) {
-      setExtendError("Pick a date");
+    const days = Number(extendDays);
+    if (!days || days <= 0) {
+      setExtendError("Enter the number of extra days");
       return;
     }
     setExtendSubmitting(true);
     try {
-      await api.extendPaymentDeadline(student._id, new Date(extendUntil).toISOString());
+      await api.extendPaymentDeadline(student._id, days);
       setExtendSuccess("Deadline extended.");
-      setExtendUntil("");
+      setExtendDays("");
       load();
     } catch (err) {
       setExtendError(err instanceof ApiError ? err.message : "Could not extend deadline");
@@ -141,7 +177,7 @@ export default function StudentPaymentModal({
     setReactivateError("");
     setReactivateSubmitting(true);
     try {
-      await api.reactivateStudent(student._id);
+      await api.reactivateStudent(student._id, Number(reactivateDays) || 3);
       load();
       onChanged();
     } catch (err) {
@@ -150,6 +186,8 @@ export default function StudentPaymentModal({
       setReactivateSubmitting(false);
     }
   };
+
+  const hasSchedule = !!summary?.schedule && summary.schedule.length > 0;
 
   const statusBadge = () => {
     if (!summary) return null;
@@ -239,6 +277,69 @@ export default function StudentPaymentModal({
         </form>
       </section>
 
+      {hasSchedule && (
+        <section className={adminStyles.section} style={{ marginTop: 16 }}>
+          <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.95rem" }}>
+            Installment schedule
+          </h3>
+          <p className={adminStyles.sectionSubtitle}>
+            Change a due date and save. Once an installment is paid, the next one becomes the due date.
+          </p>
+          <div className={adminStyles.tableWrap}>
+            <table className={adminStyles.table}>
+              <thead>
+                <tr>
+                  <th>Installment</th>
+                  <th>Amount</th>
+                  <th>Paid</th>
+                  <th>Due date &amp; time</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {summary?.schedule?.map((it) => (
+                  <tr key={it._id}>
+                    <td>{it.label}</td>
+                    <td>₹{it.amount}</td>
+                    <td>
+                      <span className={it.status === "paid" ? adminStyles.badgeSuccess : adminStyles.badgePending}>
+                        {it.status === "paid" ? "Paid" : `₹${it.paid} paid`}
+                      </span>
+                    </td>
+                    <td>
+                      {it.status === "paid" ? (
+                        new Date(it.dueDate).toLocaleString()
+                      ) : (
+                        <input
+                          className={adminStyles.input}
+                          type="datetime-local"
+                          value={dateEdits[it._id] ?? toLocalInput(it.dueDate)}
+                          onChange={(e) => setDateEdits({ ...dateEdits, [it._id]: e.target.value })}
+                        />
+                      )}
+                    </td>
+                    <td>
+                      {it.status !== "paid" && dateEdits[it._id] !== undefined && (
+                        <button
+                          className={adminStyles.smallButton}
+                          type="button"
+                          disabled={savingItem === it._id}
+                          onClick={() => saveInstallmentDate(it._id)}
+                        >
+                          {savingItem === it._id ? "Saving..." : "Save"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {scheduleError && <p className={adminStyles.messageError}>{scheduleError}</p>}
+        </section>
+      )}
+
+      {!hasSchedule && (
       <section className={adminStyles.section} style={{ marginTop: 16 }}>
         <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.95rem" }}>
           Edit payment details
@@ -264,6 +365,15 @@ export default function StudentPaymentModal({
               onChange={(e) => setEditForm({ ...editForm, balanceDue: e.target.value })}
             />
           </label>
+          <label className={adminStyles.label}>
+            Next due date
+            <input
+              className={adminStyles.input}
+              type="date"
+              value={editForm.nextDueDate}
+              onChange={(e) => setEditForm({ ...editForm, nextDueDate: e.target.value })}
+            />
+          </label>
           <div className={adminStyles.formActions}>
             <button className={adminStyles.primaryButton} type="submit" disabled={editSubmitting}>
               {editSubmitting ? "Saving..." : "Save details"}
@@ -274,16 +384,26 @@ export default function StudentPaymentModal({
         </form>
       </section>
 
+      )}
+
       <section className={adminStyles.section} style={{ marginTop: 16 }}>
         <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.95rem" }}>
           Extend deadline
         </h3>
+        <p className={adminStyles.sectionSubtitle}>
+          Extra days are added on top of the due date and the 3 grace days.
+          {summary?.paymentDeadline
+            ? ` Account is blocked after ${new Date(summary.paymentDeadline).toLocaleString()} if unpaid.`
+            : ""}
+        </p>
         <div className={adminStyles.inviteRow}>
           <input
             className={adminStyles.input}
-            type="date"
-            value={extendUntil}
-            onChange={(e) => setExtendUntil(e.target.value)}
+            type="number"
+            min={1}
+            placeholder="Extra days"
+            value={extendDays}
+            onChange={(e) => setExtendDays(e.target.value)}
           />
           <button
             className={adminStyles.smallButton}
@@ -303,7 +423,20 @@ export default function StudentPaymentModal({
           <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.95rem" }}>
             Reactivate account
           </h3>
+          <p className={adminStyles.sectionSubtitle}>
+            Reopens the account for the number of days below; if the dues are still unpaid after that, it is
+            deactivated again.
+          </p>
           <div className={adminStyles.rowActions}>
+            <input
+              className={adminStyles.input}
+              type="number"
+              min={1}
+              style={{ maxWidth: 90 }}
+              value={reactivateDays}
+              onChange={(e) => setReactivateDays(e.target.value)}
+              aria-label="Days to reactivate for"
+            />
             <button
               className={adminStyles.primaryButton}
               type="button"
@@ -332,6 +465,7 @@ export default function StudentPaymentModal({
                   <th>Method</th>
                   <th>Note</th>
                   <th>Recorded by</th>
+                  <th>Receipt</th>
                 </tr>
               </thead>
               <tbody>
@@ -342,6 +476,11 @@ export default function StudentPaymentModal({
                     <td>{p.method}</td>
                     <td>{p.note || "—"}</td>
                     <td>{who(p.recordedBy)}</td>
+                    <td>
+                      <button className={adminStyles.smallButton} type="button" onClick={() => setReceiptId(p._id)}>
+                        View
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -350,6 +489,7 @@ export default function StudentPaymentModal({
         )}
         <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
       </section>
+      {receiptId && <ReceiptModal load={() => api.adminReceipt(receiptId)} onClose={() => setReceiptId(null)} />}
     </Modal>
   );
 }

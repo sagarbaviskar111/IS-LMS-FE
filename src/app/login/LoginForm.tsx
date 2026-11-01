@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ApiError, Institute } from "@/lib/api";
+import { api, ApiError, Institute } from "@/lib/api";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import BrandStyle from "@/components/BrandStyle";
@@ -19,15 +19,18 @@ export default function LoginForm({
   // "" on the generic page, "/<slug>" on the branded /<slug>/login page.
   basePath: string;
 }) {
-  const { login } = useAuth();
+  const { login, setUser, setInstitute } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Set when login was refused only because fees are overdue.
+  const [canPayDues, setCanPayDues] = useState(false);
 
   const doLogin = async (loginEmail: string, loginPassword: string) => {
     setError("");
+    setCanPayDues(false);
     setSubmitting(true);
     try {
       const { user, institute: resolvedInstitute } = await login(loginEmail, loginPassword);
@@ -40,6 +43,35 @@ export default function LoginForm({
       router.push(`/${slug}/dashboard/${user.role}`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Login failed");
+      setCanPayDues(err instanceof ApiError && err.data.canPayOnline === true);
+      setSubmitting(false);
+    }
+  };
+
+  const handlePayDues = async () => {
+    setError("");
+    setSubmitting(true);
+    try {
+      await api.payDues({ email, password });
+      // Account is active again — sign straight in.
+      await doLogin(email, password);
+      return;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Payment failed. Please try again.");
+    }
+    setSubmitting(false);
+  };
+
+  const devLogin = async (role: "admin" | "teacher" | "student" | "telecaller") => {
+    setError("");
+    setSubmitting(true);
+    try {
+      const res = await api.devLogin(role);
+      setUser(res.user);
+      setInstitute(res.institute);
+      router.push(`/${res.institute?.slug}/dashboard/${res.user.role}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Dev login failed");
       setSubmitting(false);
     }
   };
@@ -104,6 +136,12 @@ export default function LoginForm({
 
           {error && <p className={styles.error}>{error}</p>}
 
+          {canPayDues && (
+            <button className={styles.button} type="button" disabled={submitting} onClick={handlePayDues}>
+              Pay pending fees now
+            </button>
+          )}
+
           <button className={styles.button} type="submit" disabled={submitting}>
             {submitting ? "Signing in..." : "Sign in"}
           </button>
@@ -111,6 +149,26 @@ export default function LoginForm({
           <p className={styles.footerLink}>
             Student, teacher or telecaller? <Link href={`${basePath}/signup`}>Create an account</Link>
           </p>
+
+          {process.env.NODE_ENV === "development" && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>
+              <p className={styles.footerLink} style={{ width: "100%", margin: 0 }}>
+                Dev login (test-admin)
+              </p>
+              {(["admin", "teacher", "student", "telecaller"] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  className={styles.button}
+                  style={{ flex: "1 1 40%", textTransform: "capitalize" }}
+                  disabled={submitting}
+                  onClick={() => devLogin(r)}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          )}
         </form>
       </div>
     </div>

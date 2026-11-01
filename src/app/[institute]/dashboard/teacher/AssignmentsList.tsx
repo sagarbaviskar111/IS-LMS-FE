@@ -198,7 +198,14 @@ export default function AssignmentsList() {
                 <tbody>
                   {assignments.map((a) => (
                     <tr key={a._id}>
-                      <td>{a.title}</td>
+                      <td>
+                        {a.title}
+                        {a.status === "cancelled" && (
+                          <span className={adminStyles.badgeInactive} style={{ marginLeft: 6 }}>
+                            cancelled
+                          </span>
+                        )}
+                      </td>
                       <td>
                         {formatDueDate(a.dueDate)}
                         {a.overdue && (

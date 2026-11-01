@@ -12,10 +12,7 @@
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background:
-    radial-gradient(1100px 500px at 15% -10%, rgba(99, 102, 241, 0.18), transparent 60%),
-    radial-gradient(900px 500px at 100% 110%, rgba(56, 189, 248, 0.14), transparent 60%),
-    var(--background);
+  background: var(--background);
 }
 
 .stack {
@@ -38,7 +35,7 @@
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--brand), #818cf8);
+  background: var(--brand);
   box-shadow: var(--shadow-sm);
 }
 
@@ -120,19 +117,19 @@
 .button {
   margin-top: 4px;
   padding: 11px 12px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  background: var(--brand);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .button:hover:not(:disabled) {
-  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.42);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
 
 .button:active:not(:disabled) {

@@ -6,9 +6,9 @@ import { api, ApiError, OwnInstitute } from "@/lib/api";
 import { brandVars, buildPalette, contrast, isHex } from "@/lib/palette";
 import adminStyles from "./admin.module.css";
 
-const DEFAULT_ACCENT = "#2563eb";
+const DEFAULT_ACCENT = "#047857";
 
-const PRESETS = ["#2563eb", "#7c3aed", "#db2777", "#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#0d9488", "#0f172a"];
+const PRESETS = ["#047857", "#2563eb", "#7c3aed", "#db2777", "#dc2626", "#ea580c", "#ca8a04", "#16a34a", "#0d9488", "#0f172a"];
 
 function PreviewCard({ color, mode }: { color: string; mode: "light" | "dark" }) {
   return (
@@ -47,7 +47,7 @@ function PreviewCard({ color, mode }: { color: string; mode: "light" | "dark" })
               color: "var(--on-brand)",
               fontWeight: 600,
               fontSize: 13,
-              background: "linear-gradient(135deg, var(--brand), var(--brand-dark))",
+              background: "var(--brand)",
             }}
           >
             Primary button
@@ -260,7 +260,7 @@ export default function AdminBrandingSettings() {
             </div>
           ) : (
             <p className={adminStyles.messageError} style={{ gridColumn: "1 / -1" }}>
-              Enter a colour like #2563eb.
+              Enter a colour like #047857.
             </p>
           )}
 

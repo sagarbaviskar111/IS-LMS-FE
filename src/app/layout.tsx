@@ -6,7 +6,7 @@ import { ThemeProvider } from "@/context/ThemeContext";
 
 // Runs before React hydrates so the very first paint already has the right
 // theme — otherwise a dark-mode visitor sees a flash of the light page.
-const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('theme');var t=s||(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('theme');var t=s||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();`;
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

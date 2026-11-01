@@ -120,6 +120,23 @@
   color: inherit;
 }
 
+.noticeSuccess {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--success-soft);
+  color: var(--success);
+  border: 1px solid var(--success);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+}
+
+.noticeSuccess strong {
+  color: inherit;
+}
+
 /* ---------- Locked assignment card ---------- */
 
 .lockedCard {

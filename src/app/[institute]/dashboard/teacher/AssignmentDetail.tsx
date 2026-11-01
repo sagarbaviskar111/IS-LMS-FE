@@ -2,7 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { api, ApiError, AssignmentSummary, AssignmentSubmissionRow } from "@/lib/api";
+import { api, ApiError, AssignmentSummary, AssignmentSubmissionRow, ReviewDecision } from "@/lib/api";
+import ReviewModal from "./ReviewModal";
+import Modal from "../Modal";
+import RichText from "../RichText";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
@@ -33,6 +36,11 @@ export default function AssignmentDetail() {
   const [assignment, setAssignment] = useState<AssignmentSummary | null>(null);
   const [overdue, setOverdue] = useState(false);
   const [submissions, setSubmissions] = useState<AssignmentSubmissionRow[]>([]);
+  const [reviewing, setReviewing] = useState<AssignmentSubmissionRow | null>(null);
+  const [filter, setFilter] = useState<"all" | "todo" | ReviewDecision>("all");
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelBusy, setCancelBusy] = useState(false);
   const [notSubmitted, setNotSubmitted] = useState<{ _id: string; name: string; email: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -98,6 +106,10 @@ export default function AssignmentDetail() {
     router.push(`/${institute}/dashboard/teacher/assignments`);
   };
 
+  const visible = submissions.filter((s) =>
+    filter === "all" ? true : filter === "todo" ? !s.decision : s.decision === filter
+  );
+
   if (loading || !assignment) {
     return (
       <div className={styles.loadingRow}>
@@ -127,7 +139,9 @@ export default function AssignmentDetail() {
         </div>
         <div className={dashboardStyles.card}>
           <p className={dashboardStyles.cardLabel}>Status</p>
-          <p className={dashboardStyles.cardValue}>{overdue ? "Past due" : "Open"}</p>
+          <p className={dashboardStyles.cardValue}>
+            {assignment.status === "cancelled" ? "Cancelled" : overdue ? "Past due" : "Open"}
+          </p>
         </div>
         <div className={dashboardStyles.card}>
           <p className={dashboardStyles.cardLabel}>Submitted</p>
@@ -147,6 +161,21 @@ export default function AssignmentDetail() {
               {!editing && (
                 <button className={adminStyles.smallButton} onClick={startEdit}>
                   Edit
+                </button>
+              )}
+              {assignment.status === "cancelled" ? (
+                <button
+                  className={adminStyles.smallButton}
+                  onClick={async () => {
+                    await api.restoreAssignment(id);
+                    load();
+                  }}
+                >
+                  Restore
+                </button>
+              ) : (
+                <button className={adminStyles.smallButton} onClick={() => setCancelling(true)}>
+                  Cancel assignment
                 </button>
               )}
               <button className={adminStyles.dangerButton} onClick={doDelete}>
@@ -231,6 +260,29 @@ export default function AssignmentDetail() {
           )}
 
           {submissions.length > 0 && (
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 10 }}>
+              {(
+                [
+                  ["all", "All"],
+                  ["todo", "To review"],
+                  ["approved", "Approved"],
+                  ["resubmit", "Resubmit"],
+                  ["rejected", "Rejected"],
+                ] as ["all" | "todo" | ReviewDecision, string][]
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  className={filter === v ? adminStyles.primaryButton : adminStyles.smallButton}
+                  onClick={() => setFilter(v)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {submissions.length > 0 && (
             <div className={`${adminStyles.tableWrap} ${styles.tableHoverWrap}`}>
               <table className={adminStyles.table}>
                 <thead>
@@ -239,10 +291,13 @@ export default function AssignmentDetail() {
                     <th>Email</th>
                     <th>Submitted</th>
                     <th>File</th>
+                    <th>Status</th>
+                    <th>Points</th>
+                    <th>Review</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {submissions.map((s) => (
+                  {visible.map((s) => (
                     <tr key={s._id}>
                       <td>{typeof s.student === "object" ? s.student.name : s.student}</td>
                       <td>{typeof s.student === "object" ? s.student.email : "—"}</td>
@@ -253,6 +308,28 @@ export default function AssignmentDetail() {
                           onClick={() => setViewing({ fileName: s.fileName, fileUrl: s.fileUrl, mimeType: s.mimeType })}
                         >
                           {formatSize(s.fileSize)}
+                        </button>
+                      </td>
+                      <td>
+                        {s.decision === "approved" && <span className={adminStyles.badgeSuccess}>Approved</span>}
+                        {s.decision === "resubmit" && (
+                          <span className={adminStyles.badgePending}>
+                            Resubmit by {s.resubmitUntil ? new Date(s.resubmitUntil).toLocaleDateString() : "—"}
+                          </span>
+                        )}
+                        {s.decision === "rejected" && <span className={adminStyles.badgeInactive}>Rejected</span>}
+                        {!s.decision && <span className={adminStyles.badgePending}>To review</span>}
+                        {!!s.history?.length && (
+                          <div className={adminStyles.sectionSubtitle} style={{ margin: 0 }}>
+                            Attempt {s.history.length + 1}
+                          </div>
+                        )}
+                      </td>
+                      <td>{s.points === null || s.points === undefined ? "—" : s.points}</td>
+                      <td>
+                        {s.review ? <RichText html={s.review} /> : null}
+                        <button className={adminStyles.smallButton} type="button" onClick={() => setReviewing(s)}>
+                          {s.reviewedAt ? "Edit review" : "Review"}
                         </button>
                       </td>
                     </tr>
@@ -306,6 +383,58 @@ export default function AssignmentDetail() {
           mimeType={viewing.mimeType}
           onClose={() => setViewing(null)}
         />
+      )}
+
+      {reviewing && (
+        <ReviewModal
+          target={{
+            kind: "assignment",
+            studentName: typeof reviewing.student === "object" ? reviewing.student.name : "Student",
+            points: reviewing.points ?? null,
+            review: reviewing.review || "",
+            decision: reviewing.decision || "",
+            resubmitUntil: reviewing.resubmitUntil ?? null,
+          }}
+          onClose={() => setReviewing(null)}
+          onSave={async (payload) => {
+            const res = await api.reviewAssignmentSubmission(id, reviewing._id, payload);
+            setSubmissions((list) => list.map((x) => (x._id === reviewing._id ? { ...x, ...res.submission } : x)));
+            setReviewing(null);
+          }}
+        />
+      )}
+
+      {cancelling && (
+        <Modal onClose={() => setCancelling(false)}>
+          <h2 className={adminStyles.sectionTitle}>Cancel this assignment?</h2>
+          <p className={adminStyles.sectionSubtitle}>
+            Students can no longer submit and will be notified. Existing submissions are kept, and you can restore it
+            later.
+          </p>
+          <label className={adminStyles.label}>
+            Reason (shown to students)
+            <input className={adminStyles.input} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+          </label>
+          <div className={adminStyles.formActions}>
+            <button
+              className={adminStyles.dangerButton}
+              disabled={cancelBusy}
+              onClick={async () => {
+                setCancelBusy(true);
+                try {
+                  await api.cancelAssignment(id, cancelReason);
+                  setCancelling(false);
+                  setCancelReason("");
+                  load();
+                } finally {
+                  setCancelBusy(false);
+                }
+              }}
+            >
+              {cancelBusy ? "Cancelling..." : "Cancel assignment"}
+            </button>
+          </div>
+        </Modal>
       )}
     </div>
   );

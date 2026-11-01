@@ -15,7 +15,7 @@
 }
 
 .row {
-  transition: background 0.12s ease;
+  transition: background 0.15s ease;
 }
 
 .row:hover {

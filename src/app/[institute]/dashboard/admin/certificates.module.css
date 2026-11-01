@@ -1,0 +1,32 @@
+/* Template editor: certificate canvas on the left, settings on the right.
+   Stacks on tablets and phones so neither side gets squeezed. */
+.editorGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+.editorSide {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.editorSide input:not([type="checkbox"]),
+.editorSide select {
+  width: 100%;
+  min-width: 0;
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .editorGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

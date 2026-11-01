@@ -121,14 +121,16 @@ export function buildPalette(pick: string): BrandPalette {
   // Near-grey picks have no meaningful hue; keep everything neutral for them.
   const grey = pickS < 8;
   const sat = (v: number) => (grey ? Math.min(v, 6) : v);
+  // Surfaces, borders and text stay near-neutral (zinc-like); only the accent carries colour.
+  const neutral = (v: number) => Math.min(sat(v), 5);
 
   // ---------- Light ----------
-  const lBg = hslToHex({ h, s: sat(clamp(pickS * 0.4, 12, 34)), l: 97.5 });
+  const lBg = hslToHex({ h, s: neutral(clamp(pickS * 0.4, 12, 34)), l: 97.5 });
   const lSurface = "#ffffff";
-  const lSurfaceAlt = hslToHex({ h, s: sat(clamp(pickS * 0.4, 12, 30)), l: 94.5 });
-  const lBorder = hslToHex({ h, s: sat(clamp(pickS * 0.3, 10, 26)), l: 88 });
-  const lFg = hslToHex(ensure({ h, s: sat(clamp(pickS, 20, 40)), l: 11 }, [lBg, lSurface, lSurfaceAlt], 10, -1));
-  const lMuted = hslToHex(ensure({ h, s: sat(clamp(pickS * 0.3, 10, 18)), l: 44 }, [lBg, lSurface, lSurfaceAlt], 4.5, -1));
+  const lSurfaceAlt = hslToHex({ h, s: neutral(clamp(pickS * 0.4, 12, 30)), l: 94.5 });
+  const lBorder = hslToHex({ h, s: neutral(clamp(pickS * 0.3, 10, 26)), l: 88 });
+  const lFg = hslToHex(ensure({ h, s: neutral(clamp(pickS, 20, 40)), l: 11 }, [lBg, lSurface, lSurfaceAlt], 10, -1));
+  const lMuted = hslToHex(ensure({ h, s: neutral(clamp(pickS * 0.3, 10, 18)), l: 44 }, [lBg, lSurface, lSurfaceAlt], 4.5, -1));
   // Accent: keep as picked, but dark enough for white button text.
   const lBrandHsl = ensure({ h, s: clamp(pickS, grey ? 0 : 35, 100), l: pickL }, ["#ffffff"], 4.5, -1);
   const lBrand = hslToHex(lBrandHsl);
@@ -140,12 +142,12 @@ export function buildPalette(pick: string): BrandPalette {
   );
 
   // ---------- Dark ----------
-  const dBg = hslToHex({ h, s: sat(clamp(pickS * 0.45, 14, 34)), l: 7.5 });
-  const dSurface = hslToHex({ h, s: sat(clamp(pickS * 0.45, 14, 32)), l: 11 });
-  const dSurfaceAlt = hslToHex({ h, s: sat(clamp(pickS * 0.45, 14, 30)), l: 14.5 });
-  const dBorder = hslToHex({ h, s: sat(clamp(pickS * 0.35, 12, 26)), l: 22 });
-  const dFg = hslToHex({ h, s: sat(14), l: 93 });
-  const dMuted = hslToHex(ensure({ h, s: sat(12), l: 62 }, [dBg, dSurface, dSurfaceAlt], 4.5, 1));
+  const dBg = hslToHex({ h, s: neutral(clamp(pickS * 0.45, 14, 34)), l: 7.5 });
+  const dSurface = hslToHex({ h, s: neutral(clamp(pickS * 0.45, 14, 32)), l: 11 });
+  const dSurfaceAlt = hslToHex({ h, s: neutral(clamp(pickS * 0.45, 14, 30)), l: 14.5 });
+  const dBorder = hslToHex({ h, s: neutral(clamp(pickS * 0.35, 12, 26)), l: 22 });
+  const dFg = hslToHex({ h, s: neutral(14), l: 93 });
+  const dMuted = hslToHex(ensure({ h, s: neutral(12), l: 62 }, [dBg, dSurface, dSurfaceAlt], 4.5, 1));
   // Accent on dark: a touch less saturated (avoids vibrating) and light enough
   // to hit 4.5:1 against the raised surface so links/outlines stay legible.
   const dBrandHsl = ensure({ h, s: Math.min(pickS, 82), l: clamp(pickL, 45, 72) }, [dSurface, dSurfaceAlt], 4.5, 1);

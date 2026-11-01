@@ -1,18 +1,29 @@
 :root {
-  /* Brand identity: Deep Navy (primary) + Royal Blue (accent/CTA) + Soft
-     Off-White (background) — see BrandLogo and AdminBrandingSettings, which
-     let an institute pick its own 3 colors on top of this default. */
+  /* Trust-and-growth palette: clean slate paper, white cards with crisp 1px
+     borders, deep slate text, and ONE accent - emerald - for the thing to
+     click (primary buttons, the active-menu bar, status pills). No gradients,
+     glows or blur. Institutes can still pick their own accent colour, which
+     replaces the emerald (see lib/palette.ts). */
   --background: #f8fafc;
   --surface: #ffffff;
   --surface-alt: #f1f5f9;
-  --foreground: #0b1f3a;
-  --muted: #64748b;
+  --foreground: #0f172a;
+  --muted: #475569;
   --border: #e2e8f0;
-  --brand: #2563eb;
-  --brand-dark: #0b1f3a;
-  --brand-soft: #e8f0fe;
+  --border-strong: #cbd5e1;
+  --brand: #047857;
+  --brand-dark: #065f46;
+  --brand-soft: #ecfdf5;
+  --brand-border: #a7f3d0;
+  --on-brand: #ffffff;
 
-  /* Semantic status colors — use these instead of ad-hoc hex for anything
+  /* Marketing call to action - the same emerald. */
+  --accent: #047857;
+  --accent-dark: #065f46;
+  --accent-soft: #ecfdf5;
+  --on-accent: #ffffff;
+
+  /* Semantic status colors - use these instead of ad-hoc hex for anything
      that means "good/bad/pending/info" (payment status, attendance,
      approval state, etc.) so status coding reads consistently everywhere. */
   --success: #15803d;
@@ -28,11 +39,9 @@
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  /* Soft, diffused shadows — more blur / lower opacity than a stock
-     drop-shadow reads calmer and more "designed" than a sharp default. */
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 10px 28px -6px rgba(15, 23, 42, 0.1);
-  --shadow-lg: 0 24px 48px -12px rgba(15, 23, 42, 0.16);
+  --shadow-md: 0 8px 20px -8px rgba(15, 23, 42, 0.12);
+  --shadow-lg: 0 20px 40px -16px rgba(15, 23, 42, 0.18);
 
   color-scheme: light;
 }
@@ -46,21 +55,22 @@
       applies regardless of the OS preference. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #0b0f19;
-    --surface: #141a2a;
-    --surface-alt: #1a2236;
-    --foreground: #e5e7eb;
-    --muted: #94a3b8;
-    --border: #263043;
-    --brand-soft: #16233d;
-    /* --brand-dark defaults to a deep navy — meant for the light-mode
-       primary-button gradient and institute-picked "primary color" — but
-       every badge/hover state that pairs it with --brand-soft as text-on-
-       tint assumes a LIGHT accent on a dark tint, same as --success/
-       --warning/--info below. Redefining it here (like they are) keeps
-       that pairing readable; an institute's own brandColorPrimary, set
-       inline on a descendant element, still overrides this default. */
-    --brand-dark: #60a5fa;
+    --background: #09090b;
+    --surface: #18181b;
+    --surface-alt: #202024;
+    --foreground: #f4f4f5;
+    --muted: #a1a1aa;
+    --border: #27272a;
+    --border-strong: #3f3f46;
+    --brand: #34d399;
+    --brand-dark: #6ee7b7;
+    --brand-border: #065f46;
+    --brand-soft: #0d2a21;
+    --on-brand: #052e16;
+    --accent: #34d399;
+    --accent-dark: #10b981;
+    --accent-soft: #0d2a21;
+    --on-accent: #052e16;
     --success: #4ade80;
     --success-soft: #0f2a1a;
     --warning: #fbbf24;
@@ -69,22 +79,30 @@
     --danger-soft: #2c1414;
     --info: #38bdf8;
     --info-soft: #0f2333;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-    --shadow-md: 0 10px 28px -6px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+    --shadow-lg: 0 20px 40px -16px rgba(0, 0, 0, 0.7);
     color-scheme: dark;
   }
 }
 
 :root[data-theme="dark"] {
-  --background: #0b0f19;
-  --surface: #141a2a;
-  --surface-alt: #1a2236;
-  --foreground: #e5e7eb;
-  --muted: #94a3b8;
-  --border: #263043;
-  --brand-soft: #16233d;
-  --brand-dark: #60a5fa;
+  --background: #09090b;
+  --surface: #18181b;
+  --surface-alt: #202024;
+  --foreground: #f4f4f5;
+  --muted: #a1a1aa;
+  --border: #27272a;
+  --border-strong: #3f3f46;
+  --brand: #34d399;
+  --brand-dark: #6ee7b7;
+  --brand-border: #065f46;
+  --brand-soft: #0d2a21;
+  --on-brand: #052e16;
+  --accent: #34d399;
+  --accent-dark: #10b981;
+  --accent-soft: #0d2a21;
+  --on-accent: #052e16;
   --success: #4ade80;
   --success-soft: #0f2a1a;
   --warning: #fbbf24;
@@ -93,9 +111,9 @@
   --danger-soft: #2c1414;
   --info: #38bdf8;
   --info-soft: #0f2333;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 10px 28px -6px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 24px 48px -12px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 8px 20px -8px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 20px 40px -16px rgba(0, 0, 0, 0.7);
   color-scheme: dark;
 }
 
@@ -144,4 +162,79 @@ button {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Teacher reviews (RichText / RichTextEditor): keep list markers visible. */
+.rich-text ul,
+.rich-text ol,
+[contenteditable] ul,
+[contenteditable] ol {
+  margin: 4px 0;
+  padding-left: 22px;
+}
+.rich-text ul,
+[contenteditable] ul {
+  list-style: disc;
+}
+.rich-text ol,
+[contenteditable] ol {
+  list-style: decimal;
+}
+[contenteditable][data-placeholder]:empty::before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+}
+
+/* Checkboxes and radios: brand colour and a size that is easy to hit. */
+input[type="checkbox"],
+input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--brand);
+  cursor: pointer;
+  flex: none;
+}
+
+/* ---------- Interaction feel ----------
+   Fast and flat: colour changes land in 150ms, a press sinks the control a
+   hair (2%) so a click feels physical, and nothing floats, bounces or fades in
+   slowly. Cards react by their border getting a touch brighter, never by
+   glowing or jumping. */
+button,
+[role="button"],
+a[class*="button"],
+a[class*="Button"] {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease,
+    box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+button:not(:disabled):active,
+[role="button"]:active,
+a[class*="button"]:active,
+a[class*="Button"]:active {
+  transform: scale(0.98);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

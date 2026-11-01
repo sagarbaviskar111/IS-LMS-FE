@@ -182,19 +182,19 @@
 
 .submitButton {
   padding: 11px 22px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  background: var(--brand);
   color: #fff;
   border: none;
   border-radius: var(--radius-sm);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   transition: transform 0.1s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 
 .submitButton:hover:not(:disabled) {
-  box-shadow: 0 6px 18px rgba(79, 70, 229, 0.42);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
 }
 
 .submitButton:active:not(:disabled) {

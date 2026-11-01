@@ -6,6 +6,7 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import studentStyles from "./student.module.css";
 import DocumentViewerModal from "../DocumentViewerModal";
+import RichText from "../RichText";
 import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
 import Pagination from "../Pagination";
@@ -106,7 +107,15 @@ export default function StudentAssignments() {
                 <h2 className={adminStyles.sectionTitle}>{a.title}</h2>
                 <p className={adminStyles.sectionSubtitle}>{a.description || "No description"}</p>
               </div>
-              {a.submitted ? (
+              {a.status === "cancelled" ? (
+                <span className={studentStyles.badgeDanger}>Cancelled</span>
+              ) : a.submission?.decision === "approved" ? (
+                <span className={studentStyles.badgeSuccess}>Approved</span>
+              ) : a.submission?.decision === "resubmit" ? (
+                <span className={adminStyles.badgePending}>Resubmit requested</span>
+              ) : a.submission?.decision === "rejected" ? (
+                <span className={studentStyles.badgeDanger}>Not accepted</span>
+              ) : a.submitted ? (
                 <span className={studentStyles.badgeSuccess}>Submitted</span>
               ) : a.locked ? (
                 <span className={studentStyles.badgeDanger}>Blocked — deadline passed</span>
@@ -156,7 +165,50 @@ export default function StudentAssignments() {
               </p>
             )}
 
-            {a.locked ? (
+            {a.submission && (a.submission.points !== null && a.submission.points !== undefined || a.submission.review) && (
+              <div className={studentStyles.noticeWarning} style={{ flexDirection: "column", gap: 6 }}>
+                {a.submission.points !== null && a.submission.points !== undefined && (
+                  <strong>Points: {a.submission.points}</strong>
+                )}
+                {a.submission.review && <RichText html={a.submission.review} />}
+              </div>
+            )}
+
+            {a.status === "cancelled" && (
+              <p className={adminStyles.messageError}>
+                This assignment was cancelled by your teacher.{a.cancelReason ? ` Reason: ${a.cancelReason}` : ""}
+              </p>
+            )}
+            {a.submission?.decision === "resubmit" && (
+              <p className={adminStyles.messageError}>
+                Your teacher asked you to submit again
+                {a.submission.resubmitUntil ? ` by ${new Date(a.submission.resubmitUntil).toLocaleString()}` : ""}.
+              </p>
+            )}
+            {a.submission?.decision === "rejected" && (
+              <p className={adminStyles.messageError}>This submission was not accepted and can&apos;t be resubmitted.</p>
+            )}
+            {!!a.submission?.history?.length && (
+              <details style={{ marginBottom: 12 }}>
+                <summary style={{ cursor: "pointer", fontSize: "0.85rem" }}>
+                  Earlier attempts ({a.submission.history.length})
+                </summary>
+                {a.submission.history.map((h, i) => (
+                  <div key={i} style={{ padding: "8px 0", borderTop: "1px solid var(--border)", fontSize: "0.85rem" }}>
+                    <div>
+                      {h.fileName} — {h.submittedAt ? new Date(h.submittedAt).toLocaleString() : ""}
+                      {h.decision ? ` · ${h.decision}` : ""}
+                      {h.points !== null && h.points !== undefined ? ` · ${h.points} pts` : ""}
+                    </div>
+                    {h.review && <RichText html={h.review} />}
+                  </div>
+                ))}
+              </details>
+            )}
+
+            {a.canSubmit === false ? (
+              a.status !== "cancelled" &&
+              !a.submission?.decision?.match(/approved|rejected/) &&
               !a.submitted && (
                 <p className={adminStyles.messageError}>
                   The due date has passed — you can no longer submit this assignment.

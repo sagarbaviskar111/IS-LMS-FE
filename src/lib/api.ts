@@ -372,7 +372,7 @@ export interface Payment {
   admin: string;
   batch?: string | null;
   amount: number;
-  method: "razorpay" | "manual";
+  method: "razorpay" | "manual" | "online";
   status: "paid" | "failed";
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
@@ -382,11 +382,58 @@ export interface Payment {
   updatedAt: string;
 }
 
+export interface InstallmentItem {
+  _id: string;
+  label: string;
+  amount: number;
+  paid: number;
+  dueDate: string;
+  status: "paid" | "partial" | "pending";
+}
+
+export interface Receipt {
+  receiptNo: string;
+  paidAt: string;
+  amount: number;
+  status: string;
+  method: string;
+  note: string;
+  transactionId: string;
+  receivedBy: string;
+  student: { name: string; email: string; phone: string };
+  course: string;
+  institute: { name: string; slug: string; logoUrl: string | null };
+}
+
+export type RegistrationDocKind = "id1" | "id2" | "selfie" | "signature";
+
+export interface MyRegistration {
+  name: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string | null;
+  address: string;
+  course: string;
+  plan: "one_time" | "installment";
+  planTotal: number;
+  amountPaid: number;
+  registeredAt: string;
+  documents: { kind: RegistrationDocKind; label: string; mimetype: string }[];
+}
+
 export interface StudentPaymentSummary {
+  // Course students: every installment with its own due date.
+  schedule?: InstallmentItem[];
   installmentAmount?: number;
   balanceDue?: number;
   nextDueDate?: string | null;
   paymentGraceUntil?: string | null;
+  // When an unpaid account gets deactivated (due date + 3 extra days, or an admin extension).
+  paymentDeadline?: string | null;
+  // Set for students on a course plan; fullyPaid once the whole course fee is in.
+  feeStatus?: { planTotal: number; totalPaid: number; remaining: number; fullyPaid: boolean } | null;
+  // Where the due date moves to if the next installment is paid early.
+  nextInstallmentDueDate?: string | null;
 }
 
 export interface AdminPaymentStudent {
@@ -400,6 +447,8 @@ export interface AdminPaymentStudent {
   isActive: boolean;
   deactivatedForPayment: boolean;
   paymentPending: boolean;
+  paymentDeadline?: string | null;
+  schedule?: InstallmentItem[];
 }
 
 export interface Session {
@@ -486,7 +535,20 @@ export interface AssignmentAttachment {
   mimeType: string | null;
 }
 
+export type ReviewDecision = "" | "approved" | "resubmit" | "rejected";
+
+export interface SubmissionAttempt {
+  fileName?: string;
+  submittedAt?: string;
+  decision?: ReviewDecision;
+  points?: number | null;
+  review?: string;
+  reviewedAt?: string;
+}
+
 export interface AssignmentSummary {
+  status?: "active" | "cancelled";
+  cancelReason?: string;
   _id: string;
   batch: string;
   title: string;
@@ -505,9 +567,19 @@ export interface AssignmentSubmissionFile {
   fileSize: number;
   mimeType: string;
   submittedAt: string;
+  points?: number | null;
+  review?: string;
+  reviewedAt?: string | null;
+  decision?: ReviewDecision;
+  resubmitUntil?: string | null;
+  history?: SubmissionAttempt[];
 }
 
 export interface StudentAssignment {
+  status?: "active" | "cancelled";
+  cancelReason?: string;
+  // False once cancelled, finalised by the teacher, or past the due date with no resubmission window.
+  canSubmit?: boolean;
   _id: string;
   title: string;
   description?: string;
@@ -527,6 +599,12 @@ export interface AssignmentSubmissionRow {
   fileSize: number;
   mimeType: string;
   submittedAt: string;
+  points?: number | null;
+  review?: string;
+  reviewedAt?: string | null;
+  decision?: ReviewDecision;
+  resubmitUntil?: string | null;
+  history?: SubmissionAttempt[];
 }
 
 export type StorageProvider = "s3" | "r2";
@@ -621,6 +699,8 @@ export interface ExamResultQuestion {
 }
 
 export interface ExamResult {
+  adjustment?: number;
+  review?: string;
   score: number;
   totalMarks: number;
   questions: ExamResultQuestion[];
@@ -632,6 +712,9 @@ export interface Submission {
   student: { _id: string; name: string; email: string } | string;
   score: number;
   totalMarks: number;
+  autoScore?: number | null;
+  adjustment?: number;
+  review?: string;
   createdAt: string;
 }
 
@@ -800,9 +883,11 @@ export interface ChatMessage {
 
 class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  data: Record<string, unknown>;
+  constructor(message: string, status: number, data: Record<string, unknown> = {}) {
     super(message);
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -900,6 +985,20 @@ const inquiryQs = (q: InquiryQuery = {}) => {
   return qs ? `?${qs}` : "";
 };
 
+// Fetches a binary response (PDF) with the session cookie.
+async function fetchBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    credentials: "include",
+    headers: options.body ? { "Content-Type": "application/json" } : undefined,
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new ApiError(data.message || "Could not download the file", res.status, data);
+  }
+  return res.blob();
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -913,7 +1012,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok) {
-    throw new ApiError(data.message || "Request failed", res.status);
+    throw new ApiError(data.message || "Request failed", res.status, data);
   }
 
   return data as T;
@@ -962,11 +1061,204 @@ function uploadWithProgress<T>(
 
 export type UserStatus = "pending" | "team" | "active" | "inactive";
 
+export type FinanceType = "credit" | "debit";
+export type FinanceMethod = "cash" | "upi" | "bank" | "card" | "cheque" | "other";
+
+export interface FinanceRow {
+  _id: string;
+  type: FinanceType;
+  amount: number;
+  category: string;
+  title: string;
+  note: string;
+  method: string;
+  date: string;
+  // "payment" rows are student fee payments read live from the payments records.
+  source: "manual" | "payment";
+}
+
+export interface FinanceSummary {
+  credit: number;
+  debit: number;
+  net: number;
+  count: number;
+  receivable: number;
+  receivableStudents: number;
+  credits: { category: string; total: number; count: number }[];
+  debits: { category: string; total: number; count: number }[];
+  monthly: { month: string; credit: number; debit: number }[];
+}
+
+export interface FinanceQuery {
+  from?: string;
+  to?: string;
+  type?: FinanceType | "";
+  source?: "manual" | "payment" | "";
+  category?: string;
+  q?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface FinanceEntryPayload {
+  type: FinanceType;
+  amount: number;
+  category: string;
+  title: string;
+  note?: string;
+  method: FinanceMethod;
+  date: string;
+}
+
+const financeQs = (q: FinanceQuery = {}) => {
+  const params = new URLSearchParams();
+  (Object.entries(q) as [string, string | number | undefined][]).forEach(([k, v]) => {
+    if (v !== undefined && v !== "") params.set(k, String(v));
+  });
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+};
+
+export interface Testimonial {
+  _id: string;
+  quote: string;
+  name: string;
+  role: string;
+  city: string;
+  isActive: boolean;
+  order: number;
+}
+
+export interface TestimonialPayload {
+  quote: string;
+  name: string;
+  role?: string;
+  city?: string;
+  isActive?: boolean;
+  order?: number;
+}
+
+// ---- Certificates ----
+export type CertFieldKey =
+  | "student_name"
+  | "certificate_no"
+  | "course"
+  | "date"
+  | "grade"
+  | "batch"
+  | "institute_name"
+  | "custom";
+
+export interface CertField {
+  _id?: string;
+  key: CertFieldKey;
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  maxWidth: number;
+  color: string;
+  align: "left" | "center" | "right";
+  font: "helvetica" | "times" | "courier" | "unicode";
+  bold: boolean;
+  italic: boolean;
+  transform: "none" | "upper" | "title";
+}
+
+export interface CertQr {
+  enabled: boolean;
+  x: number;
+  y: number;
+  size: number;
+}
+
+export interface CertNumbering {
+  prefix: string;
+  includeYear: boolean;
+  padding: number;
+  counter: number;
+}
+
+export interface CertTemplate {
+  _id: string;
+  name: string;
+  imageUrl: string | null;
+  width: number;
+  height: number;
+  fields: CertField[];
+  qr: CertQr;
+  numbering: CertNumbering;
+  archived: boolean;
+  issued?: number;
+  createdAt: string;
+}
+
+export interface Certificate {
+  _id: string;
+  certificateNo: string;
+  studentId: string | null;
+  studentName: string;
+  templateId: string;
+  templateName: string;
+  course: string;
+  grade: string;
+  date: string;
+  status: "active" | "revoked";
+  revokedReason: string;
+  issuedAt: string;
+  verifyUrl: string;
+}
+
+export interface CertificateVerification {
+  status: "active" | "revoked";
+  certificateNo: string;
+  studentName: string;
+  course: string;
+  grade: string;
+  date: string;
+  revokedReason: string;
+  institute: { name: string; logoUrl: string | null };
+}
+
+export interface CertSheetRow {
+  row: number;
+  name: string;
+  email: string;
+  phone: string;
+  course: string;
+  grade: string;
+  date: string;
+  certificateNo: string;
+  batch: string;
+}
+
+export interface IssueResult {
+  certificates: Certificate[];
+  skipped: { studentId: string | null; name: string; reason: string }[];
+  invalid?: { row: number; name: string; reason: string }[];
+}
+
+export interface IssueCertificatesPayload {
+  templateId: string;
+  studentIds: string[];
+  course?: string;
+  date?: string;
+  grade?: string;
+  certificateNo?: string;
+  allowDuplicate?: boolean;
+}
+
 export const api = {
   login: (email: string, password: string) =>
     request<{ user: User; institute: Institute | null }>("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+    }),
+  // Dev-only passwordless login; the backend 404s outside NODE_ENV=development.
+  devLogin: (role: "admin" | "teacher" | "student" | "telecaller") =>
+    request<{ user: User; institute: Institute | null }>("/api/auth/dev-login", {
+      method: "POST",
+      body: JSON.stringify({ role }),
     }),
   register: (payload: { name: string; email: string; password: string; phone?: string; inviteCode: string }) =>
     request<{ message: string; user: User }>("/api/auth/register", {
@@ -1506,6 +1798,28 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ answers }),
     }),
+  // Teacher: review a submission. `review` is rich-text HTML (sanitized server-side).
+  reviewAssignmentSubmission: (
+    assignmentId: string,
+    submissionId: string,
+    payload: { points?: number | null; review?: string; decision?: ReviewDecision; resubmitUntil?: string }
+  ) =>
+    request<{ submission: AssignmentSubmissionRow }>(
+      `/api/teacher/assignments/${assignmentId}/submissions/${submissionId}/review`,
+      { method: "PATCH", body: JSON.stringify(payload) }
+    ),
+  cancelAssignment: (id: string, reason: string) =>
+    request<{ assignment: AssignmentSummary }>(`/api/teacher/assignments/${id}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ reason }),
+    }),
+  restoreAssignment: (id: string) =>
+    request<{ assignment: AssignmentSummary }>(`/api/teacher/assignments/${id}/restore`, { method: "POST" }),
+  reviewExamSubmission: (examId: string, submissionId: string, payload: { adjustment?: number; review?: string }) =>
+    request<{ submission: Submission }>(`/api/teacher/exams/${examId}/submissions/${submissionId}/review`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
   studentExamResult: (id: string) => request<ExamResult>(`/api/student/exams/${id}/result`),
 
   // Teacher: assignments
@@ -1791,6 +2105,17 @@ export const api = {
   markThreadRead: (userId: string) =>
     request<{ message: string }>(`/api/messages/read/${userId}`, { method: "PATCH" }),
 
+  studentReceipt: (paymentId: string) => request<{ receipt: Receipt }>(`/api/student/payments/${paymentId}/receipt`),
+  adminReceipt: (paymentId: string) => request<{ receipt: Receipt }>(`/api/payments/receipts/${paymentId}`),
+  // Student: their own registration details and uploaded documents (view only).
+  myRegistration: () => request<{ registration: MyRegistration | null }>("/api/student/registration"),
+  myRegistrationFile: async (kind: RegistrationDocKind) => {
+    const res = await fetch(`${API_URL}/api/student/registration/file/${kind}`, { credentials: "include" });
+    if (!res.ok) throw new ApiError("Could not load the file", res.status);
+    return res.blob();
+  },
+  payNextInstallment: () =>
+    request<{ nextDueDate: string }>("/api/student/payments/next-installment", { method: "POST" }),
   // Student: own payment history
   myPayments: (opts?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
@@ -1803,6 +2128,88 @@ export const api = {
   },
 
   // Admin: manage a student's payment terms
+  // Admin: finance ledger (credits / debits)
+  financeSummary: (q: Pick<FinanceQuery, "from" | "to"> = {}) =>
+    request<FinanceSummary>(`/api/finance/summary${financeQs(q)}`),
+  financeEntries: (q: FinanceQuery = {}) =>
+    request<PageMeta & { entries: FinanceRow[] }>(`/api/finance/entries${financeQs(q)}`),
+  financeCategories: () => request<{ credit: string[]; debit: string[] }>("/api/finance/categories"),
+  createFinanceEntry: (payload: FinanceEntryPayload) =>
+    request<{ entry: FinanceRow }>("/api/finance/entries", { method: "POST", body: JSON.stringify(payload) }),
+  updateFinanceEntry: (id: string, payload: Partial<FinanceEntryPayload>) =>
+    request<{ entry: FinanceRow }>(`/api/finance/entries/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteFinanceEntry: (id: string) =>
+    request<{ message: string }>(`/api/finance/entries/${id}`, { method: "DELETE" }),
+  // ---- Landing page reviews (superadmin) ----
+  manageTestimonials: () => request<{ testimonials: Testimonial[] }>("/api/testimonials/manage"),
+  createTestimonial: (payload: TestimonialPayload) =>
+    request<{ testimonial: Testimonial }>("/api/testimonials", { method: "POST", body: JSON.stringify(payload) }),
+  updateTestimonial: (id: string, payload: Partial<TestimonialPayload>) =>
+    request<{ testimonial: Testimonial }>(`/api/testimonials/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteTestimonial: (id: string) => request<{ message: string }>(`/api/testimonials/${id}`, { method: "DELETE" }),
+  importTestimonials: (items: TestimonialPayload[]) =>
+    request<{ testimonials: Testimonial[] }>("/api/testimonials/import", { method: "POST", body: JSON.stringify({ items }) }),
+  // ---- Certificates ----
+  certTemplates: () => request<{ templates: CertTemplate[] }>("/api/certificates/templates"),
+  createCertTemplate: async (payload: { name: string; image: File; prefix?: string }) => {
+    const fd = new FormData();
+    fd.append("name", payload.name);
+    fd.append("image", payload.image);
+    if (payload.prefix) fd.append("prefix", payload.prefix);
+    const res = await fetch(`${API_URL}/api/certificates/templates`, { method: "POST", credentials: "include", body: fd });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new ApiError(data.message || "Could not save the template", res.status);
+    return data as { template: CertTemplate };
+  },
+  updateCertTemplate: (
+    id: string,
+    payload: { name?: string; fields?: CertField[]; qr?: CertQr; numbering?: Partial<CertNumbering>; archived?: boolean }
+  ) =>
+    request<{ template: CertTemplate }>(`/api/certificates/templates/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  deleteCertTemplate: (id: string) =>
+    request<{ message: string; archived?: boolean }>(`/api/certificates/templates/${id}`, { method: "DELETE" }),
+  certTemplatePreview: (id: string, payload: { fields?: CertField[]; qr?: CertQr }) =>
+    fetchBlob(`/api/certificates/templates/${id}/preview`, { method: "POST", body: JSON.stringify(payload) }),
+  issueCertificates: (payload: IssueCertificatesPayload) =>
+    request<IssueResult>("/api/certificates/issue", { method: "POST", body: JSON.stringify(payload) }),
+  issueCertificatesSheet: (payload: {
+    templateId: string;
+    rows: CertSheetRow[];
+    defaults: { course?: string; grade?: string; date?: string };
+    allowDuplicate?: boolean;
+  }) => request<IssueResult>("/api/certificates/issue-sheet", { method: "POST", body: JSON.stringify(payload) }),
+  listCertificates: (q: { template?: string; status?: string; q?: string; page?: number; limit?: number } = {}) => {
+    const params = new URLSearchParams();
+    if (q.template) params.set("template", q.template);
+    if (q.status) params.set("status", q.status);
+    if (q.q?.trim()) params.set("q", q.q.trim());
+    if (q.page) params.set("page", String(q.page));
+    if (q.limit) params.set("limit", String(q.limit));
+    const qs = params.toString();
+    return request<PageMeta & { certificates: Certificate[] }>(`/api/certificates${qs ? `?${qs}` : ""}`);
+  },
+  revokeCertificate: (id: string, reason: string) =>
+    request<{ certificate: Certificate }>(`/api/certificates/${id}/revoke`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason }),
+    }),
+  restoreCertificate: (id: string) =>
+    request<{ certificate: Certificate }>(`/api/certificates/${id}/restore`, { method: "PATCH" }),
+  certificatePdf: (id: string) => fetchBlob(`/api/certificates/${id}/pdf`),
+  certificatesPdf: (ids: string[]) =>
+    fetchBlob("/api/certificates/pdf", { method: "POST", body: JSON.stringify({ ids }) }),
+  myCertificates: () => request<{ certificates: Certificate[] }>("/api/student/certificates"),
+  myCertificatePdf: (id: string) => fetchBlob(`/api/student/certificates/${id}/pdf`),
+  verifyCertificate: (code: string) =>
+    request<CertificateVerification>(`/api/certificates/verify/${encodeURIComponent(code)}`),
+  financeExport: async (q: FinanceQuery = {}) => {
+    const res = await fetch(`${API_URL}/api/finance/export${financeQs(q)}`, { credentials: "include" });
+    if (!res.ok) throw new ApiError("Could not export", res.status);
+    return res.blob();
+  },
   getStudentPayment: (id: string, opts?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
@@ -1812,7 +2219,7 @@ export const api = {
       `/api/payments/students/${id}${qs ? `?${qs}` : ""}`
     );
   },
-  updateStudentPayment: (id: string, payload: { installmentAmount?: number; balanceDue?: number }) =>
+  updateStudentPayment: (id: string, payload: { installmentAmount?: number; balanceDue?: number; nextDueDate?: string }) =>
     request<{ student: AdminPaymentStudent }>(`/api/payments/students/${id}`, {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -1822,13 +2229,28 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  extendPaymentDeadline: (id: string, until: string) =>
+  // Adds `days` on top of the current deadline (due date + grace days).
+  extendPaymentDeadline: (id: string, days: number) =>
     request<{ student: AdminPaymentStudent }>(`/api/payments/students/${id}/extend`, {
       method: "POST",
-      body: JSON.stringify({ until }),
+      body: JSON.stringify({ days }),
     }),
-  reactivateStudent: (id: string) =>
-    request<{ student: AdminPaymentStudent }>(`/api/payments/students/${id}/reactivate`, { method: "POST" }),
+  editInstallment: (id: string, itemId: string, payload: { dueDate?: string; amount?: number }) =>
+    request<{ student: AdminPaymentStudent }>(`/api/payments/students/${id}/installments/${itemId}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }),
+  reactivateStudent: (id: string, days?: number) =>
+    request<{ student: AdminPaymentStudent }>(`/api/payments/students/${id}/reactivate`, {
+      method: "POST",
+      body: JSON.stringify({ days }),
+    }),
+  // Pay the full balance due. Pass credentials when locked out of the account.
+  payDues: (credentials?: { email: string; password: string }) =>
+    request<{ message: string }>(credentials ? "/api/auth/dues-payment" : "/api/auth/me/dues-payment", {
+      method: "POST",
+      body: JSON.stringify(credentials ?? {}),
+    }),
 
   // Admin: YouTube integration for session recordings
   getYoutubeStatus: () => request<YoutubeStatus>("/api/admin/youtube/status"),

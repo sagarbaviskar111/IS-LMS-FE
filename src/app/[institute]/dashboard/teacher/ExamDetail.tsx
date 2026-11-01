@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, ApiError, ExamDetail as ExamDetailType, Submission } from "@/lib/api";
+import ReviewModal from "./ReviewModal";
+import RichText from "../RichText";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
@@ -26,6 +28,7 @@ export default function ExamDetail() {
 
   const [exam, setExam] = useState<ExamDetailType | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [reviewing, setReviewing] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
@@ -412,6 +415,7 @@ export default function ExamDetail() {
                       <th>Student</th>
                       <th>Email</th>
                       <th>Score</th>
+                      <th>Review</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -421,6 +425,18 @@ export default function ExamDetail() {
                         <td>{typeof s.student === "object" ? s.student.email : "—"}</td>
                         <td>
                           {s.score} / {s.totalMarks}
+                          {!!s.adjustment && (
+                            <span className={adminStyles.sectionSubtitle} style={{ margin: "0 0 0 6px" }}>
+                              ({s.adjustment > 0 ? "+" : "−"}
+                              {Math.abs(s.adjustment)})
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {s.review ? <RichText html={s.review} /> : null}
+                          <button className={adminStyles.smallButton} type="button" onClick={() => setReviewing(s)}>
+                            {s.review || s.adjustment ? "Edit review" : "Review"}
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -431,6 +447,25 @@ export default function ExamDetail() {
           </section>
         )}
       </div>
+
+      {reviewing && (
+        <ReviewModal
+          target={{
+            kind: "exam",
+            studentName: typeof reviewing.student === "object" ? reviewing.student.name : "Student",
+            autoScore: reviewing.autoScore ?? reviewing.score,
+            totalMarks: reviewing.totalMarks,
+            adjustment: reviewing.adjustment ?? 0,
+            review: reviewing.review || "",
+          }}
+          onClose={() => setReviewing(null)}
+          onSave={async (payload) => {
+            const res = await api.reviewExamSubmission(id, reviewing._id, payload);
+            setSubmissions((list) => list.map((x) => (x._id === reviewing._id ? { ...x, ...res.submission } : x)));
+            setReviewing(null);
+          }}
+        />
+      )}
     </div>
   );
 }

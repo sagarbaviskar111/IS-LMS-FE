@@ -7,6 +7,7 @@ import adminStyles from "../admin/admin.module.css";
 import studentStyles from "./student.module.css";
 import StudentEmptyState from "./StudentEmptyState";
 import Pagination from "../Pagination";
+import TodaySessions, { isToday, todayFirst } from "../TodaySessions";
 
 const PAGE_SIZE = 10;
 
@@ -33,6 +34,7 @@ function percentageClass(pct: number | null): string {
 export default function StudentOverview() {
   const [batch, setBatch] = useState<Batch | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [todaySessions, setTodaySessions] = useState<Session[]>([]);
   const [sessionsTotal, setSessionsTotal] = useState(0);
   const [sessionsPage, setSessionsPage] = useState(1);
   const [sessionsTotalPages, setSessionsTotalPages] = useState(1);
@@ -48,7 +50,9 @@ export default function StudentOverview() {
     ])
       .then(([batchRes, sessionsRes, attendanceRes]) => {
         setBatch(batchRes.batch);
-        setSessions(sessionsRes.sessions);
+        setSessions(todayFirst(sessionsRes.sessions));
+        // Today's sessions sort to the first page; keep them visible while paging.
+        if (sessionsPage === 1) setTodaySessions(sessionsRes.sessions.filter(isToday));
         setSessionsTotal(sessionsRes.total);
         setSessionsTotalPages(sessionsRes.totalPages);
         setAttendance(attendanceRes);
@@ -74,6 +78,8 @@ export default function StudentOverview() {
     <div>
       <h1 className={dashboardStyles.pageTitle}>Student dashboard</h1>
       <p className={dashboardStyles.pageSubtitle}>{batch ? batch.name : "Your classes and progress."}</p>
+
+      <TodaySessions sessions={todaySessions} />
 
       <div className={dashboardStyles.cardGrid} style={{ marginBottom: 20 }}>
         <div className={dashboardStyles.card}>

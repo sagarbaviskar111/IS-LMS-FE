@@ -41,7 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const attr = document.documentElement.getAttribute("data-theme");
-    setThemeState(attr === "dark" ? "dark" : getSystemTheme());
+    setThemeState(attr === "dark" ? "dark" : "light");
   }, []);
 
   useEffect(() => {

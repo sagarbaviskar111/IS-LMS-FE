@@ -116,13 +116,11 @@
   border-radius: var(--radius-md);
   padding: 28px;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cardHover:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--brand);
+  border-color: var(--border-strong);
 }
 
 .buttonRow {
@@ -138,22 +136,22 @@
   justify-content: center;
   gap: 8px;
   padding: 13px 26px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  color: #fff;
+  background: var(--accent);
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 0.98rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
-  transition: transform 0.12s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   text-decoration: none;
   white-space: nowrap;
 }
 
 .buttonPrimary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 10px 26px rgba(79, 70, 229, 0.4);
+  background: var(--accent-dark);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
 }
 
 .buttonSecondary {

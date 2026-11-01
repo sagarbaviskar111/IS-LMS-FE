@@ -1,65 +1,30 @@
 import Link from "next/link";
 import sharedStyles from "./landing.module.css";
 import styles from "./LandingTestimonials.module.css";
+import { DEFAULT_TESTIMONIALS, TestimonialItem } from "@/lib/defaultTestimonials";
 
-type Testimonial = {
-  initials: string;
-  quote: string;
-  name: string;
-  role: string;
-  city: string;
-};
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
 
-const testimonials: Testimonial[] = [
-  {
-    initials: "PD",
-    quote:
-      "Fee follow-ups used to eat my afternoons — typing the same reminder to forty parents on WhatsApp every month. Now overdue fees show up on one screen and parents pay through the Razorpay link themselves. I've stopped chasing anyone.",
-    name: "Priya Deshmukh",
-    role: "Founder, Zenith IIT-JEE Academy",
-    city: "Pune",
-  },
-  {
-    initials: "RI",
-    quote:
-      "Parents used to ask if we were a “real” institute before enrolling their kids. Now I just send them our own page at institutesathi.com/iyers-spoken-english with our logo on it, and that question doesn't come up any more.",
-    name: "Rajesh Iyer",
-    role: "Director, Iyer's Spoken English Institute",
-    city: "Chennai",
-  },
-  {
-    initials: "AM",
-    quote:
-      "Assignment submissions auto-lock the moment the due date passes, so students can't upload at midnight and blame a “technical issue.” I've stopped making follow-up calls just to chase homework.",
-    name: "Anjali Mehta",
-    role: "Administrator, Mehta CA Coaching Classes",
-    city: "Ahmedabad",
-  },
-  {
-    initials: "SN",
-    quote:
-      "Our lecture recordings play inside the dashboard's own player instead of a raw YouTube link, so students rewatch the actual class instead of drifting off into recommended videos.",
-    name: "Suresh Nair",
-    role: "Owner, Nair's NEET Point",
-    city: "Kochi",
-  },
-  {
-    initials: "KS",
-    quote:
-      "Every new term I used to re-enter the same sixty students one by one. With student groups I add our returning batch in a single click and everyone's set up with the right subjects immediately.",
-    name: "Kavita Sharma",
-    role: "Center Head, Sharma Tuition Center",
-    city: "Lucknow",
-  },
-  {
-    initials: "VR",
-    quote:
-      "Parents and students check attendance and results on their own dashboard now instead of calling the office. It's the single change that freed up the most time for our staff.",
-    name: "Vikram Rao",
-    role: "Founder, Rao's Commerce Academy",
-    city: "Hyderabad",
-  },
-];
+const initialsOf = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase())
+    .join("");
+
+// Superadmin-managed reviews; if there are none (or the API is down) the
+// built-in ones keep the section filled.
+async function loadTestimonials(): Promise<TestimonialItem[]> {
+  try {
+    const res = await fetch(`${API_URL}/api/testimonials`, { next: { revalidate: 60 } });
+    if (!res.ok) return DEFAULT_TESTIMONIALS;
+    const data = (await res.json()) as { testimonials?: TestimonialItem[] };
+    return data.testimonials?.length ? data.testimonials : DEFAULT_TESTIMONIALS;
+  } catch {
+    return DEFAULT_TESTIMONIALS;
+  }
+}
 
 const faqs: { question: string; answer: string }[] = [
   {
@@ -106,7 +71,8 @@ function Stars() {
   );
 }
 
-export default function LandingTestimonials() {
+export default async function LandingTestimonials() {
+  const testimonials = await loadTestimonials();
   return (
     <>
       <section id="reviews" className={sharedStyles.section}>
@@ -121,16 +87,16 @@ export default function LandingTestimonials() {
           </div>
 
           <div className={sharedStyles.grid3}>
-            {testimonials.map((t) => (
-              <div key={t.name} className={sharedStyles.card}>
+            {testimonials.map((t, i) => (
+              <div key={`${t.name}-${i}`} className={sharedStyles.card}>
                 <Stars />
                 <p className={styles.quote}>&ldquo;{t.quote}&rdquo;</p>
                 <div className={styles.cardFooter}>
-                  <div className={styles.avatarCircle}>{t.initials}</div>
+                  <div className={styles.avatarCircle}>{initialsOf(t.name)}</div>
                   <div className={styles.footerText}>
                     <p className={styles.footerName}>{t.name}</p>
                     <p className={styles.footerRole}>
-                      {t.role} &middot; {t.city}
+                      {[t.role, t.city].filter(Boolean).join(" · ")}
                     </p>
                   </div>
                 </div>
