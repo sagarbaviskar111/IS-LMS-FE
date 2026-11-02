@@ -70,11 +70,11 @@ export default function CertificateEmailProgress({ jobId, onFinished }: { jobId:
       {parts.length > 0 && <strong style={{ fontSize: "0.9rem" }}>{parts.join(" · ")}</strong>}
       {job.error && (
         <p className={adminStyles.messageError} style={{ margin: 0 }}>
-          Your sender email is not set up, so nothing was sent.{" "}
+          {job.error}{" "}
           <Link href={`/${institute}/dashboard/admin/settings?tab=sender-email`} style={{ textDecoration: "underline" }}>
-            Set it up
+            Open sender email settings
           </Link>
-          , then use “Email unsent”.
+          , fix it, then use “Email unsent”. Nothing was marked as sent.
         </p>
       )}
       {job.limited > 0 && (
@@ -85,7 +85,7 @@ export default function CertificateEmailProgress({ jobId, onFinished }: { jobId:
       )}
       {job.failed > 0 && (
         <p className={adminStyles.sectionSubtitle} style={{ margin: 0 }}>
-          Failed ones show the reason in the list; fix the email address and send them again.
+          Hover over “Failed” in the list to see why. Fix the problem, then send those again.
         </p>
       )}
     </div>

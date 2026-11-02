@@ -1478,6 +1478,7 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   getEmailSettings: () => request<{ address: string | null; hasCredentials: boolean; sentToday: number; reminderLimit: number }>("/api/users/email-settings"),
+  sendTestEmail: () => request<{ message: string; to: string }>("/api/users/email-settings/test", { method: "POST" }),
   updateEmailSettings: (payload: { address: string; appPassword: string }) =>
     request<{ message: string }>("/api/users/email-settings", {
       method: "PATCH",

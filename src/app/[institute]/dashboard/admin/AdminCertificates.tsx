@@ -12,7 +12,8 @@ import CertificateIssueModal from "./CertificateIssueModal";
 import CertificateEmailProgress from "./CertificateEmailProgress";
 import { errMsg, pdfName, saveBlob } from "./certificateUtils";
 
-const PAGE_SIZE = 15;
+const DEFAULT_PAGE_SIZE = 15;
+const LIMIT_KEY = "certificates.pageSize";
 
 const FIELD_LABELS: Record<CertFieldKey, string> = {
   student_name: "Student name",
@@ -809,6 +810,7 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
 function Register({ templates }: { templates: CertTemplate[] }) {
   const [rows, setRows] = useState<Certificate[]>([]);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(DEFAULT_PAGE_SIZE);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -837,26 +839,51 @@ function Register({ templates }: { templates: CertTemplate[] }) {
     loadBatches();
   }, [loadBatches]);
 
+  // Only the newest request may fill the table, so a slow earlier one (for example
+  // the first load before the saved page size is applied) cannot overwrite it.
+  const latest = useRef(0);
   const load = useCallback(async () => {
+    const mine = ++latest.current;
     setLoading(true);
     setError("");
     try {
-      const r = await api.listCertificates({ q: debounced, template, batch, status, page, limit: PAGE_SIZE });
+      const r = await api.listCertificates({ q: debounced, template, batch, status, page, limit });
+      if (mine !== latest.current) return;
       setRows(r.certificates);
       setTotal(r.total);
       setTotalPages(r.totalPages);
     } catch (err) {
-      setError(errMsg(err, "Could not load certificates"));
+      if (mine === latest.current) setError(errMsg(err, "Could not load certificates"));
     } finally {
-      setLoading(false);
+      if (mine === latest.current) setLoading(false);
     }
-  }, [debounced, template, batch, status, page]);
+  }, [debounced, template, batch, status, page, limit]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   useEffect(() => setPage(1), [debounced, template, batch, status]);
+
+  // Remember the chosen page size in this browser.
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(LIMIT_KEY));
+      if ([10, 15, 25, 50, 100].includes(saved)) setLimit(saved);
+    } catch {
+      // storage unavailable: keep the default
+    }
+  }, []);
+
+  const changeLimit = (n: number) => {
+    setLimit(n);
+    setPage(1);
+    try {
+      localStorage.setItem(LIMIT_KEY, String(n));
+    } catch {
+      // ignore
+    }
+  };
 
   const download = async (c: Certificate) => {
     setBusyId(c._id);
@@ -1136,8 +1163,11 @@ function Register({ templates }: { templates: CertTemplate[] }) {
                         Sent {fmtDate(c.emailedAt)}
                       </span>
                     ) : c.emailError ? (
-                      <span title={c.emailError} style={{ color: "#b91c1c", fontWeight: 600 }}>
-                        Failed
+                      <span title={c.emailError}>
+                        <span style={{ color: "#b91c1c", fontWeight: 600 }}>Failed</span>
+                        <span style={{ display: "block", maxWidth: 220, color: "var(--muted)", fontSize: "0.78rem", lineHeight: 1.35 }}>
+                          {c.emailError}
+                        </span>
                       </span>
                     ) : c.hasEmail ? (
                       <span style={{ color: "var(--muted)" }}>Not sent</span>
@@ -1187,7 +1217,7 @@ function Register({ templates }: { templates: CertTemplate[] }) {
           </table>
         </div>
       )}
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={changeLimit} />
 
       {revoking && (
         <RevokeModal
