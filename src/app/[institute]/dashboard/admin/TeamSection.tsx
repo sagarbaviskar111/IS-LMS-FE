@@ -84,6 +84,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
           sort,
           active: stateF === "active" ? "1" : stateF === "inactive" ? "0" : undefined,
           registration: stateF === "pending" ? "pending" : undefined,
+          archived: stateF === "archived" || undefined,
           course: courseF !== "all" ? courseF : undefined,
           batch: batchF !== "all" ? batchF : undefined,
         }),
@@ -125,10 +126,16 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
     { value: "all", label: "All statuses" },
     { value: "active", label: "Active" },
     { value: "inactive", label: "Inactive" },
-    ...(role === "student" ? [{ value: "pending", label: "Registration pending" }] : []),
+    ...(role === "student"
+      ? [
+          { value: "pending", label: "Registration pending" },
+          { value: "archived", label: "Archived" },
+        ]
+      : []),
   ];
 
   const menuFor = (u: User): MenuItem[] => {
+    if (u.archivedAt) return [{ label: "Restore student", onClick: () => restoreMember(u) }];
     const incomplete = role === "student" && u.registrationComplete === false;
     return [
       { label: "Edit name / phone", onClick: () => startEdit(u), hidden: role === "student" ? false : true },
@@ -136,7 +143,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
       { label: "Access & recordings", onClick: () => setAccessStudent(u), hidden: role !== "student" },
       { label: "Reset password", onClick: () => setResetPasswordUser(u) },
       { label: u.isActive ? "Deactivate" : "Activate", onClick: () => toggleActive(u), hidden: incomplete },
-      { label: "Delete", onClick: () => removeMember(u), danger: true },
+      { label: role === "student" ? "Archive" : "Delete", onClick: () => removeMember(u), danger: true },
     ];
   };
 
@@ -200,14 +207,28 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
     }
   };
 
+  const restoreMember = async (u: User) => {
+    setRowError("");
+    try {
+      await api.restoreUser(u._id);
+      load();
+    } catch (err) {
+      setRowError(err instanceof ApiError ? err.message : "Could not restore student");
+    }
+  };
+
   const removeMember = async (u: User) => {
-    if (!window.confirm(`Delete ${u.name}? This cannot be undone.`)) return;
+    const msg =
+      role === "student"
+        ? `Archive ${u.name}? They are hidden and can no longer log in, but their attendance, submissions and notifications are kept. You can restore them from the Archived filter.`
+        : `Delete ${u.name}? This cannot be undone.`;
+    if (!window.confirm(msg)) return;
     setRowError("");
     try {
       await api.deleteUser(u._id);
       load();
     } catch (err) {
-      setRowError(err instanceof ApiError ? err.message : "Could not delete account");
+      setRowError(err instanceof ApiError ? err.message : role === "student" ? "Could not archive student" : "Could not delete account");
     }
   };
 
@@ -353,7 +374,9 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
           <div className={styles.sectionHead}>
             <div>
               <h2 className={styles.sectionTitle}>All {label.toLowerCase()}</h2>
-              <p className={styles.sectionSubtitle}>{total} total, active and deactivated.</p>
+              <p className={styles.sectionSubtitle}>
+                {stateF === "archived" ? `${total} archived. Restore a student from the row menu.` : `${total} total, active and deactivated.`}
+              </p>
             </div>
             {role === "student" && (
               <div className={styles.rowActions}>
@@ -459,7 +482,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
                     const statusCell = (
                       <td>
                         <span className={u.isActive ? styles.badgeSuccess : styles.badgeInactive}>
-                          {u.isActive ? "Active" : "Inactive"}
+                          {u.archivedAt ? "Archived" : u.isActive ? "Active" : "Inactive"}
                         </span>
                         {role === "student" && u.registrationComplete === false && (
                           <span className={styles.badgePending} style={{ marginLeft: 6 }}>

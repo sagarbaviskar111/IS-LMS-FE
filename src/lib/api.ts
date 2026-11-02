@@ -45,6 +45,8 @@ export interface User {
   phone?: string;
   avatarUrl?: string | null;
   isActive: boolean;
+  // set when the student was archived (hidden and locked, data kept)
+  archivedAt?: string | null;
   pending?: boolean;
   admin?: string | null;
   studentInviteCode?: string;
@@ -1408,6 +1410,7 @@ export const api = {
     sort?: string;
     active?: "1" | "0";
     registration?: "pending";
+    archived?: boolean;
     course?: string;
     batch?: string;
   }) => {
@@ -1418,6 +1421,7 @@ export const api = {
     if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.active) params.set("active", opts.active);
     if (opts?.registration) params.set("registration", opts.registration);
+    if (opts?.archived) params.set("archived", "1");
     if (opts?.course) params.set("course", opts.course);
     if (opts?.batch) params.set("batch", opts.batch);
     if (opts?.page) params.set("page", String(opts.page));
@@ -1470,7 +1474,8 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   deleteUser: (id: string) =>
-    request<{ message: string }>(`/api/users/${id}`, { method: "DELETE" }),
+    request<{ message: string; archived?: boolean }>(`/api/users/${id}`, { method: "DELETE" }),
+  restoreUser: (id: string) => request<{ user: User }>(`/api/users/${id}/restore`, { method: "POST" }),
   getTeamSettings: () => request<{ allowSelfPasswordReset: boolean }>("/api/users/team-settings"),
   updateTeamSettings: (payload: { allowSelfPasswordReset: boolean }) =>
     request<{ allowSelfPasswordReset: boolean }>("/api/users/team-settings", {
