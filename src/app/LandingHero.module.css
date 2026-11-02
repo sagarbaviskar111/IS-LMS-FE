@@ -250,3 +250,61 @@
     margin-top: 8px;
   }
 }
+
+/* ---------- Responsive refinements ---------- */
+.hero {
+  padding: clamp(32px, 6vw, 72px) 0 clamp(48px, 8vw, 96px);
+}
+
+.title {
+  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.2rem);
+  text-wrap: balance;
+}
+
+.subtitle {
+  font-size: clamp(1rem, 0.95rem + 0.3vw, 1.12rem);
+}
+
+.visual {
+  min-width: 0;
+}
+
+.preview {
+  padding: clamp(14px, 3vw, 20px);
+}
+
+.rowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .grid {
+    gap: 40px;
+  }
+  .visual {
+    width: 100%;
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .stats {
+    gap: 8px;
+  }
+  .stats > div {
+    padding: 10px;
+  }
+  .stats dd {
+    font-size: 1.3rem;
+  }
+}
+
+@media (min-width: 981px) and (max-width: 1180px) {
+  .grid {
+    gap: 36px;
+  }
+}

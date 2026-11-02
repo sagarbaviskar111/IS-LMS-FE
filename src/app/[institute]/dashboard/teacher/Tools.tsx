@@ -6,6 +6,8 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
+import { useDebounced } from "../admin/useDebounced";
 
 
 
@@ -16,18 +18,21 @@ export default function Tools() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("name");
+  const q = useDebounced(search);
 
   const load = useCallback(() => {
     setLoading(true);
     return api
-      .teacherTools({ page, limit })
+      .teacherTools({ page, limit, q, sort })
       .then((res) => {
         setTools(res.tools);
         setTotalPages(res.totalPages);
         setTotal(res.total);
       })
       .finally(() => setLoading(false));
-  }, [page, limit]);
+  }, [page, limit, q, sort]);
 
   useEffect(() => {
     load();
@@ -39,11 +44,29 @@ export default function Tools() {
       <p className={dashboardStyles.pageSubtitle}>Tools your admin has shared with you.</p>
 
       <section className={adminStyles.section}>
+        <ListToolbar
+          search={search}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
+          placeholder="Search tools by name or link"
+          sort={{
+            key: "sort",
+            label: "Sort by",
+            value: sort,
+            options: [
+              { value: "name", label: "Name (A-Z)" },
+              { value: "newest", label: "Newest first" },
+              { value: "oldest", label: "Oldest first" },
+            ],
+            onChange: (v) => { setSort(v); setPage(1); },
+          }}
+          onClear={() => { setSearch(""); setSort("name"); setPage(1); }}
+          total={total}
+        />
         {loading && tools.length === 0 && <p className={adminStyles.empty} role="status">Loading tools…</p>}
         {!loading && tools.length === 0 && (
           <div className={styles.emptyBlock}>
             <span className={styles.emptyIcon} aria-hidden="true" />
-            <p className={styles.emptyText}>No tools have been shared with you yet.</p>
+            <p className={styles.emptyText}>{q ? "No tools match your search." : "No tools have been shared with you yet."}</p>
           </div>
         )}
 

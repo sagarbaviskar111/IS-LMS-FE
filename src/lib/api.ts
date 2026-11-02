@@ -1192,6 +1192,7 @@ export interface FinanceQuery {
   type?: FinanceType | "";
   source?: "manual" | "payment" | "";
   category?: string;
+  sort?: string;
   q?: string;
   page?: number;
   limit?: number;
@@ -1659,8 +1660,10 @@ export const api = {
     }),
   deleteStudentGroup: (id: string) =>
     request<{ message: string }>(`/api/student-groups/${id}`, { method: "DELETE" }),
-  listTools: (opts?: { page?: number; limit?: number }) => {
+  listTools: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
@@ -1677,15 +1680,19 @@ export const api = {
       body: JSON.stringify(payload),
     }),
   deleteTool: (id: string) => request<{ message: string }>(`/api/tools/${id}`, { method: "DELETE" }),
-  teacherTools: (opts?: { page?: number; limit?: number }) => {
+  teacherTools: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
     return request<PageMeta & { tools: Tool[] }>(`/api/teacher/tools${qs ? `?${qs}` : ""}`);
   },
-  studentTools: (opts?: { page?: number; limit?: number }) => {
+  studentTools: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
@@ -1743,7 +1750,7 @@ export const api = {
   ) => request<{ job: Job }>(`/api/jobs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
   deleteJob: (id: string) => request<{ message: string }>(`/api/jobs/${id}`, { method: "DELETE" }),
   listJobInterests: (id: string) => request<{ interests: JobInterestRow[] }>(`/api/jobs/${id}/interests`),
-  studentListJobs: (opts?: { page?: number; limit?: number }) => {
+  studentListJobs: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
@@ -1870,14 +1877,14 @@ export const api = {
     request<{ message: string }>(`/api/teacher/materials/${id}`, { method: "DELETE" }),
   teacherYoutubeStatus: () => request<YoutubeStatus>("/api/teacher/youtube-status"),
   myStudentBatch: () => request<{ batch: Batch | null }>("/api/student/batch"),
-  studentSessions: (opts?: { page?: number; limit?: number }) => {
+  studentSessions: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
     return request<PageMeta & { sessions: Session[] }>(`/api/student/sessions${qs ? `?${qs}` : ""}`);
   },
-  studentAttendance: (opts?: { page?: number; limit?: number }) => {
+  studentAttendance: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
@@ -1937,7 +1944,7 @@ export const api = {
   announceResults: (id: string) =>
     request<{ exam: ExamDetail }>(`/api/teacher/exams/${id}/announce`, { method: "PATCH" }),
   listSubmissions: (id: string) => request<{ submissions: Submission[] }>(`/api/teacher/exams/${id}/submissions`),
-  studentListExams: (opts?: { page?: number; limit?: number }) => {
+  studentListExams: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
@@ -2022,7 +2029,7 @@ export const api = {
     }>(`/api/teacher/assignments/${id}/submissions`),
 
   // Student: assignments
-  studentListAssignments: (opts?: { page?: number; limit?: number }) => {
+  studentListAssignments: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
@@ -2220,7 +2227,7 @@ export const api = {
     }),
 
   // Notifications — available to every role
-  listNotifications: (opts?: { page?: number; limit?: number }) => {
+  listNotifications: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
@@ -2246,7 +2253,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
-  listSentNotifications: (opts?: { page?: number; limit?: number }) => {
+  listSentNotifications: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
@@ -2341,7 +2348,7 @@ export const api = {
   createNextInstallmentOrder: () =>
     request<PaymentOrder>("/api/student/payments/next-installment/order", { method: "POST" }),
   // Student: own payment history
-  myPayments: (opts?: { page?: number; limit?: number }) => {
+  myPayments: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));

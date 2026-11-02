@@ -5,6 +5,7 @@ import { api, ApiError } from "@/lib/api";
 import { sheetScript } from "@/lib/leadSheetScript";
 import { formScript } from "@/lib/leadFormScript";
 import adminStyles from "./admin.module.css";
+import styles from "./AdminLeadIntegrations.module.css";
 
 const BASE_KEY = "leadWebhookPublicBase";
 
@@ -56,27 +57,23 @@ function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) 
   );
 }
 
-const stepStyle = { margin: "0 0 14px", display: "flex", gap: 12, alignItems: "flex-start" } as const;
-const badge = {
-  flex: "0 0 auto",
-  width: 26,
-  height: 26,
-  borderRadius: "50%",
-  background: "var(--brand)",
-  color: "var(--on-brand, #fff)",
-  fontSize: "0.8rem",
-  fontWeight: 700,
-  display: "inline-flex",
-  alignItems: "center",
-  justifyContent: "center",
-} as const;
-const stepText = { margin: 0, fontSize: "0.9rem", lineHeight: 1.6, color: "var(--foreground)" } as const;
-
 function Step({ n, children }: { n: number; children: React.ReactNode }) {
   return (
-    <div style={stepStyle}>
-      <span style={badge}>{n}</span>
-      <div style={stepText}>{children}</div>
+    <div className={styles.step}>
+      <span className={styles.stepNum}>{n}</span>
+      <div className={styles.stepBody}>{children}</div>
+    </div>
+  );
+}
+
+function CodeBox({ title, text, copyLabel = "Copy script" }: { title: string; text: string; copyLabel?: string }) {
+  return (
+    <div className={styles.codeBox}>
+      <div className={styles.codeHead}>
+        <span>{title}</span>
+        <CopyButton text={text} label={copyLabel} />
+      </div>
+      <pre className={adminStyles.codeBlock}>{text}</pre>
     </div>
   );
 }
@@ -224,7 +221,7 @@ export default function AdminLeadIntegrations() {
             internet, so they can&apos;t reach <code>localhost</code>. <strong>On your live website this is fine</strong> — the URL
             becomes your real domain automatically. To test from your own PC right now:
           </p>
-          <ol style={{ margin: "8px 0 12px", paddingLeft: 20, fontSize: "0.88rem", lineHeight: 1.8, color: "var(--foreground)" }}>
+          <ol className={styles.warnList}>
             <li>
               Install a free tunnel, e.g. <strong>ngrok</strong>, and run <code>ngrok http 5000</code> (5000 = your backend port).
             </li>
@@ -233,11 +230,10 @@ export default function AdminLeadIntegrations() {
             </li>
             <li>The script and URL on this page update — copy the script again.</li>
           </ol>
-          <div className={adminStyles.inviteRow}>
+          <div className={styles.tunnelRow}>
             <input
               className={adminStyles.input}
-              style={{ flex: 1, minWidth: 220 }}
-              placeholder="https://abc123.ngrok-free.app"
+                            placeholder="https://abc123.ngrok-free.app"
               value={overrideDraft}
               onChange={(e) => setOverrideDraft(e.target.value)}
             />
@@ -310,16 +306,8 @@ export default function AdminLeadIntegrations() {
             <Step n={2}>
               <strong>Add the script to the response Sheet.</strong> Open that Sheet → <strong>Extensions → Apps Script</strong> (not the
               form&apos;s own script editor), delete everything there, paste this code and press <strong>Save</strong> (💾).
+              <CodeBox title="Apps Script code" text={formCode} />
             </Step>
-
-            <div style={{ position: "relative", margin: "0 0 14px 38px" }}>
-              <pre className={adminStyles.codeBlock} style={{ maxHeight: 280, overflow: "auto" }}>
-                {formCode}
-              </pre>
-              <div style={{ position: "absolute", top: 10, right: 10 }}>
-                <CopyButton text={formCode} label="Copy script" />
-              </div>
-            </div>
 
             <Step n={3}>
               <strong>Connect it (once).</strong> In the toolbar choose the function <code>setup</code> and press <strong>Run</strong>.
@@ -327,13 +315,13 @@ export default function AdminLeadIntegrations() {
               choose <em>Advanced → Go to project</em>). You&apos;re done: submit a test response and check your Leads.
             </Step>
 
-            <details style={{ marginTop: 6 }}>
-              <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>Something went wrong? Common problems</summary>
-              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+            <details className={styles.problems}>
+              <summary>Something went wrong? Common problems</summary>
+              <div className={styles.problemList}>
                 {FORM_PROBLEMS.map((p) => (
                   <div key={p.error}>
-                    <code style={{ fontSize: "0.8rem" }}>{p.error}</code>
-                    <p className={adminStyles.sectionSubtitle} style={{ margin: "2px 0 0" }}>
+                    <code>{p.error}</code>
+                    <p className={adminStyles.sectionSubtitle}>
                       {p.fix}
                     </p>
                   </div>
@@ -365,16 +353,8 @@ export default function AdminLeadIntegrations() {
         <Step n={2}>
           <strong>Add the script.</strong> In the sheet open <strong>Extensions → Apps Script</strong>, delete everything there, paste
           this code and press <strong>Save</strong> (💾).
+          <CodeBox title="Apps Script code" text={script} />
         </Step>
-
-        <div style={{ position: "relative", margin: "0 0 14px 38px" }}>
-          <pre className={adminStyles.codeBlock} style={{ maxHeight: 280, overflow: "auto" }}>
-            {script}
-          </pre>
-          <div style={{ position: "absolute", top: 10, right: 10 }}>
-            <CopyButton text={script} label="Copy script" />
-          </div>
-        </div>
 
         <Step n={3}>
           <strong>Connect it (once).</strong> In the toolbar choose the function <code>setup</code> and press <strong>Run</strong>. Click{" "}
@@ -382,13 +362,13 @@ export default function AdminLeadIntegrations() {
           <em>Advanced → Go to project</em>). A &quot;Connected!&quot; message appears in the sheet — you&apos;re done.
         </Step>
 
-        <details style={{ marginTop: 6 }}>
-          <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "0.9rem" }}>Something went wrong? Common problems</summary>
-          <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+        <details className={styles.problems}>
+          <summary>Something went wrong? Common problems</summary>
+          <div className={styles.problemList}>
             {PROBLEMS.map((p) => (
               <div key={p.error}>
-                <code style={{ fontSize: "0.8rem" }}>{p.error}</code>
-                <p className={adminStyles.sectionSubtitle} style={{ margin: "2px 0 0" }}>
+                <code>{p.error}</code>
+                <p className={adminStyles.sectionSubtitle}>
                   {p.fix}
                 </p>
               </div>
@@ -410,21 +390,21 @@ export default function AdminLeadIntegrations() {
           </div>
         </div>
 
-        <label className={adminStyles.label}>
-          Webhook URL
-          <div className={adminStyles.inviteRow}>
-            <span className={adminStyles.linkBox}>{webhookUrl}</span>
+        <div className={styles.fieldGroup}>
+          <span className={styles.fieldLabel}>Webhook URL</span>
+          <div className={styles.copyRow}>
+            <span className={adminStyles.linkBox} style={{ minWidth: 0 }}>{webhookUrl}</span>
             <CopyButton text={webhookUrl} />
           </div>
-        </label>
+        </div>
 
-        <label className={adminStyles.label} style={{ marginTop: 12 }}>
-          API key
-          <div className={adminStyles.inviteRow}>
-            <span className={adminStyles.linkBox}>{apiKey}</span>
+        <div className={styles.fieldGroup}>
+          <span className={styles.fieldLabel}>API key</span>
+          <div className={styles.copyRow}>
+            <span className={adminStyles.linkBox} style={{ minWidth: 0 }}>{apiKey}</span>
             <CopyButton text={apiKey} />
           </div>
-        </label>
+        </div>
 
         <div className={adminStyles.formActions} style={{ marginTop: 16 }}>
           <button className={adminStyles.smallButton} type="button" onClick={regenerate} disabled={regenerating}>
@@ -445,12 +425,7 @@ export default function AdminLeadIntegrations() {
           </div>
         </div>
 
-        <div style={{ position: "relative" }}>
-          <pre className={adminStyles.codeBlock}>{curlExample(webhookUrl)}</pre>
-          <div style={{ position: "absolute", top: 10, right: 10 }}>
-            <CopyButton text={curlExample(webhookUrl)} />
-          </div>
-        </div>
+        <CodeBox title="Example request" text={curlExample(webhookUrl)} copyLabel="Copy" />
         <p className={adminStyles.sectionSubtitle} style={{ marginTop: 10 }}>
           Only <strong>name</strong> and <strong>phone</strong> are required — <strong>email</strong>, <strong>notes</strong> and{" "}
           <strong>source</strong> (shown as the lead&apos;s origin label) are optional. Phone must be a valid mobile number.

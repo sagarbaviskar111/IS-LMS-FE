@@ -11,11 +11,13 @@ export default function TelecallerOverview() {
   const { institute } = useParams<{ institute: string }>();
   const [summary, setSummary] = useState<LeadSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     api
       .leadSummary()
       .then(setSummary)
+      .catch(() => setError("Could not load your lead summary. Please refresh the page."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -41,6 +43,8 @@ export default function TelecallerOverview() {
           : "No follow-ups due — a good time to call your new leads."}
       </p>
 
+      {error && <p role="alert" style={{ color: "var(--danger)", margin: "0 0 12px", overflowWrap: "anywhere" }}>{error}</p>}
+
       <div className={dashboardStyles.cardGrid}>
         {stats.map((s) => (
           <div className={`${dashboardStyles.card} ${styles.card} ${s.accent}`} key={s.label}>
@@ -54,7 +58,7 @@ export default function TelecallerOverview() {
         ))}
       </div>
 
-      <p style={{ marginTop: 20 }}>
+      <p style={{ marginTop: 20, display: "flex", flexWrap: "wrap", gap: 8 }}>
         <Link href={`/${institute}/dashboard/telecaller/leads`} className={dashboardStyles.card} style={{ display: "inline-block", padding: "10px 18px", fontWeight: 600 }}>
           Open my leads →
         </Link>

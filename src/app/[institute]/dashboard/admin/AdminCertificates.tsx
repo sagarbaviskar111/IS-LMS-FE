@@ -297,6 +297,8 @@ function NewTemplateModal({ onClose, onCreated }: { onClose: () => void; onCreat
         </button>
       </div>
       <form className={adminStyles.form} onSubmit={submit}>
+        <fieldset className={adminStyles.formSection}>
+        <legend className={adminStyles.formSectionTitle}>Template details</legend>
         <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
           <span>Template name<span className={adminStyles.required}>*</span></span>
           <input
@@ -309,6 +311,20 @@ function NewTemplateModal({ onClose, onCreated }: { onClose: () => void; onCreat
           />
         </label>
         <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+          <span>Certificate number prefix <span style={{ color: "var(--muted)", fontWeight: 400 }}>(optional)</span></span>
+          <input
+            className={adminStyles.input}
+            value={prefix}
+            onChange={(e) => setPrefix(e.target.value)}
+            placeholder="e.g. ABC-CC (auto if empty)"
+            maxLength={20}
+          />
+          <span className={adminStyles.hint}>Certificates are numbered like ABC-CC/2026/0001. Leave empty to pick one automatically.</span>
+        </label>
+        </fieldset>
+        <fieldset className={adminStyles.formSection}>
+        <legend className={adminStyles.formSectionTitle}>Certificate design</legend>
+        <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
           <span>Certificate design (PNG / JPG, up to 15 MB)<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
@@ -318,19 +334,10 @@ function NewTemplateModal({ onClose, onCreated }: { onClose: () => void; onCreat
             required
           />
         </label>
-        <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
-          <span>Certificate number prefix <span style={{ color: "var(--muted)", fontWeight: 400 }}>(optional)</span></span>
-          <input
-            className={adminStyles.input}
-            value={prefix}
-            onChange={(e) => setPrefix(e.target.value)}
-            placeholder="e.g. ABC-CC (auto if empty)"
-            maxLength={20}
-          />
-        </label>
         <p className={`${adminStyles.hint} ${adminStyles.fullRow}`}>
           Tip: leave empty space where the name, course, date and number should go — you place them in the next step.
         </p>
+        </fieldset>
         {error && <p className={`${adminStyles.messageError} ${adminStyles.fullRow}`}>{error}</p>}
         <div className={adminStyles.modalFooter}>
           <button type="button" className={adminStyles.smallButton} onClick={onClose}>
@@ -644,9 +651,10 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
               <span className={adminStyles.sectionSubtitle}>Only for this screen, so you can check how a long or short name fits.</span>
             </label>
 
-            <div>
-              <strong style={{ fontSize: "0.9rem" }}>Items on certificate</strong>
-              <div style={{ display: "grid", gap: 4, margin: "6px 0" }}>
+            <fieldset className={adminStyles.formSection}>
+              <legend className={adminStyles.formSectionTitle}>Items on certificate</legend>
+              <p className={adminStyles.hint}>Pick an item to style it, or drag it on the certificate.</p>
+              <div style={{ display: "grid", gap: 6 }}>
                 {fields.map((f, i) => (
                   <button
                     key={i}
@@ -680,11 +688,11 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                   </option>
                 ))}
               </select>
-            </div>
+            </fieldset>
 
             {sel && typeof selected === "number" && (
-              <div style={{ display: "grid", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-                <strong style={{ fontSize: "0.9rem" }}>{FIELD_LABELS[sel.key]} — style</strong>
+              <fieldset className={adminStyles.formSection}>
+                <legend className={adminStyles.formSectionTitle}>{FIELD_LABELS[sel.key]} — style</legend>
                 {sel.key === "custom" && (
                   <label className={adminStyles.label}>
                     Text
@@ -769,12 +777,12 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                     />
                   </label>
                 </div>
-                <div style={{ display: "flex", gap: 14 }}>
-                  <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                  <label className={adminStyles.checkRow}>
                     <input type="checkbox" checked={sel.bold} onChange={(e) => patchField(selected, { bold: e.target.checked })} />
                     Bold
                   </label>
-                  <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <label className={adminStyles.checkRow}>
                     <input
                       type="checkbox"
                       checked={sel.italic}
@@ -786,13 +794,13 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                 <button type="button" className={adminStyles.dangerButton} onClick={() => removeField(selected)}>
                   Remove this item
                 </button>
-              </div>
+              </fieldset>
             )}
 
             {selected === "qr" && (
-              <div style={{ display: "grid", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-                <strong style={{ fontSize: "0.9rem" }}>QR code</strong>
-                <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <fieldset className={adminStyles.formSection}>
+                <legend className={adminStyles.formSectionTitle}>QR code</legend>
+                <label className={adminStyles.checkRow}>
                   <input
                     type="checkbox"
                     checked={qr.enabled}
@@ -820,11 +828,11 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                 <p className={adminStyles.sectionSubtitle}>
                   Scanning it opens a public page confirming the certificate is genuine. Keep it on a plain background.
                 </p>
-              </div>
+              </fieldset>
             )}
 
-            <div style={{ display: "grid", gap: 8, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
-              <strong style={{ fontSize: "0.9rem" }}>Certificate numbering</strong>
+            <fieldset className={adminStyles.formSection}>
+                <legend className={adminStyles.formSectionTitle}>Certificate numbering</legend>
               <label className={adminStyles.label}>
                 Prefix
                 <input
@@ -837,8 +845,8 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                   }}
                 />
               </label>
-              <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                <label className={adminStyles.checkRow}>
                   <input
                     type="checkbox"
                     checked={numbering.includeYear}
@@ -868,7 +876,7 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
               <p className={adminStyles.sectionSubtitle}>
                 Example: <strong>{exampleNo}</strong>. Numbers go up automatically (currently at {tpl.numbering.counter}).
               </p>
-            </div>
+            </fieldset>
 
             {error && <p className={adminStyles.messageError}>{error}</p>}
             {msg && <p className={adminStyles.sectionSubtitle}>{msg}</p>}

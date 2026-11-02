@@ -11,6 +11,7 @@ import BatchSwitcher from "./BatchSwitcher";
 import AttendancePanel from "./AttendancePanel";
 import Pagination from "../Pagination";
 import ListToolbar from "../admin/ListToolbar";
+import Modal from "../Modal";
 
 function todayStr(): string {
   const d = new Date();
@@ -74,6 +75,8 @@ export default function Sessions() {
     meetingLink: "",
   });
   const [rowError, setRowError] = useState("");
+  const [editError, setEditError] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
 
   const [attendanceSession, setAttendanceSession] = useState<Session | null>(null);
 
@@ -187,18 +190,26 @@ export default function Sessions() {
       meetingLink: s.meetingLink || "",
     });
     setRowError("");
+    setEditError("");
   };
 
-  const cancelEdit = () => setEditingId(null);
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditError("");
+    setEditSaving(false);
+  };
 
   const saveEdit = async (id: string) => {
-    setRowError("");
+    setEditError("");
+    setEditSaving(true);
     try {
       await api.updateSession(id, editForm);
       setEditingId(null);
       load();
     } catch (err) {
-      setRowError(err instanceof ApiError ? err.message : "Could not save changes");
+      setEditError(err instanceof ApiError ? err.message : "Could not save changes");
+    } finally {
+      setEditSaving(false);
     }
   };
 
@@ -223,6 +234,95 @@ export default function Sessions() {
       <BatchSwitcher />
 
       <TodaySessions sessions={sessions} />
+
+      {editingId && (
+        <Modal onClose={cancelEdit} dialogStyle={{ maxWidth: 560, width: "100%", maxHeight: "92vh", overflowY: "auto" }}>
+          <h2 className={adminStyles.sectionTitle}>Edit session</h2>
+          <form
+            className={adminStyles.form}
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveEdit(editingId);
+            }}
+          >
+            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+              <span>Topic<span className={adminStyles.required}>*</span></span>
+              <input
+                className={adminStyles.input}
+                value={editForm.topic}
+                autoFocus
+                required
+                onChange={(e) => setEditForm({ ...editForm, topic: e.target.value })}
+              />
+            </label>
+            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+              <span>Date<span className={adminStyles.required}>*</span></span>
+              <input
+                className={adminStyles.input}
+                type="date"
+                required
+                value={editForm.date}
+                onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+              />
+            </label>
+            <label className={adminStyles.label}>
+              <span>Start time<span className={adminStyles.required}>*</span></span>
+              <input
+                className={adminStyles.input}
+                type="time"
+                required
+                value={editForm.startTime}
+                onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
+              />
+            </label>
+            <label className={adminStyles.label}>
+              <span>End time<span className={adminStyles.required}>*</span></span>
+              <input
+                className={adminStyles.input}
+                type="time"
+                required
+                value={editForm.endTime}
+                onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+              />
+            </label>
+            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+              <span>Notes <span className={adminStyles.hint}>(optional)</span></span>
+              <textarea
+                className={adminStyles.input}
+                rows={3}
+                value={editForm.notes}
+                onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
+              />
+            </label>
+            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+              <span>Meeting link <span className={adminStyles.hint}>(optional)</span></span>
+              <input
+                className={adminStyles.input}
+                type="url"
+                inputMode="url"
+                value={editForm.meetingLink}
+                onChange={(e) => setEditForm({ ...editForm, meetingLink: e.target.value })}
+                placeholder="https://..."
+              />
+              <span className={adminStyles.hint}>Students see a Join button when a link is set.</span>
+            </label>
+
+            <div className={adminStyles.modalFooter}>
+              {editError && (
+                <p className={adminStyles.messageError} role="alert" style={{ margin: 0, marginRight: "auto" }}>
+                  {editError}
+                </p>
+              )}
+              <button className={adminStyles.smallButton} type="button" onClick={cancelEdit} disabled={editSaving}>
+                Cancel
+              </button>
+              <button className={adminStyles.primaryButton} type="submit" disabled={editSaving}>
+                {editSaving ? "Saving…" : "Save changes"}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       {attendanceSession && (
         <AttendancePanel
@@ -469,69 +569,7 @@ export default function Sessions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pageRows.map((s) =>
-                    editingId === s._id ? (
-                      <tr key={s._id}>
-                        <td>
-                          <input
-                            className={adminStyles.input}
-                            type="date"
-                            value={editForm.date}
-                            onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <div style={{ display: "flex", gap: 6, minWidth: 220 }}>
-                            <input
-                              className={adminStyles.input}
-                              type="time"
-                              value={editForm.startTime}
-                              onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
-                            />
-                            <input
-                              className={adminStyles.input}
-                              type="time"
-                              value={editForm.endTime}
-                              onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <input
-                            className={adminStyles.input}
-                            value={editForm.topic}
-                            onChange={(e) => setEditForm({ ...editForm, topic: e.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className={adminStyles.input}
-                            value={editForm.notes}
-                            onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className={adminStyles.input}
-                            type="url"
-                            value={editForm.meetingLink}
-                            onChange={(e) => setEditForm({ ...editForm, meetingLink: e.target.value })}
-                            placeholder="https://..."
-                          />
-                        </td>
-                        <td>—</td>
-                        <td>
-                          <div className={adminStyles.rowActions} style={{ flexWrap: "wrap" }}>
-                            <button className={adminStyles.primaryButton} onClick={() => saveEdit(s._id)}>
-                              Save
-                            </button>
-                            <button className={adminStyles.smallButton} onClick={cancelEdit}>
-                              Cancel
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : (
+                  {pageRows.map((s) => (
                       <tr key={s._id}>
                         <td>
                           {weekdayLabel(s.date.slice(0, 10))} {dayMonthLabel(s.date.slice(0, 10))}
@@ -582,8 +620,7 @@ export default function Sessions() {
                           </div>
                         </td>
                       </tr>
-                    )
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>

@@ -47,7 +47,7 @@ export default function Pagination({
       <span className={styles.paginationInfo}>{info}</span>
 
       {canChooseLimit && (
-        <label className={styles.paginationInfo} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <label className={`${styles.paginationInfo} ${styles.paginationLimit}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           Rows per page
           <select
             className={styles.select}
@@ -70,17 +70,20 @@ export default function Pagination({
           <button className={styles.smallButton} type="button" onClick={() => onPageChange(page - 1)} disabled={page <= 1}>
             Previous
           </button>
+          <span className={styles.pageStatus} aria-live="polite">
+            Page {page} of {totalPages}
+          </span>
           {limit &&
             pageList(page, totalPages).map((n, i) =>
               n === "gap" ? (
-                <span key={`gap-${i}`} className={styles.paginationInfo} aria-hidden="true">
+                <span key={`gap-${i}`} className={`${styles.paginationInfo} ${styles.pageGap}`} aria-hidden="true">
                   …
                 </span>
               ) : (
                 <button
                   key={n}
                   type="button"
-                  className={n === page ? styles.primaryButton : styles.smallButton}
+                  className={`${n === page ? styles.primaryButton : styles.smallButton} ${styles.pageNumber}`}
                   onClick={() => onPageChange(n)}
                   aria-current={n === page ? "page" : undefined}
                   aria-label={`Page ${n}`}

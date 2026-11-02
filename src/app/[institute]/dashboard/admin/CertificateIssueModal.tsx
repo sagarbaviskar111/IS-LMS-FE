@@ -399,14 +399,14 @@ export default function CertificateIssueModal({
           )}
 
           {error && <p className={adminStyles.messageError}>{error}</p>}
-          <div className={adminStyles.formActions}>
-            <button className={adminStyles.smallButton} onClick={onClose}>
-              Done
-            </button>
-            <button className={adminStyles.primaryButton} onClick={downloadAll} disabled={busy}>
-              {busy ? "Preparing…" : "Download PDF"}
-            </button>
-          </div>
+        </div>
+        <div className={adminStyles.modalFooter}>
+          <button className={adminStyles.smallButton} onClick={onClose}>
+            Done
+          </button>
+          <button className={adminStyles.primaryButton} onClick={downloadAll} disabled={busy}>
+            {busy ? "Preparing…" : "Download PDF"}
+          </button>
         </div>
       </Modal>
     );

@@ -55,6 +55,52 @@
   gap: 8px;
 }
 
+/* "Page x of y" between Previous and Next — phones only. */
+.pageStatus {
+  display: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--foreground);
+  text-align: center;
+  flex: 1;
+}
+
+@media (max-width: 640px) {
+  .paginationRow {
+    gap: 10px;
+  }
+
+  .paginationButtons {
+    order: -1;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .paginationButtons .smallButton,
+  .paginationButtons .primaryButton {
+    min-height: 44px;
+  }
+
+  .pageNumber,
+  .pageGap {
+    display: none !important;
+  }
+
+  .pageStatus {
+    display: block;
+  }
+
+  /* Rows-per-page is rarely needed on a phone: tuck it small, beside the count. */
+  .paginationLimit {
+    margin-left: auto;
+  }
+
+  .paginationLimit .select {
+    min-height: 32px !important;
+    padding: 2px 6px !important;
+  }
+}
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -483,6 +529,77 @@
   .rowActions {
     gap: 10px;
   }
+
+  /* Wider than the screen on purpose: the wrapper scrolls sideways (the
+     actions column stays pinned) rather than squeezing text into slivers. */
+  .table {
+    font-size: 0.85rem;
+    min-width: 600px;
+  }
+
+  /* First column is the row's identity (name / title): keep it readable,
+     let it wrap onto two lines instead of being squeezed to a sliver. */
+  .table td:first-child {
+    min-width: 128px;
+    font-weight: 600;
+  }
+
+  .table td:last-child {
+    white-space: nowrap;
+  }
+
+  .sectionHead > * {
+    min-width: 0;
+  }
+
+  .grid {
+    gap: 14px;
+  }
+
+  .linkBox {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+
+  .tab {
+    min-height: 40px;
+  }
+}
+
+/* Touch screens: every control is at least 44px tall. */
+@media (pointer: coarse) {
+  .smallButton,
+  .primaryButton,
+  .dangerButton {
+    min-height: 44px;
+  }
+
+  .input,
+  .select {
+    min-height: 44px;
+  }
+
+  .tab {
+    min-height: 40px;
+  }
+
+  .tabActive {
+    min-height: 40px;
+  }
+}
+
+/* Tablet: two-column forms and roomier sections. */
+@media (min-width: 561px) and (max-width: 1024px) {
+  .section {
+    padding: 20px;
+  }
+}
+
+/* Dark mode: the soft shadow that hints at the pinned actions column needs
+   to be darker on dark surfaces to stay visible. */
+:root[data-theme="dark"] .table th:last-child::before,
+:root[data-theme="dark"] .table td:last-child::before {
+  background: linear-gradient(to right, transparent, rgba(0, 0, 0, 0.5));
 }
 
 /* ======================================================================
@@ -603,24 +720,24 @@ textarea.input {
 .modalFooter {
   grid-column: 1 / -1;
   position: sticky;
-  bottom: -28px;
+  /* --modal-pad / --modal-pad-b / --modal-safe-b come from .modalDialog. */
+  bottom: calc(var(--modal-pad-b, 28px) * -1);
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 8px -28px -28px;
-  padding: 14px 28px;
+  margin: 8px calc(var(--modal-pad, 28px) * -1) calc(var(--modal-pad-b, 28px) * -1);
+  padding: 14px var(--modal-pad, 28px) calc(14px + var(--modal-safe-b, 0px));
   border-top: 1px solid var(--border);
   background: var(--surface);
 }
 
-@media (max-width: 480px) {
-  .modalFooter {
-    bottom: -20px;
-    margin: 8px -20px -20px;
-    padding: 12px 20px;
+@media (max-width: 600px) {
+  .modalFooter > button,
+  .modalFooter > a {
+    flex: 1 1 120px;
   }
 }
 
@@ -660,4 +777,98 @@ textarea.input {
 .primaryButton:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* ---------- Phones: small tables become labelled cards ----------
+   TableCards.tsx marks tables with up to 7 columns (data-cards) and copies each header
+   into the cells (data-label). Wide tables are not marked and keep scrolling sideways. */
+@media (max-width: 640px) {
+  .table[data-cards] {
+    min-width: 0;
+  }
+
+  .table[data-cards] thead {
+    display: none;
+  }
+
+  .table[data-cards],
+  .table[data-cards] tbody,
+  .table[data-cards] tr,
+  .table[data-cards] td {
+    display: block;
+    width: 100%;
+  }
+
+  .table[data-cards] tbody tr,
+  .table[data-cards] tbody tr:hover {
+    margin-bottom: 12px;
+    padding: 4px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+
+  .table[data-cards] td,
+  .table[data-cards] td:last-child {
+    position: static;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 9px 0;
+    border-bottom: 1px dashed var(--border);
+    background: transparent;
+    text-align: right;
+    font-weight: 400;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+
+  .table[data-cards] td::before,
+  .table[data-cards] td:last-child::before {
+    content: attr(data-label);
+    position: static;
+    width: auto;
+    flex-shrink: 0;
+    max-width: 45%;
+    background: none;
+    text-align: left;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    pointer-events: auto;
+  }
+
+  /* The first cell is the row's name: show it as the card's heading. */
+  .table[data-cards] td:first-child {
+    display: block;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    font-weight: 700;
+    min-width: 0;
+  }
+
+  /* Cells with no header (the actions column) sit on their own line. */
+  .table[data-cards] td[data-label=""] {
+    display: block;
+    text-align: left;
+  }
+
+  .table[data-cards] td[data-label=""]::before,
+  .table[data-cards] td:first-child::before {
+    content: none;
+  }
+
+  .table[data-cards] td:last-child {
+    border-bottom: none;
+    padding-bottom: 12px;
+  }
+
+  .table[data-cards] td .rowActions {
+    justify-content: flex-start;
+  }
 }

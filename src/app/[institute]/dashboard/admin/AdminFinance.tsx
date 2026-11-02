@@ -113,6 +113,7 @@ export default function AdminFinance() {
   const [sourceFilter, setSourceFilter] = useState<"manual" | "payment" | "">("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("newest");
   const debouncedSearch = useDebounced(search);
 
   const [used, setUsed] = useState<{ credit: string[]; debit: string[] }>({ credit: [], debit: [] });
@@ -139,6 +140,7 @@ export default function AdminFinance() {
           source: sourceFilter,
           category: categoryFilter,
           q: debouncedSearch,
+          sort,
           page,
           limit,
         }),
@@ -154,7 +156,7 @@ export default function AdminFinance() {
     } finally {
       setLoading(false);
     }
-  }, [range.from, range.to, typeFilter, sourceFilter, categoryFilter, debouncedSearch, page, limit]);
+  }, [range.from, range.to, typeFilter, sourceFilter, categoryFilter, debouncedSearch, sort, page, limit]);
 
   useEffect(() => {
     load();
@@ -188,6 +190,7 @@ export default function AdminFinance() {
         source: sourceFilter,
         category: categoryFilter,
         q: debouncedSearch,
+        sort,
       });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -407,6 +410,21 @@ export default function AdminFinance() {
               setPage(1);
             }}
           />
+          <select
+            className={adminStyles.select}
+            style={{ maxWidth: 190 }}
+            aria-label="Sort by"
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value);
+              setPage(1);
+            }}
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="amount_desc">Amount: high to low</option>
+            <option value="amount_asc">Amount: low to high</option>
+          </select>
         </div>
 
         {loading && rows.length === 0 && <p className={adminStyles.empty}>Loading entries…</p>}

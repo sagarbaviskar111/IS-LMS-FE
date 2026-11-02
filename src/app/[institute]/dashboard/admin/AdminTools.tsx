@@ -5,6 +5,8 @@ import { api, ApiError, Tool } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
 import Pagination from "../Pagination";
+import ListToolbar from "./ListToolbar";
+import { useDebounced } from "./useDebounced";
 
 
 
@@ -13,6 +15,9 @@ export default function AdminTools() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("name");
+  const q = useDebounced(search);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -28,14 +33,14 @@ export default function AdminTools() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.listTools({ page, limit });
+      const res = await api.listTools({ page, limit, q, sort });
       setTools(res.tools);
       setTotalPages(res.totalPages);
       setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, [page, limit]);
+  }, [page, limit, q, sort]);
 
   useEffect(() => {
     load();
@@ -148,12 +153,30 @@ export default function AdminTools() {
             </div>
           </div>
 
+          <ListToolbar
+          search={search}
+          onSearch={(v) => { setSearch(v); setPage(1); }}
+          placeholder="Search tools by name or link"
+          sort={{
+            key: "sort",
+            label: "Sort by",
+            value: sort,
+            options: [
+              { value: "name", label: "Name (A-Z)" },
+              { value: "newest", label: "Newest first" },
+              { value: "oldest", label: "Oldest first" },
+            ],
+            onChange: (v) => { setSort(v); setPage(1); },
+          }}
+          onClear={() => { setSearch(""); setSort("name"); setPage(1); }}
+          total={total}
+        />
           {rowError && <p className={styles.messageError}>{rowError}</p>}
 
           {!loading && tools.length === 0 && (
             <div className={styles.emptyState}>
               <span className={styles.emptyStateIcon} aria-hidden="true">🔗</span>
-              <p className={styles.emptyStateText}>No tools yet — add one above.</p>
+              <p className={styles.emptyStateText}>{q ? "No tools match your search." : "No tools yet — add one above."}</p>
             </div>
           )}
 

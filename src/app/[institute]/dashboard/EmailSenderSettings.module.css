@@ -1,0 +1,64 @@
+.stepCard {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.stepBody {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+.status {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 16px 18px;
+  border-radius: var(--radius-md);
+  background: var(--success-soft);
+}
+
+.statusInfo {
+  flex: 1;
+  min-width: 220px;
+}
+
+.passwordRow {
+  display: flex;
+  gap: 8px;
+}
+
+.passwordRow input {
+  flex: 1;
+  min-width: 0;
+}
+
+.submitRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  margin-top: 4px;
+}
+
+@media (max-width: 560px) {
+  .stepCard {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 16px;
+  }
+  .status > button {
+    width: 100%;
+  }
+  .submitRow > button {
+    width: 100%;
+  }
+}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api, ApiError, CertificateVerification } from "@/lib/api";
+import styles from "./verify.module.css";
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -36,7 +37,7 @@ export default function VerifyCertificatePage() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${data.certificateNo.replace(/[^w.-]+/g, "_")}.pdf`;
+      a.download = `${data.certificateNo.replace(/[^\w.-]+/g, "_")}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -56,70 +57,57 @@ export default function VerifyCertificatePage() {
       ]
     : [];
 
+  const notFound = !loading && error === "notfound";
+
   return (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 16, background: "#f4f6fb" }}>
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          background: "#fff",
-          borderRadius: 14,
-          padding: 28,
-          boxShadow: "0 6px 30px rgba(15,23,42,0.1)",
-          color: "#0f172a",
-        }}
-      >
-        {loading && <p>Checking certificate…</p>}
-        {!loading && error === "notfound" && (
+    <main className={styles.page}>
+      <span className={styles.brand}>InstituteSathi certificate check</span>
+      <div className={`${styles.card} ${data ? (valid ? styles.ok : styles.bad) : notFound ? styles.bad : ""}`}>
+        {loading && (
+          <div className={styles.skeleton} aria-busy="true" aria-label="Checking certificate">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
+        )}
+        {notFound && (
           <>
-            <h1 style={{ color: "#b91c1c", fontSize: "1.3rem", margin: 0 }}>✕ Certificate not found</h1>
-            <p style={{ color: "#475569" }}>
+            <div className={styles.status}>
+              <span className={styles.icon} aria-hidden="true">✕</span>
+              <h1 className={styles.title}>Certificate not found</h1>
+            </div>
+            <p className={styles.text}>
               No certificate matches this code. It may be forged, or the link was copied wrongly.
             </p>
           </>
         )}
-        {!loading && error && error !== "notfound" && <p style={{ color: "#b91c1c" }}>{error}</p>}
+        {!loading && error && error !== "notfound" && <p className={styles.error}>{error}</p>}
         {data && (
           <>
-            <h1 style={{ color: valid ? "#15803d" : "#b91c1c", fontSize: "1.3rem", margin: 0 }}>
-              {valid ? "✓ Genuine certificate" : "✕ This certificate has been revoked"}
-            </h1>
-            {!valid && data.revokedReason && <p style={{ color: "#475569" }}>Reason: {data.revokedReason}</p>}
-            <dl style={{ margin: "18px 0 0", display: "grid", gap: 12 }}>
+            <div className={styles.status}>
+              <span className={styles.icon} aria-hidden="true">{valid ? "✓" : "✕"}</span>
+              <h1 className={styles.title}>{valid ? "Genuine certificate" : "This certificate has been revoked"}</h1>
+            </div>
+            {!valid && data.revokedReason && <p className={styles.text}>Reason: {data.revokedReason}</p>}
+            {valid && (
+              <>
+                <button type="button" onClick={download} disabled={downloading} className={styles.download}>
+                  {downloading ? "Preparing PDF…" : "Download certificate (PDF)"}
+                </button>
+                {downloadError && <p className={styles.error} role="alert">{downloadError}</p>}
+              </>
+            )}
+            <dl className={styles.list}>
               {rows
                 .filter(([, v]) => v)
                 .map(([k, v]) => (
-                  <div key={k}>
-                    <dt style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: 0.5, color: "#64748b" }}>{k}</dt>
-                    <dd style={{ margin: 0, fontWeight: 600 }}>{v}</dd>
+                  <div key={k} className={styles.row}>
+                    <dt>{k}</dt>
+                    <dd>{v}</dd>
                   </div>
                 ))}
             </dl>
-            {valid && (
-              <>
-                <button
-                  type="button"
-                  onClick={download}
-                  disabled={downloading}
-                  style={{
-                    marginTop: 22,
-                    width: "100%",
-                    padding: "12px 16px",
-                    border: 0,
-                    borderRadius: 10,
-                    background: "#047857",
-                    color: "#fff",
-                    fontWeight: 700,
-                    fontSize: "1rem",
-                    cursor: downloading ? "wait" : "pointer",
-                    opacity: downloading ? 0.7 : 1,
-                  }}
-                >
-                  {downloading ? "Preparing PDF…" : "Download certificate (PDF)"}
-                </button>
-                {downloadError && <p style={{ color: "#b91c1c", margin: "10px 0 0", fontSize: "0.9rem" }}>{downloadError}</p>}
-              </>
-            )}
           </>
         )}
       </div>

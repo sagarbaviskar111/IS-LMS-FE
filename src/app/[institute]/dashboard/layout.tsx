@@ -1,6 +1,6 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -9,6 +9,7 @@ import { canOpenPage } from "@/lib/permissions";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import BrandStyle from "@/components/BrandStyle";
+import TableCards from "./TableCards";
 import ProfileEditModal from "./ProfileEditModal";
 import styles from "./dashboard.module.css";
 
@@ -178,6 +179,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const params = useParams<{ institute: string }>();
   const base = `/${params.institute}`;
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -191,6 +194,34 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     document.body.setAttribute("data-brand-scope", "");
     return () => document.body.removeAttribute("data-brand-scope");
   }, [hasBrand]);
+
+  // Drawer behaviour (phone / tablet): close on route change, Esc, or when the
+  // viewport grows back to the desktop layout; lock page scroll while open;
+  // move focus into the drawer and give it back to the menu button on close.
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    const mq = window.matchMedia("(min-width: 1025px)");
+    const onMq = () => mq.matches && setMenuOpen(false);
+    document.addEventListener("keydown", onKey);
+    mq.addEventListener("change", onMq);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const opener = menuButtonRef.current;
+    drawerCloseRef.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      mq.removeEventListener("change", onMq);
+      document.body.style.overflow = prevOverflow;
+      opener?.focus();
+    };
+  }, [menuOpen]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -244,6 +275,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     <>
       <div className={styles.brand}>
         <BrandLogo height={32} />
+        <button
+          type="button"
+          ref={drawerCloseRef}
+          className={styles.drawerClose}
+          onClick={() => setMenuOpen(false)}
+          aria-label="Close menu"
+        >
+          ×
+        </button>
       </div>
 
       <nav className={styles.nav}>
@@ -300,6 +340,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className={styles.pageShell} data-brand-scope="">
       <BrandStyle color={institute?.brandColor} />
+      <TableCards />
       <header className={styles.topBrandBar}>
         <div className={styles.topBrandSide}>
           <BrandLogo height={28} />
@@ -319,18 +360,28 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </header>
 
       <div className={styles.shell}>
-        <aside className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`}>
+        <aside
+          id="dashboard-drawer"
+          className={`${styles.sidebar} ${menuOpen ? styles.sidebarOpen : ""}`}
+          aria-label="Main navigation"
+        >
           {sidebarContent}
         </aside>
 
-        {menuOpen && (
-          <div className={styles.overlayOpen} onClick={() => setMenuOpen(false)} />
-        )}
+        <div
+          className={`${styles.overlay} ${menuOpen ? styles.overlayOpen : ""}`}
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
 
         <div className={styles.content}>
           <div className={styles.topbar}>
             <button
-              aria-label="Toggle menu"
+              type="button"
+              ref={menuButtonRef}
+              aria-label="Open menu"
+              aria-expanded={menuOpen}
+              aria-controls="dashboard-drawer"
               className={styles.menuButton}
               onClick={() => setMenuOpen((open) => !open)}
             >
@@ -338,6 +389,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </button>
             <BrandLogo height={26} className={styles.topbarBrand} />
             <div className={styles.topbarActions}>
+              {institute &&
+                (institute.logoUrl ? (
+                  <span className={styles.topbarInstitute}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={institute.logoUrl} alt={institute.name} />
+                  </span>
+                ) : (
+                  <span className={`${styles.topbarInstitute} ${styles.topbarInstituteText}`}>{institute.name}</span>
+                ))}
               <ThemeToggle />
               <button
                 type="button"

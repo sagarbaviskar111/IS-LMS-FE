@@ -3,18 +3,9 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "@/lib/api";
 import adminStyles from "./admin/admin.module.css";
+import styles from "./EmailSenderSettings.module.css";
 
 const GMAIL = /^[^\s@]+@(gmail|googlemail)\.com$/i;
-
-const stepCard: React.CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "36px minmax(0, 1fr)",
-  gap: 14,
-  padding: 16,
-  border: "1px solid var(--border)",
-  borderRadius: "var(--radius-md)",
-  background: "var(--surface)",
-};
 
 function StepNumber({ n, done }: { n: number; done?: boolean }) {
   return (
@@ -129,18 +120,8 @@ export default function EmailSenderSettings() {
         <div style={{ display: "grid", gap: 16 }}>
           {/* status */}
           {hasCredentials ? (
-            <div
-              style={{
-                display: "flex",
-                gap: 12,
-                flexWrap: "wrap",
-                alignItems: "center",
-                padding: 16,
-                borderRadius: "var(--radius-md)",
-                background: "var(--success-soft)",
-              }}
-            >
-              <div style={{ flex: 1, minWidth: 220 }}>
+            <div className={styles.status}>
+              <div className={styles.statusInfo}>
                 <span className={adminStyles.badgeSuccess}>Connected</span>
                 <div style={{ marginTop: 6, fontWeight: 600 }}>Sending as {address}</div>
                 <div style={{ color: "var(--muted)", fontSize: "0.85rem" }}>Up to 90 emails a day go out from this address.</div>
@@ -171,9 +152,9 @@ export default function EmailSenderSettings() {
           {/* steps */}
           {showSteps && (
             <form onSubmit={submit} style={{ display: "grid", gap: 12 }}>
-              <div style={stepCard}>
+              <div className={styles.stepCard}>
                 <StepNumber n={1} done={addressOk} />
-                <div style={{ display: "grid", gap: 8 }}>
+                <div className={styles.stepBody}>
                   <strong>Your Gmail address</strong>
                   <span style={{ color: "var(--muted)", fontSize: "0.88rem" }}>
                     Use a Gmail just for your institute, like <em>yourinstitute@gmail.com</em>. Students will see emails coming from it. Don&apos;t have
@@ -200,9 +181,9 @@ export default function EmailSenderSettings() {
                 </div>
               </div>
 
-              <div style={stepCard}>
+              <div className={styles.stepCard}>
                 <StepNumber n={2} />
-                <div style={{ display: "grid", gap: 8 }}>
+                <div className={styles.stepBody}>
                   <strong>Turn on 2-Step Verification</strong>
                   <span style={{ color: "var(--muted)", fontSize: "0.88rem" }}>
                     Google only gives App Passwords to accounts with 2-Step Verification on. Sign in to that Gmail, open the page below and switch
@@ -216,9 +197,9 @@ export default function EmailSenderSettings() {
                 </div>
               </div>
 
-              <div style={stepCard}>
+              <div className={styles.stepCard}>
                 <StepNumber n={3} />
-                <div style={{ display: "grid", gap: 8 }}>
+                <div className={styles.stepBody}>
                   <strong>Create an App Password</strong>
                   <ol style={{ margin: 0, paddingLeft: 18, color: "var(--muted)", fontSize: "0.88rem", display: "grid", gap: 4 }}>
                     <li>Open the page below (sign in to the same Gmail if asked).</li>
@@ -241,18 +222,18 @@ export default function EmailSenderSettings() {
                 </div>
               </div>
 
-              <div style={stepCard}>
+              <div className={styles.stepCard}>
                 <StepNumber n={4} done={passwordOk} />
-                <div style={{ display: "grid", gap: 8 }}>
+                <div className={styles.stepBody}>
                   <strong>Paste it here and connect</strong>
                   <span style={{ color: "var(--muted)", fontSize: "0.88rem" }}>
                     Paste the 16-letter password. Spaces are fine, we remove them. This is <strong>not</strong> your normal Gmail password, that one will
                     not work.
                   </span>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div className={styles.passwordRow}>
                     <input
                       className={adminStyles.input}
-                      style={{ flex: 1, fontFamily: showPassword ? "var(--font-geist-mono), monospace" : undefined, letterSpacing: showPassword ? 1 : undefined }}
+                      style={{ fontFamily: showPassword ? "var(--font-geist-mono), monospace" : undefined, letterSpacing: showPassword ? 1 : undefined }}
                       type={showPassword ? "text" : "password"}
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
@@ -272,7 +253,7 @@ export default function EmailSenderSettings() {
                         : `${cleanPassword.length} of 16 letters. An App Password is exactly 16 letters.`
                       : "16 letters, like abcd efgh ijkl mnop"}
                   </span>
-                  <div className={adminStyles.formActions} style={{ justifyContent: "flex-start", marginTop: 4 }}>
+                  <div className={styles.submitRow}>
                     <button className={adminStyles.primaryButton} type="submit" disabled={saving || !addressOk || !passwordOk}>
                       {saving ? "Checking with Gmail…" : hasCredentials ? "Check and replace" : "Check and connect"}
                     </button>

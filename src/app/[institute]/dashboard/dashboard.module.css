@@ -1,21 +1,24 @@
 .pageShell {
+  --sidebar-w: 240px;
+  --bar-h: calc(52px + env(safe-area-inset-top, 0px));
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* ---------- Top brand bar — our logo left, institute logo right ---------- */
 
 .topBrandBar {
   flex-shrink: 0;
-  height: 52px;
+  height: var(--bar-h);
   position: sticky;
   top: 0;
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: env(safe-area-inset-top, 0px) max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -72,7 +75,7 @@
 /* ---------- Sidebar ---------- */
 
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-w);
   flex-shrink: 0;
   background: #0f172a;
   border-right: 1px solid #1e293b;
@@ -82,15 +85,21 @@
   flex-direction: column;
   position: fixed;
   left: 0;
-  top: 52px;
-  height: calc(100vh - 52px);
+  top: var(--bar-h);
+  height: calc(100vh - var(--bar-h));
+  height: calc(100dvh - var(--bar-h));
   z-index: 40;
   overflow: hidden;
+}
+
+.drawerClose {
+  display: none;
 }
 
 .brand {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
   margin-bottom: 16px;
   padding: 0 6px;
@@ -118,6 +127,7 @@
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding-right: 4px;
   margin-right: -4px;
   scrollbar-width: thin;
@@ -331,19 +341,44 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  margin-left: 240px;
+  margin-left: var(--sidebar-w);
 }
 
 .topbar {
   display: none;
   position: sticky;
-  top: 52px;
+  top: 0;
   z-index: 30;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  gap: 10px;
+  min-height: var(--bar-h);
+  padding: env(safe-area-inset-top, 0px) max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px));
   background: var(--surface);
   border-bottom: 1px solid var(--border);
+}
+
+.topbarInstitute {
+  display: inline-flex;
+  align-items: center;
+  max-width: 120px;
+  min-width: 0;
+}
+
+.topbarInstitute img {
+  max-height: 26px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+.topbarInstituteText {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
 }
 
 .topbarBrand {
@@ -360,8 +395,9 @@
 }
 
 .menuButton {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface-alt);
@@ -396,7 +432,15 @@
 
 .main {
   flex: 1;
-  padding: 32px;
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 32px max(32px, env(safe-area-inset-right, 0px)) calc(32px + env(safe-area-inset-bottom, 0px))
+    max(32px, env(safe-area-inset-left, 0px));
+  min-width: 0;
+}
+
+.main > * {
   min-width: 0;
 }
 
@@ -417,8 +461,9 @@
 
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
   gap: 16px;
+  min-width: 0;
 }
 
 .card {
@@ -454,6 +499,7 @@
   align-items: center;
   justify-content: center;
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--muted);
 }
 
@@ -466,11 +512,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: max(20px, env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px))
+    max(20px, env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
   z-index: 100;
+  overscroll-behavior: contain;
 }
 
 .modalDialog {
+  /* Padding is exposed as variables so the sticky footer (admin.module.css
+     .modalFooter) can bleed to the dialog edges at any breakpoint. */
+  --modal-pad: 28px;
+  --modal-pad-b: 28px;
+  --modal-safe-b: 0px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -478,8 +531,13 @@
   width: 100%;
   max-width: 640px;
   max-height: 90vh;
+  max-height: min(90dvh, 100dvh - 40px);
   overflow-y: auto;
-  padding: 28px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  padding: var(--modal-pad) var(--modal-pad) var(--modal-pad-b);
+  outline: none;
+  min-width: 0;
 }
 
 /* A modal is a title, an optional hint, then its form — give the form room
@@ -503,9 +561,13 @@
   border-bottom: 1px solid var(--border);
 }
 
+.modalHead > * {
+  min-width: 0;
+}
+
 .modalCloseButton {
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
@@ -525,40 +587,129 @@
   border-color: var(--brand);
 }
 
-@media (max-width: 480px) {
+/* Tablet: centred with a comfortable width. */
+@media (min-width: 601px) and (max-width: 1024px) {
   .modalDialog {
-    padding: 20px;
-    max-height: 90vh;
+    max-width: min(640px, 100%);
   }
 }
 
-/* ---------- Responsive ---------- */
+/* Phone: a near full-screen bottom sheet. */
+@media (max-width: 600px) {
+  .modalOverlay {
+    align-items: flex-end;
+    padding: env(safe-area-inset-top, 0px) 0 0;
+  }
 
-@media (max-width: 860px) {
+  .modalDialog {
+    --modal-pad: 18px;
+    --modal-safe-b: env(safe-area-inset-bottom, 0px);
+    --modal-pad-b: calc(18px + env(safe-area-inset-bottom, 0px));
+    max-width: none;
+    max-height: calc(100vh - 12px);
+    max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    animation: sheetUp 0.22s ease-out;
+  }
+
+  .modalCloseButton {
+    width: 44px;
+    height: 44px;
+    margin: -6px -6px 0 0;
+    font-size: 1.2rem;
+  }
+}
+
+@keyframes sheetUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* ---------- Responsive: drawer layout for tablet + phone (<= 1024px) ---------- */
+
+@media (max-width: 1024px) {
+  .pageShell {
+    --sidebar-w: 0px;
+  }
+
+  /* One bar on small screens: the sticky .topbar replaces the brand bar. */
+  .topBrandBar {
+    display: none;
+  }
+
   .sidebar {
-    position: fixed;
-    left: 0;
+    --drawer-w: min(300px, 86vw);
+    width: var(--drawer-w);
     top: 0;
     height: 100vh;
+    height: 100dvh;
+    z-index: 70;
+    padding-top: calc(14px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
     transform: translateX(-100%);
-    transition: transform 0.2s ease;
-    box-shadow: var(--shadow-lg);
+    visibility: hidden;
+    transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    box-shadow: none;
+    overscroll-behavior: contain;
   }
 
   .sidebarOpen {
     transform: translateX(0);
+    visibility: visible;
+    transition: transform 0.25s ease, visibility 0s;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .drawerClose {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    margin-right: -8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    color: #e5e7eb;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+  }
+
+  .navItem {
+    min-height: 44px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
   }
 
   .topbar {
     display: flex;
   }
 
-  .overlayOpen {
+  .overlay {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.45);
-    z-index: 35;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 65;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+
+  .overlayOpen {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .content {
@@ -566,12 +717,78 @@
   }
 
   .main {
-    padding: 20px;
+    padding: 22px max(22px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px))
+      max(22px, env(safe-area-inset-left, 0px));
   }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .main {
+    padding: 16px max(14px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px))
+      max(14px, env(safe-area-inset-left, 0px));
+  }
+
+  .pageTitle {
+    font-size: 1.3rem;
+  }
+
+  .pageSubtitle {
+    margin-bottom: 18px;
+  }
+
   .cardGrid {
     grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .cardValue {
+    font-size: 1.35rem;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Very narrow phones: keep the top bar from overflowing. */
+@media (max-width: 380px) {
+  .topbarInstitute {
+    display: none;
+  }
+}
+
+/* Wide-spaced laptops and large monitors. */
+@media (min-width: 1025px) and (max-width: 1279px) {
+  .pageShell {
+    --sidebar-w: 220px;
+  }
+
+  .main {
+    padding: 26px;
+  }
+}
+
+@media (pointer: coarse) {
+  .avatarButton {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logoutButton,
+  .userRow {
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .overlay,
+  .modalDialog {
+    transition-duration: 0.001ms !important;
+    animation: none !important;
   }
 }

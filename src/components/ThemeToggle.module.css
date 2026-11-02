@@ -42,3 +42,11 @@
 :global(:root[data-theme="dark"]) .toggle .moonIcon {
   display: none;
 }
+
+/* Touch devices: a 44px target. */
+@media (pointer: coarse) {
+  .toggle {
+    width: 44px;
+    height: 44px;
+  }
+}

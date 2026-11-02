@@ -140,3 +140,40 @@
     min-width: 560px;
   }
 }
+
+/* ---------- Responsive refinements ---------- */
+.tab {
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 620px) {
+  .tabRow {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding: 0 16px 6px;
+    scrollbar-width: none;
+  }
+  .tabRow::-webkit-scrollbar {
+    display: none;
+  }
+  .tab {
+    flex: none;
+    white-space: nowrap;
+  }
+  .statsRow {
+    gap: 24px 16px;
+  }
+  .statItem {
+    min-width: 120px;
+    flex: 1 1 40%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}

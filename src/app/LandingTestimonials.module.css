@@ -307,3 +307,78 @@
     padding: 40px 24px;
   }
 }
+
+/* ---------- Responsive refinements ---------- */
+.footer {
+  padding-top: clamp(36px, 6vw, 56px);
+}
+
+.footerCols {
+  gap: clamp(28px, 5vw, 56px);
+}
+
+.footerColList {
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.footerColLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.footerBottom {
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+}
+
+.faqSummary {
+  min-height: 52px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ctaButton,
+.ctaButtonGhost {
+  min-height: 48px;
+}
+
+@media (max-width: 900px) {
+  .footerTop {
+    gap: 32px;
+  }
+  .footerBrand {
+    max-width: none;
+    flex: 1 1 100%;
+  }
+  .footerCols {
+    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .footerCols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 16px;
+  }
+  .ctaButtonRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .ctaButtonRow > a {
+    width: 100%;
+  }
+  .footerBottom {
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faqIcon,
+  .ctaButton,
+  .ctaButtonGhost {
+    transition: none;
+  }
+}

@@ -64,3 +64,64 @@
 .danger:hover:not(:disabled) {
   background: rgba(220, 38, 38, 0.1);
 }
+
+.trigger {
+  flex-shrink: 0;
+}
+
+@media (pointer: coarse) {
+  .trigger {
+    width: 44px;
+    height: 44px;
+  }
+  .item {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+}
+
+/* Phone: the menu becomes a bottom sheet over a dim backdrop. */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: auto;
+  max-height: 80vh;
+  max-height: 80dvh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom: 0;
+}
+
+.sheet::before {
+  content: "";
+  align-self: center;
+  width: 36px;
+  height: 4px;
+  margin: 2px 0 8px;
+  border-radius: 999px;
+  background: var(--border-strong);
+}
+
+.sheet .item {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  font-size: 1rem;
+  padding: 10px 14px;
+}
+
+:root[data-theme="dark"] .danger {
+  color: var(--danger);
+}
