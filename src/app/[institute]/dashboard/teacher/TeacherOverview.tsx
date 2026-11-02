@@ -8,8 +8,10 @@ import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
 import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
+import { useDebounced } from "../admin/useDebounced";
 
-const PAGE_SIZE = 10;
+
 
 export default function TeacherOverview() {
   const { activeBatchId, activeBatch } = useTeacherBatch();
@@ -17,24 +19,28 @@ export default function TeacherOverview() {
   const [loading, setLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [q, setQ] = useState("");
+  const dq = useDebounced(q, 300);
+  const [sortBy, setSortBy] = useState("name");
   const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     if (!activeBatchId) return;
     setLoading(true);
     api
-      .batchStudents(activeBatchId, { page, limit: PAGE_SIZE })
+      .batchStudents(activeBatchId, { page, limit, q: dq, sort: sortBy })
       .then((res) => {
         setStudents(res.students);
         setTotal(res.total);
         setTotalPages(res.totalPages);
       })
       .finally(() => setLoading(false));
-  }, [activeBatchId, page]);
+  }, [activeBatchId, page, limit, dq, sortBy]);
 
   useEffect(() => {
     setPage(1);
-  }, [activeBatchId]);
+  }, [activeBatchId, dq, sortBy]);
 
   return (
     <div>
@@ -61,10 +67,19 @@ export default function TeacherOverview() {
           </div>
         </div>
 
+        <ListToolbar
+          search={q}
+          onSearch={setQ}
+          placeholder="Search by name, email or phone"
+          total={total}
+          sort={{ key: "sort", label: "Sort by", value: sortBy, onChange: setSortBy, options: [{ value: "name", label: "Name (A-Z)" }, { value: "newest", label: "Newest first" }, { value: "oldest", label: "Oldest first" }] }}
+          onClear={() => { setQ(""); setSortBy("name"); }}
+        />
+        {loading && students.length === 0 && <p className={adminStyles.empty} role="status">Loading students…</p>}
         {!loading && students.length === 0 && (
           <div className={styles.emptyBlock}>
             <span className={styles.emptyIcon} aria-hidden="true" />
-            <p className={styles.emptyText}>No students in this batch yet.</p>
+            <p className={styles.emptyText}>{q ? "No students match your search." : "No students in this batch yet."}</p>
           </div>
         )}
 
@@ -81,8 +96,8 @@ export default function TeacherOverview() {
               <tbody>
                 {students.map((s) => (
                   <tr key={s._id}>
-                    <td>{s.name}</td>
-                    <td>{s.email}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{s.name}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{s.email}</td>
                     <td>{s.phone || "—"}</td>
                   </tr>
                 ))}
@@ -91,7 +106,7 @@ export default function TeacherOverview() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
       </section>
     </div>
   );

@@ -113,6 +113,7 @@ export default function StudentPayments() {
   const [history, setHistory] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [now, setNow] = useState(() => Date.now());
@@ -132,7 +133,7 @@ export default function StudentPayments() {
   useEffect(() => {
     setLoading(true);
     api
-      .myPayments({ page, limit: 10 })
+      .myPayments({ page, limit })
       .then((res) => {
         setSummary(res.summary);
         setHistory(res.history);
@@ -140,7 +141,7 @@ export default function StudentPayments() {
         setTotal(res.total);
       })
       .finally(() => setLoading(false));
-  }, [page, reloadKey]);
+  }, [page, limit, reloadKey]);
 
   // Opens Razorpay, then asks the server to confirm and record the payment. If the
   // money was taken but the confirmation did not reach us, say so clearly: the
@@ -315,8 +316,10 @@ export default function StudentPayments() {
               </p>
             </div>
           </div>
-          <div className={adminStyles.inviteRow} style={{ flexWrap: "wrap" }}>
+          <div className={adminStyles.inviteRow} style={{ flexWrap: "wrap", alignItems: "flex-end", gap: 12 }}>
             {summary?.schedule && summary.schedule.length > 0 && (
+              <label className={adminStyles.label} style={{ flex: "1 1 240px", minWidth: 0 }}>
+                Pay towards
               <select
                 className={adminStyles.select}
                 value={partItem}
@@ -335,16 +338,21 @@ export default function StudentPayments() {
                     </option>
                   ))}
               </select>
+              </label>
             )}
+            <label className={adminStyles.label} style={{ flex: "1 1 180px", minWidth: 0 }}>
+              Amount (₹)
             <input
               className={adminStyles.input}
               type="number"
+              inputMode="decimal"
               min={1}
               max={partMax || undefined}
-              placeholder={`Amount (up to ₹${partMax})`}
+              placeholder={`Up to ₹${partMax}`}
               value={partAmount}
               onChange={(e) => setPartAmount(e.target.value)}
             />
+            </label>
             <button
               className={adminStyles.primaryButton}
               type="button"
@@ -445,7 +453,7 @@ export default function StudentPayments() {
                     <td>{formatDateTime(p.createdAt)}</td>
                     <td>₹{p.amount}</td>
                     <td>{p.method === "manual" ? "Manual" : "Online"}</td>
-                    <td>{p.note || "—"}</td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 120 }}>{p.note || "—"}</td>
                     <td>
                       <button className={adminStyles.smallButton} type="button" onClick={() => setReceiptId(p._id)}>
                         View / Download
@@ -458,7 +466,17 @@ export default function StudentPayments() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => {
+            setLimit(n);
+            setPage(1);
+          }}
+        />
       </section>
 
       {receiptId && <ReceiptModal load={() => api.studentReceipt(receiptId)} onClose={() => setReceiptId(null)} />}

@@ -14,6 +14,8 @@ export default function ResetPasswordPage() {
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const mismatch = confirmPassword.length > 0 && password !== confirmPassword;
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -57,30 +59,63 @@ export default function ResetPasswordPage() {
             <p className={styles.subtitle}>Choose a new password for your account.</p>
 
             <label className={styles.label}>
-              New password
-              <input
-                className={styles.input}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
-                required
-              />
+              <span>
+                New password <span className={styles.req} aria-hidden="true">*</span>
+              </span>
+              <span className={styles.passwordWrap}>
+                <input
+                  className={`${styles.input} ${styles.passwordInput}`}
+                  type={showPassword ? "text" : "password"}
+                  name="new-password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  aria-describedby="rp-hint"
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.toggleBtn}
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </span>
+              <span
+                id="rp-hint"
+                className={`${styles.hint} ${password.length > 0 && password.length < 6 ? styles.hintWarn : ""}`}
+              >
+                At least 6 characters.
+              </span>
             </label>
 
             <label className={styles.label}>
-              Confirm password
+              <span>
+                Confirm password <span className={styles.req} aria-hidden="true">*</span>
+              </span>
               <input
                 className={styles.input}
-                type="password"
+                type={showPassword ? "text" : "password"}
+                name="confirm-password"
+                autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 minLength={6}
+                aria-invalid={mismatch}
+                aria-describedby={mismatch ? "rp-mismatch" : undefined}
                 required
               />
+              {mismatch && (
+                <span id="rp-mismatch" className={`${styles.hint} ${styles.hintWarn}`}>
+                  Passwords don&apos;t match yet.
+                </span>
+              )}
             </label>
 
-            {error && <p className={styles.error}>{error}</p>}
+            {error && <p className={styles.error} role="alert">{error}</p>}
 
             <button className={styles.button} type="submit" disabled={submitting}>
               {submitting ? "Saving..." : "Reset password"}

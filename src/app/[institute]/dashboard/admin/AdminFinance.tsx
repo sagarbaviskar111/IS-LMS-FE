@@ -18,7 +18,7 @@ import PaymentsAttention from "./PaymentsAttention";
 import SenderEmailWarning from "./SenderEmailWarning";
 import { useDebounced } from "./useDebounced";
 
-const PAGE_SIZE = 15;
+
 const METHODS: FinanceMethod[] = ["cash", "upi", "bank", "card", "cheque", "other"];
 const SUGGESTED = {
   credit: ["Registration fee", "Donation", "Course sale", "Other income"],
@@ -103,6 +103,7 @@ export default function AdminFinance() {
   const [summary, setSummary] = useState<FinanceSummary | null>(null);
   const [rows, setRows] = useState<FinanceRow[]>([]);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -139,7 +140,7 @@ export default function AdminFinance() {
           category: categoryFilter,
           q: debouncedSearch,
           page,
-          limit: PAGE_SIZE,
+          limit,
         }),
         api.financeCategories(),
       ]);
@@ -153,7 +154,7 @@ export default function AdminFinance() {
     } finally {
       setLoading(false);
     }
-  }, [range.from, range.to, typeFilter, sourceFilter, categoryFilter, debouncedSearch, page]);
+  }, [range.from, range.to, typeFilter, sourceFilter, categoryFilter, debouncedSearch, page, limit]);
 
   useEffect(() => {
     load();
@@ -259,7 +260,7 @@ export default function AdminFinance() {
         )}
       </div>
 
-      {error && <p className={adminStyles.messageError}>{error}</p>}
+      {error && <p className={adminStyles.messageError} role="alert" style={{ marginRight: "auto" }}>{error}</p>}
 
       <div className={dashboardStyles.cardGrid} style={{ marginBottom: 20 }}>
         <div className={dashboardStyles.card}>
@@ -348,10 +349,11 @@ export default function AdminFinance() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
           <select
             className={adminStyles.select}
             style={{ maxWidth: 150 }}
+            aria-label="Type"
             value={typeFilter}
             onChange={(e) => {
               setTypeFilter(e.target.value as FinanceType | "");
@@ -365,6 +367,7 @@ export default function AdminFinance() {
           <select
             className={adminStyles.select}
             style={{ maxWidth: 170 }}
+            aria-label="Source"
             value={sourceFilter}
             onChange={(e) => {
               setSourceFilter(e.target.value as "manual" | "payment" | "");
@@ -378,6 +381,7 @@ export default function AdminFinance() {
           <select
             className={adminStyles.select}
             style={{ maxWidth: 190 }}
+            aria-label="Category"
             value={categoryFilter}
             onChange={(e) => {
               setCategoryFilter(e.target.value);
@@ -394,6 +398,8 @@ export default function AdminFinance() {
           <input
             className={adminStyles.input}
             style={{ maxWidth: 220 }}
+            type="search"
+            aria-label="Search entries"
             placeholder="Search title or note"
             value={search}
             onChange={(e) => {
@@ -403,7 +409,17 @@ export default function AdminFinance() {
           />
         </div>
 
-        {!loading && rows.length === 0 && <p className={adminStyles.empty}>No entries match these filters.</p>}
+        {loading && rows.length === 0 && <p className={adminStyles.empty}>Loading entries…</p>}
+        {!loading && rows.length === 0 && (
+          <div className={adminStyles.emptyState}>
+            <span className={adminStyles.emptyStateIcon} aria-hidden="true">🧾</span>
+            <p className={adminStyles.emptyStateText}>
+              {typeFilter || sourceFilter || categoryFilter || debouncedSearch
+                ? "No entries match these filters."
+                : "No entries in this period. Use “Add entry” to record income or an expense."}
+            </p>
+          </div>
+        )}
 
         {rows.length > 0 && (
           <div className={`${adminStyles.tableWrap} table-scroll`}>
@@ -423,7 +439,7 @@ export default function AdminFinance() {
                 {rows.map((r) => (
                   <tr key={`${r.source}-${r._id}`}>
                     <td>{new Date(r.date).toLocaleDateString()}</td>
-                    <td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 180 }}>
                       {r.title}
                       {r.source === "payment" && (
                         <span className={adminStyles.badgeSuccess} style={{ marginLeft: 6 }}>
@@ -436,7 +452,7 @@ export default function AdminFinance() {
                         </div>
                       )}
                     </td>
-                    <td>{r.category}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{r.category}</td>
                     <td>{methodLabel(r.method)}</td>
                     <td style={{ textAlign: "right", color: "var(--success)", fontWeight: 600 }}>
                       {r.type === "credit" ? inr(r.amount) : ""}
@@ -463,7 +479,7 @@ export default function AdminFinance() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
       </section>
 
       {editing && (
@@ -542,7 +558,7 @@ function EntryModal({
       </div>
 
       <form className={adminStyles.form} onSubmit={submit}>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div className={adminStyles.fullRow} style={{ display: "flex", gap: 8 }}>
           <button
             type="button"
             className={type === "credit" ? adminStyles.primaryButton : adminStyles.smallButton}
@@ -562,23 +578,24 @@ function EntryModal({
         </div>
 
         <label className={adminStyles.label}>
-          Amount (₹)
+          <span>Amount (₹)<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
             type="number"
             min="0.01"
             step="0.01"
+            inputMode="decimal"
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             required
           />
         </label>
         <label className={adminStyles.label}>
-          Date
+          <span>Date<span className={adminStyles.required}>*</span></span>
           <input className={adminStyles.input} type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
         </label>
         <label className={adminStyles.label}>
-          Category
+          <span>Category<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
             list="finance-categories"
@@ -595,7 +612,7 @@ function EntryModal({
           </datalist>
         </label>
         <label className={adminStyles.label}>
-          Title
+          <span>Title<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
             value={title}
@@ -616,15 +633,18 @@ function EntryModal({
           </select>
         </label>
         <label className={adminStyles.label}>
-          Note
-          <input className={adminStyles.input} value={note} onChange={(e) => setNote(e.target.value)} placeholder="optional" maxLength={500} />
+          Note (optional)
+          <input className={adminStyles.input} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Any extra detail" maxLength={500} />
         </label>
 
-        <div className={adminStyles.formActions}>
-          <button className={adminStyles.primaryButton} type="submit" disabled={saving}>
-            {saving ? "Saving..." : row ? "Save changes" : "Add entry"}
+        <div className={adminStyles.modalFooter}>
+          {error && <p className={adminStyles.messageError} role="alert" style={{ marginRight: "auto" }}>{error}</p>}
+          <button className={adminStyles.smallButton} type="button" onClick={onClose} disabled={saving}>
+            Cancel
           </button>
-          {error && <p className={adminStyles.messageError}>{error}</p>}
+          <button className={adminStyles.primaryButton} type="submit" disabled={saving}>
+            {saving ? "Saving…" : row ? "Save changes" : "Add entry"}
+          </button>
         </div>
       </form>
     </Modal>

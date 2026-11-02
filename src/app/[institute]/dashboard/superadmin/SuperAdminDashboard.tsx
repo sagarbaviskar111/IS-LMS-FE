@@ -6,16 +6,22 @@ import dashboardStyles from "../dashboard.module.css";
 import styles from "../admin/admin.module.css";
 import localStyles from "./SuperAdminDashboard.module.css";
 import Pagination from "../Pagination";
-
-const PAGE_SIZE = 10;
+import ListToolbar from "../admin/ListToolbar";
+import { useDebounced } from "../admin/useDebounced";
 
 export default function SuperAdminDashboard() {
   const [admins, setAdmins] = useState<User[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
+  const q = useDebounced(search);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
+  const [allCount, setAllCount] = useState(0);
 
   const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
   const [formError, setFormError] = useState("");
@@ -25,18 +31,27 @@ export default function SuperAdminDashboard() {
   const load = useCallback(async () => {
     setLoadingList(true);
     try {
-      const [res, activeRes] = await Promise.all([
-        api.listUsers({ role: "admin", page, limit: PAGE_SIZE }),
+      const [res, activeRes, allRes] = await Promise.all([
+        api.listUsers({
+          role: "admin",
+          page,
+          limit,
+          q,
+          sort,
+          active: statusFilter === "active" ? "1" : statusFilter === "disabled" ? "0" : undefined,
+        }),
         api.listUsers({ role: "admin", status: "active", limit: 1 }),
+        api.listUsers({ role: "admin", limit: 1 }),
       ]);
       setAdmins(res.users);
       setTotalPages(res.totalPages);
       setTotal(res.total);
+      setAllCount(allRes.total);
       setActiveCount(activeRes.total);
     } finally {
       setLoadingList(false);
     }
-  }, [page]);
+  }, [page, limit, q, sort, statusFilter]);
 
   useEffect(() => {
     load();
@@ -80,7 +95,7 @@ export default function SuperAdminDashboard() {
       <div className={dashboardStyles.cardGrid} style={{ marginBottom: 20 }}>
         <div className={dashboardStyles.card}>
           <p className={dashboardStyles.cardLabel}>Total Admins</p>
-          <p className={dashboardStyles.cardValue}>{total}</p>
+          <p className={dashboardStyles.cardValue}>{allCount}</p>
         </div>
         <div className={dashboardStyles.card}>
           <p className={dashboardStyles.cardLabel}>Active Admins</p>
@@ -102,22 +117,30 @@ export default function SuperAdminDashboard() {
 
           <form className={styles.form} onSubmit={handleCreate}>
             <label className={styles.label}>
-              Coaching class / admin name
+              <span>
+                Coaching class / admin name<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                autoComplete="off"
+                placeholder="e.g. Sunrise Classes"
                 required
               />
             </label>
 
             <label className={styles.label}>
-              Email
+              <span>
+                Email<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                autoComplete="off"
+                inputMode="email"
                 required
               />
             </label>
@@ -126,26 +149,33 @@ export default function SuperAdminDashboard() {
               Phone
               <input
                 className={styles.input}
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
             </label>
 
             <label className={styles.label}>
-              Password
+              <span>
+                Password<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                autoComplete="new-password"
                 minLength={6}
                 required
               />
+              <span className={styles.hint}>At least 6 characters.</span>
             </label>
 
-            <div className={styles.formActions}>
+            <div className={`${styles.formActions} ${styles.fullRow}`}>
               <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Creating..." : "Create admin"}
+                {submitting ? "Creating…" : "Create admin"}
               </button>
               {formError && <p className={styles.messageError}>{formError}</p>}
             </div>
@@ -177,6 +207,54 @@ export default function SuperAdminDashboard() {
             </div>
           </div>
 
+          <ListToolbar
+            search={search}
+            onSearch={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Search by name, email or phone"
+            total={total}
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                value: statusFilter,
+                options: [
+                  { value: "all", label: "All" },
+                  { value: "active", label: "Active" },
+                  { value: "disabled", label: "Disabled" },
+                ],
+                onChange: (v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                },
+              },
+            ]}
+            sort={{
+              key: "sort",
+              label: "Sort by",
+              value: sort,
+              options: [
+                { value: "newest", label: "Newest first" },
+                { value: "oldest", label: "Oldest first" },
+                { value: "name_asc", label: "Name A–Z" },
+                { value: "name_desc", label: "Name Z–A" },
+                { value: "email_asc", label: "Email A–Z" },
+              ],
+              onChange: (v) => {
+                setSort(v);
+                setPage(1);
+              },
+            }}
+            onClear={() => {
+              setSearch("");
+              setStatusFilter("all");
+              setSort("newest");
+              setPage(1);
+            }}
+          />
+
           {loadingList && admins.length === 0 && (
             <div className={localStyles.loadingState}>
               <span className={localStyles.spinner} aria-hidden="true" />
@@ -189,7 +267,9 @@ export default function SuperAdminDashboard() {
               <span className={localStyles.emptyIcon} aria-hidden="true">
                 🏫
               </span>
-              <p className={localStyles.emptyTitle}>No admins created yet</p>
+              <p className={localStyles.emptyTitle}>
+                {q || statusFilter !== "all" ? "No admins match your search" : "No admins created yet"}
+              </p>
             </div>
           )}
 
@@ -209,14 +289,15 @@ export default function SuperAdminDashboard() {
                 <tbody>
                   {admins.map((a) => (
                     <tr key={a._id} className={localStyles.row}>
-                      <td>{a.name}</td>
-                      <td>{a.email}</td>
+                      <td style={{ overflowWrap: "anywhere" }}>{a.name}</td>
+                      <td style={{ overflowWrap: "anywhere" }}>{a.email}</td>
                       <td style={{ fontFamily: "var(--font-geist-mono, monospace)", fontSize: "0.8rem" }}>
                         {a.studentInviteCode} / {a.teacherInviteCode} / {a.telecallerInviteCode}
                       </td>
                       <td>
                         <select
-                          className={styles.input}
+                          className={styles.select}
+                          aria-label={`Recording flow for ${a.name}`}
                           value={a.videoFlow || "youtube"}
                           onChange={(e) => changeFlow(a, e.target.value as VideoFlow)}
                           title="Where this institute's session recordings are stored"
@@ -242,7 +323,17 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setPage}
+            limit={limit}
+            onLimitChange={(n) => {
+              setLimit(n);
+              setPage(1);
+            }}
+          />
         </section>
       </div>
     </div>

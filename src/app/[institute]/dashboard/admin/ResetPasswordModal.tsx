@@ -63,10 +63,12 @@ export default function ResetPasswordModal({
         </p>
         <form className={adminStyles.form} onSubmit={submit}>
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            New password
+            <span>New password<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               type="text"
+              autoComplete="new-password"
+              autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
@@ -74,12 +76,12 @@ export default function ResetPasswordModal({
               required
             />
           </label>
-          <div className={adminStyles.formActions}>
+          <div className={`${adminStyles.formActions} ${adminStyles.fullRow}`}>
             <button className={adminStyles.primaryButton} type="submit" disabled={submitting}>
-              {submitting ? "Saving..." : "Set password"}
+              {submitting ? "Saving…" : "Set password"}
             </button>
-            {error && <p className={adminStyles.messageError}>{error}</p>}
-            {success && <p className={adminStyles.messageSuccess}>{success}</p>}
+            {error && <p className={adminStyles.messageError} role="alert">{error}</p>}
+            {success && <p className={adminStyles.messageSuccess} role="status">{success}</p>}
           </div>
         </form>
       </section>

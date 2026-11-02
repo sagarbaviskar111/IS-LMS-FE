@@ -1638,8 +1638,10 @@ export const api = {
     return data as { message: string; amountPaid: number; planTotal: number; balance: number; paidEarlier?: boolean };
   },
   deleteCourse: (id: string) => request<{ message: string }>(`/api/courses/${id}`, { method: "DELETE" }),
-  listStudentGroups: (opts?: { page?: number; limit?: number }) => {
+  listStudentGroups: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
@@ -1701,8 +1703,11 @@ export const api = {
         description: string;
       };
     }>("/api/jobs/parse", { method: "POST", body: JSON.stringify({ text }) }),
-  listJobs: (opts?: { page?: number; limit?: number }) => {
+  listJobs: (opts?: { page?: number; limit?: number; q?: string; status?: string; sort?: string }) => {
     const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.status) params.set("status", opts.status);
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
@@ -1747,16 +1752,20 @@ export const api = {
   },
   studentExpressInterest: (id: string) =>
     request<{ message: string }>(`/api/student/jobs/${id}/interest`, { method: "POST" }),
-  listJobEmailLeads: (opts?: { page?: number; limit?: number }) => {
+  listJobEmailLeads: (opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
+    if (opts?.q?.trim()) params.set("q", opts.q.trim());
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
     return request<PageMeta & { leads: JobEmailLead[] }>(`/api/superadmin/job-email-leads${qs ? `?${qs}` : ""}`);
   },
   myBatches: () => request<{ batches: Batch[] }>("/api/teacher/batches"),
-  batchStudents: (batchId: string, opts?: { page?: number; limit?: number }) => {
+  batchStudents: (batchId: string, opts?: { page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams();
+    if (opts?.q) params.set("q", opts.q);
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     const qs = params.toString();
@@ -1829,9 +1838,11 @@ export const api = {
     request<{ summary: AttendanceSummaryRow[]; sessionCount: number }>(
       `/api/teacher/batches/${batchId}/attendance-summary`
     ),
-  listMaterials: (batch: string, opts?: { type?: "document" | "video"; page?: number; limit?: number }) => {
+  listMaterials: (batch: string, opts?: { type?: "document" | "video"; page?: number; limit?: number; q?: string; sort?: string }) => {
     const params = new URLSearchParams({ batch });
     if (opts?.type) params.set("type", opts.type);
+    if (opts?.q) params.set("q", opts.q);
+    if (opts?.sort) params.set("sort", opts.sort);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     return request<PageMeta & { materials: Material[] }>(`/api/teacher/materials?${params.toString()}`);
@@ -1881,8 +1892,11 @@ export const api = {
     const qs = params.toString();
     return request<PageMeta & { materials: Material[] }>(`/api/student/materials${qs ? `?${qs}` : ""}`);
   },
-  listExams: (batch: string, opts?: { page?: number; limit?: number }) => {
+  listExams: (batch: string, opts?: { page?: number; limit?: number; q?: string; sort?: string; status?: string }) => {
     const params = new URLSearchParams({ batch });
+    if (opts?.q) params.set("q", opts.q);
+    if (opts?.sort) params.set("sort", opts.sort);
+    if (opts?.status) params.set("status", opts.status);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     return request<PageMeta & { exams: ExamSummary[] }>(`/api/teacher/exams?${params.toString()}`);
@@ -1961,8 +1975,11 @@ export const api = {
   studentExamResult: (id: string) => request<ExamResult>(`/api/student/exams/${id}/result`),
 
   // Teacher: assignments
-  listAssignments: (batch: string, opts?: { page?: number; limit?: number }) => {
+  listAssignments: (batch: string, opts?: { page?: number; limit?: number; q?: string; sort?: string; when?: string }) => {
     const params = new URLSearchParams({ batch });
+    if (opts?.q) params.set("q", opts.q);
+    if (opts?.sort) params.set("sort", opts.sort);
+    if (opts?.when) params.set("when", opts.when);
     if (opts?.page) params.set("page", String(opts.page));
     if (opts?.limit) params.set("limit", String(opts.limit));
     return request<PageMeta & { assignments: AssignmentSummary[] }>(`/api/teacher/assignments?${params.toString()}`);

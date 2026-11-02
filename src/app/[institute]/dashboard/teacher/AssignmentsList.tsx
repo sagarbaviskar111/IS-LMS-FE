@@ -10,8 +10,10 @@ import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
 import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
+import { useDebounced } from "../admin/useDebounced";
 
-const PAGE_SIZE = 10;
+
 
 const ATTACHMENT_ACCEPT =
   ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain,image/jpeg,image/png,image/webp";
@@ -36,6 +38,11 @@ export default function AssignmentsList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [q, setQ] = useState("");
+  const dq = useDebounced(q, 300);
+  const [filter, setFilter] = useState("");
+  const [sortBy, setSortBy] = useState("");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -48,7 +55,7 @@ export default function AssignmentsList() {
     if (!activeBatchId) return;
     setLoading(true);
     try {
-      const res = await api.listAssignments(activeBatchId, { page, limit: PAGE_SIZE });
+      const res = await api.listAssignments(activeBatchId, { page, limit, q: dq, sort: sortBy, when: filter });
       const now = Date.now();
       setAssignments(res.assignments.map((a) => ({ ...a, overdue: new Date(a.dueDate).getTime() < now })));
       setTotalPages(res.totalPages);
@@ -56,7 +63,7 @@ export default function AssignmentsList() {
     } finally {
       setLoading(false);
     }
-  }, [activeBatchId, page]);
+  }, [activeBatchId, page, limit, dq, filter, sortBy]);
 
   useEffect(() => {
     load();
@@ -64,7 +71,7 @@ export default function AssignmentsList() {
 
   useEffect(() => {
     setPage(1);
-  }, [activeBatchId]);
+  }, [activeBatchId, dq, filter, sortBy]);
 
   const resetFileInput = () => {
     const el = document.getElementById("assignment-file") as HTMLInputElement | null;
@@ -117,8 +124,8 @@ export default function AssignmentsList() {
           </div>
 
           <form className={adminStyles.form} onSubmit={handleCreate}>
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-              Title
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+              <span>Title <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 value={title}
@@ -128,18 +135,18 @@ export default function AssignmentsList() {
               />
             </label>
 
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-              Description
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+              <span>Description</span>
               <input
                 className={adminStyles.input}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="optional"
+                placeholder="Optional"
               />
             </label>
 
             <label className={adminStyles.label}>
-              Due date
+              <span>Due date <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 type="datetime-local"
@@ -147,9 +154,10 @@ export default function AssignmentsList() {
                 onChange={(e) => setDueDate(e.target.value)}
                 required
               />
+              <span className={adminStyles.hint}>Students cannot submit after this time.</span>
             </label>
 
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
               Attachment (optional)
               <input
                 id="assignment-file"
@@ -158,11 +166,12 @@ export default function AssignmentsList() {
                 accept={ATTACHMENT_ACCEPT}
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
+              <span className={adminStyles.hint}>PDF, Word, PowerPoint, Excel, text or image.</span>
             </label>
 
-            <div className={adminStyles.formActions}>
+            <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
               <button className={adminStyles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Creating..." : "Create assignment"}
+                {submitting ? "Creating…" : "Create assignment"}
               </button>
               {error && <p className={adminStyles.messageError}>{error}</p>}
             </div>
@@ -177,10 +186,20 @@ export default function AssignmentsList() {
             </div>
           </div>
 
+          <ListToolbar
+            search={q}
+            onSearch={setQ}
+            placeholder="Search assignments by title"
+            total={total}
+            filters={[{ key: "when", label: "Due", value: filter, onChange: setFilter, options: [{ value: "", label: "All" }, { value: "upcoming", label: "Upcoming" }, { value: "past", label: "Past due" }] }]}
+            sort={{ key: "sort", label: "Sort by", value: sortBy, onChange: setSortBy, options: [{ value: "", label: "Due date (soonest)" }, { value: "due_desc", label: "Due date (latest)" }, { value: "newest", label: "Newest created" }, { value: "title", label: "Title (A-Z)" }] }}
+            onClear={() => { setQ(""); setFilter(""); setSortBy(""); }}
+          />
+          {loading && assignments.length === 0 && <p className={adminStyles.empty} role="status">Loading assignments…</p>}
           {!loading && assignments.length === 0 && (
             <div className={styles.emptyBlock}>
               <span className={styles.emptyIcon} aria-hidden="true" />
-              <p className={styles.emptyText}>No assignments yet — create one above.</p>
+              <p className={styles.emptyText}>{q || filter ? "No assignments match your search or filters." : "No assignments yet — create one above."}</p>
             </div>
           )}
 
@@ -199,7 +218,7 @@ export default function AssignmentsList() {
                   {assignments.map((a) => (
                     <tr key={a._id}>
                       <td>
-                        {a.title}
+                        <span style={{ overflowWrap: "anywhere" }}>{a.title}</span>
                         {a.status === "cancelled" && (
                           <span className={adminStyles.badgeInactive} style={{ marginLeft: 6 }}>
                             cancelled
@@ -236,7 +255,7 @@ export default function AssignmentsList() {
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
         </section>
       </div>
     </div>

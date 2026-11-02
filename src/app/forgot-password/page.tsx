@@ -54,18 +54,27 @@ export default function ForgotPasswordPage() {
             </p>
 
             <label className={styles.label}>
-              Email
+              <span>
+                Email <span className={styles.req} aria-hidden="true">*</span>
+              </span>
               <input
                 className={styles.input}
                 type="email"
+                name="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
+                aria-invalid={!!error}
+                aria-describedby={error ? "fp-error" : undefined}
                 required
               />
             </label>
 
-            {error && <p className={styles.error}>{error}</p>}
+            {error && <p className={styles.error} id="fp-error" role="alert">{error}</p>}
 
             <button className={styles.button} type="submit" disabled={submitting}>
               {submitting ? "Sending..." : "Send reset link"}

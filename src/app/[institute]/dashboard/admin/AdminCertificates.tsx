@@ -297,8 +297,8 @@ function NewTemplateModal({ onClose, onCreated }: { onClose: () => void; onCreat
         </button>
       </div>
       <form className={adminStyles.form} onSubmit={submit}>
-        <label className={adminStyles.label}>
-          Template name
+        <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+          <span>Template name<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
             value={name}
@@ -308,8 +308,8 @@ function NewTemplateModal({ onClose, onCreated }: { onClose: () => void; onCreat
             required
           />
         </label>
-        <label className={adminStyles.label}>
-          Certificate design (PNG / JPG, up to 15 MB)
+        <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+          <span>Certificate design (PNG / JPG, up to 15 MB)<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
             type="file"
@@ -318,8 +318,8 @@ function NewTemplateModal({ onClose, onCreated }: { onClose: () => void; onCreat
             required
           />
         </label>
-        <label className={adminStyles.label}>
-          Certificate number prefix (optional)
+        <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+          <span>Certificate number prefix <span style={{ color: "var(--muted)", fontWeight: 400 }}>(optional)</span></span>
           <input
             className={adminStyles.input}
             value={prefix}
@@ -328,11 +328,11 @@ function NewTemplateModal({ onClose, onCreated }: { onClose: () => void; onCreat
             maxLength={20}
           />
         </label>
-        <p className={adminStyles.sectionSubtitle}>
+        <p className={`${adminStyles.hint} ${adminStyles.fullRow}`}>
           Tip: leave empty space where the name, course, date and number should go — you place them in the next step.
         </p>
-        {error && <p className={adminStyles.messageError}>{error}</p>}
-        <div className={adminStyles.formActions}>
+        {error && <p className={`${adminStyles.messageError} ${adminStyles.fullRow}`}>{error}</p>}
+        <div className={adminStyles.modalFooter}>
           <button type="button" className={adminStyles.smallButton} onClick={onClose}>
             Cancel
           </button>
@@ -1346,11 +1346,11 @@ function RevokeModal({ cert, onClose, onDone }: { cert: Certificate; onClose: ()
           {cert.studentName} will no longer see it, and its QR page will show it as revoked. You can restore it later.
         </p>
         <label className={adminStyles.label}>
-          Reason (shown on the verification page)
+          <span>Reason <span style={{ color: "var(--muted)", fontWeight: 400 }}>(optional, shown on the verification page)</span></span>
           <input className={adminStyles.input} value={reason} onChange={(e) => setReason(e.target.value)} maxLength={300} />
         </label>
         {error && <p className={adminStyles.messageError}>{error}</p>}
-        <div className={adminStyles.formActions}>
+        <div className={adminStyles.modalFooter}>
           <button type="button" className={adminStyles.smallButton} onClick={onClose}>
             Cancel
           </button>

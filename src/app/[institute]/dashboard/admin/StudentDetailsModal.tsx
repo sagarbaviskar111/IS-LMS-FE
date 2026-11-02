@@ -82,11 +82,11 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
   const pending = student.registrationComplete === false;
   const row = (label: string, value: React.ReactNode) =>
     value ? (
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: "2px 12px", flexWrap: "wrap" }}>
         <span className={styles.sectionSubtitle} style={{ minWidth: 130, margin: 0 }}>
           {label}
         </span>
-        <span>{value}</span>
+        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{value}</span>
       </div>
     ) : null;
 
@@ -113,12 +113,12 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
         )}
       </div>
 
-      {loading && <p className={styles.empty}>Loading...</p>}
-      {error && <p className={styles.messageError}>{error}</p>}
+      {loading && <p className={styles.empty}>Loading…</p>}
+      {error && <p className={styles.messageError} role="alert">{error}</p>}
 
       {!loading && enrollment && (
         <>
-          <h3 className={styles.sectionTitle} style={{ fontSize: "1rem" }}>
+          <h3 className={styles.formSectionTitle} style={{ padding: 0 }}>
             Fees
           </h3>
           <div style={{ display: "grid", gap: 6, margin: "8px 0 16px" }}>
@@ -138,7 +138,7 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
 
           {enrollment.state !== "used" && (
             <>
-              <h3 className={styles.sectionTitle} style={{ fontSize: "1rem" }}>
+              <h3 className={styles.formSectionTitle} style={{ padding: 0 }}>
                 Registration link
               </h3>
               <p className={styles.sectionSubtitle}>
@@ -155,7 +155,7 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
                       </span>
                     </span>
                   </div>
-                  <span className={styles.linkBox} style={{ wordBreak: "break-all" }}>
+                  <span className={styles.linkBox} style={{ wordBreak: "break-all", minWidth: 0 }}>
                     {link}
                   </span>
                   <div>
@@ -167,7 +167,7 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
               )}
 
               <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexWrap: "wrap" }}>
-                <label className={styles.label} style={{ maxWidth: 220 }}>
+                <label className={styles.label} style={{ maxWidth: 220, flex: "1 1 160px" }}>
                   Link expires after
                   <select className={styles.select} value={hours} onChange={(e) => setHours(Number(e.target.value))}>
                     {EXPIRY_OPTIONS.map((o) => (
@@ -178,7 +178,7 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
                   </select>
                 </label>
                 <button className={styles.primaryButton} type="button" onClick={makeLink} disabled={busy}>
-                  {busy ? "Creating..." : link ? "Create new link" : "Create link"}
+                  {busy ? "Creating…" : link ? "Create new link" : "Create link"}
                 </button>
               </div>
               {link && (
@@ -197,7 +197,7 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
 
       {!loading && registration && (
         <>
-          <h3 className={styles.sectionTitle} style={{ fontSize: "1rem", marginTop: 16 }}>
+          <h3 className={styles.formSectionTitle} style={{ padding: 0, marginTop: 16 }}>
             Submitted registration
           </h3>
           <div style={{ display: "grid", gap: 6, margin: "8px 0" }}>
@@ -213,7 +213,7 @@ export default function StudentDetailsModal({ student, onClose, onChanged }: { s
         </>
       )}
 
-      <div className={styles.formActions} style={{ marginTop: 16 }}>
+      <div className={styles.modalFooter}>
         <button
           className={styles.smallButton}
           type="button"

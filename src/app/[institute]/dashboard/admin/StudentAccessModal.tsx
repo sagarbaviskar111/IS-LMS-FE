@@ -153,7 +153,7 @@ export default function StudentAccessModal({
             {current.isActive ? "Can log in" : "Login deactivated"}
           </span>
         </div>
-        <p className={adminStyles.sectionSubtitle}>
+        <p className={adminStyles.hint} style={{ margin: "0 0 10px" }}>
           Shown to the student on the login screen when their login is deactivated. Leave blank to use
           the default message (&quot;check with your teacher or admin&quot;).
         </p>
@@ -162,6 +162,7 @@ export default function StudentAccessModal({
           <textarea
             className={adminStyles.input}
             rows={3}
+            maxLength={300}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="e.g. Your payment is due — contact the office to reactivate."
@@ -175,7 +176,7 @@ export default function StudentAccessModal({
               onClick={submitDeactivate}
               disabled={loginSubmitting}
             >
-              {loginSubmitting ? "Saving..." : "Deactivate login"}
+              {loginSubmitting ? "Saving…" : "Deactivate login"}
             </button>
           ) : (
             <>
@@ -185,7 +186,7 @@ export default function StudentAccessModal({
                 onClick={submitActivate}
                 disabled={loginSubmitting}
               >
-                {loginSubmitting ? "Saving..." : "Activate login"}
+                {loginSubmitting ? "Saving…" : "Activate login"}
               </button>
               <button
                 className={adminStyles.smallButton}
@@ -197,8 +198,8 @@ export default function StudentAccessModal({
               </button>
             </>
           )}
-          {loginError && <p className={adminStyles.messageError}>{loginError}</p>}
-          {loginSuccess && <p className={adminStyles.messageSuccess}>{loginSuccess}</p>}
+          {loginError && <p className={adminStyles.messageError} role="alert">{loginError}</p>}
+          {loginSuccess && <p className={adminStyles.messageSuccess} role="status">{loginSuccess}</p>}
         </div>
       </section>
 
@@ -217,14 +218,14 @@ export default function StudentAccessModal({
               : "Full access"}
           </span>
         </div>
-        <p className={adminStyles.sectionSubtitle}>
+        <p className={adminStyles.hint} style={{ margin: "0 0 10px" }}>
           The student can still log in, but recordings for sessions in this range are hidden. Leave
           &quot;to&quot; blank to block that date and every future session (e.g. once a paid month runs
           out) — clear it once they pay to restore access.
         </p>
         <div className={adminStyles.form}>
           <label className={adminStyles.label}>
-            From
+            <span>From<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               type="date"
@@ -233,26 +234,27 @@ export default function StudentAccessModal({
             />
           </label>
           <label className={adminStyles.label}>
-            To (optional — blank = onward)
+            <span>To <span className={adminStyles.hint}>(optional — blank = onward)</span></span>
             <input
               className={adminStyles.input}
               type="date"
               value={blockTo}
+              min={blockFrom || undefined}
               onChange={(e) => setBlockTo(e.target.value)}
             />
           </label>
         </div>
         <div className={adminStyles.formActions}>
           <button className={adminStyles.primaryButton} type="button" onClick={submitBlock} disabled={blockSubmitting}>
-            {blockSubmitting ? "Saving..." : "Block recordings"}
+            {blockSubmitting ? "Saving…" : "Block recordings"}
           </button>
           {isBlocked && (
             <button className={adminStyles.smallButton} type="button" onClick={submitUnblock} disabled={blockSubmitting}>
               Unblock
             </button>
           )}
-          {blockError && <p className={adminStyles.messageError}>{blockError}</p>}
-          {blockSuccess && <p className={adminStyles.messageSuccess}>{blockSuccess}</p>}
+          {blockError && <p className={adminStyles.messageError} role="alert">{blockError}</p>}
+          {blockSuccess && <p className={adminStyles.messageSuccess} role="status">{blockSuccess}</p>}
         </div>
       </section>
     </Modal>

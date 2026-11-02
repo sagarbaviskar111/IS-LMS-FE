@@ -77,7 +77,7 @@ export default function SuperAdminTestimonials() {
           </button>
         </div>
 
-        {loading && <p className={styles.empty}>Loading…</p>}
+        {loading && <p className={styles.empty}>Loading reviews…</p>}
 
         {!loading && items.length === 0 && (
           <div style={{ display: "grid", gap: 14 }}>
@@ -111,9 +111,9 @@ export default function SuperAdminTestimonials() {
                 background: "var(--surface)",
               }}
             >
-              <p style={{ margin: 0, lineHeight: 1.6 }}>“{t.quote}”</p>
+              <p style={{ margin: 0, lineHeight: 1.6, overflowWrap: "anywhere" }}>“{t.quote}”</p>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
-                <div>
+                <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                   <strong>{t.name}</strong>
                   <div style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
                     {[t.role, t.city].filter(Boolean).join(" · ") || "—"}
@@ -137,9 +137,9 @@ export default function SuperAdminTestimonials() {
                     disabled={!!busy}
                     onClick={() => run(t._id, () => api.updateTestimonial(t._id, { isActive: !t.isActive }))}
                   >
-                    {t.isActive ? "Hide" : "Show"}
+                    {busy === t._id ? "Saving…" : t.isActive ? "Hide" : "Show"}
                   </button>
-                  <button className={styles.smallButton} onClick={() => setEditing(t)}>
+                  <button className={styles.smallButton} disabled={!!busy} onClick={() => setEditing(t)}>
                     Edit
                   </button>
                   <button className={styles.dangerButton} disabled={!!busy} onClick={() => remove(t)}>
@@ -198,13 +198,14 @@ function ReviewModal({ review, onClose, onSaved }: { review: Testimonial | null;
         </button>
       </div>
       <form className={styles.form} onSubmit={submit}>
-        <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
+        <label className={`${styles.label} ${styles.fullRow}`}>
           <span>
-            Review <span style={{ color: "var(--muted)", fontWeight: 400 }}>({quote.length}/600)</span>
+            Review<span className={styles.required}>*</span>{" "}
+            <span style={{ color: "var(--muted)", fontWeight: 400 }}>({quote.length}/600)</span>
           </span>
           <textarea
             className={styles.input}
-            style={{ minHeight: 130, resize: "vertical", lineHeight: 1.5 }}
+            style={{ minHeight: 130 }}
             value={quote}
             onChange={(e) => setQuote(e.target.value)}
             maxLength={600}
@@ -212,34 +213,47 @@ function ReviewModal({ review, onClose, onSaved }: { review: Testimonial | null;
           />
         </label>
         <label className={styles.label}>
-          Name
-          <input className={styles.input} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} required />
+          <span>
+            Name<span className={styles.required}>*</span>
+          </span>
+          <input
+            className={styles.input}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={80}
+            autoComplete="off"
+            required
+          />
         </label>
         <label className={styles.label}>
           City
-          <input className={styles.input} value={city} onChange={(e) => setCity(e.target.value)} maxLength={60} />
+          <input
+            className={styles.input}
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            maxLength={60}
+            autoComplete="off"
+          />
         </label>
-        <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
+        <label className={`${styles.label} ${styles.fullRow}`}>
           Role / institute
           <input
             className={styles.input}
             value={role}
             onChange={(e) => setRole(e.target.value)}
             maxLength={120}
+            autoComplete="off"
             placeholder="e.g. Founder, Sunrise Classes"
           />
+          <span className={styles.hint}>Shown under the name on the landing page.</span>
         </label>
-        {error && (
-          <p className={styles.messageError} style={{ gridColumn: "1 / -1" }}>
-            {error}
-          </p>
-        )}
-        <div className={styles.formActions}>
-          <button className={styles.primaryButton} disabled={saving}>
-            {saving ? "Saving…" : "Save review"}
-          </button>
+        {error && <p className={`${styles.messageError} ${styles.fullRow}`}>{error}</p>}
+        <div className={styles.modalFooter}>
           <button type="button" className={styles.smallButton} onClick={onClose}>
             Cancel
+          </button>
+          <button className={styles.primaryButton} disabled={saving}>
+            {saving ? "Saving…" : "Save review"}
           </button>
         </div>
       </form>

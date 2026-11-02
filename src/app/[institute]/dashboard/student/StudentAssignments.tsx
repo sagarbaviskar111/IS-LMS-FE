@@ -11,7 +11,7 @@ import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
 import Pagination from "../Pagination";
 
-const PAGE_SIZE = 10;
+
 
 interface ViewingFile {
   fileName: string;
@@ -46,13 +46,14 @@ export default function StudentAssignments() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [viewing, setViewing] = useState<ViewingFile | null>(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
   const load = () => {
     setLoading(true);
     return api
-      .studentListAssignments({ page, limit: PAGE_SIZE })
+      .studentListAssignments({ page, limit })
       .then((res) => {
         setAssignments(res.assignments);
         setTotalPages(res.totalPages);
@@ -64,7 +65,7 @@ export default function StudentAssignments() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, limit]);
 
   const submit = async (id: string) => {
     const file = files[id];
@@ -103,9 +104,11 @@ export default function StudentAssignments() {
             className={a.locked ? `${adminStyles.section} ${studentStyles.lockedCard}` : adminStyles.section}
           >
             <div className={adminStyles.sectionHead}>
-              <div>
+              <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                 <h2 className={adminStyles.sectionTitle}>{a.title}</h2>
-                <p className={adminStyles.sectionSubtitle}>{a.description || "No description"}</p>
+                <p className={adminStyles.sectionSubtitle} style={{ whiteSpace: "pre-wrap" }}>
+                  {a.description || "No description"}
+                </p>
               </div>
               {a.status === "cancelled" ? (
                 <span className={studentStyles.badgeDanger}>Cancelled</span>
@@ -219,6 +222,8 @@ export default function StudentAssignments() {
                 <input
                   id={`assignment-file-${a._id}`}
                   className={adminStyles.input}
+                  style={{ flex: "1 1 240px", minWidth: 0, maxWidth: "100%" }}
+                  aria-label={`Choose a file to submit for ${a.title}`}
                   type="file"
                   accept={ATTACHMENT_ACCEPT}
                   onChange={(e) => setFiles((prev) => ({ ...prev, [a._id]: e.target.files?.[0] || null }))}
@@ -228,7 +233,7 @@ export default function StudentAssignments() {
                   disabled={!files[a._id] || busy[a._id]}
                   onClick={() => submit(a._id)}
                 >
-                  {busy[a._id] ? "Uploading..." : a.submitted ? "Resubmit" : "Submit"}
+                  {busy[a._id] ? "Uploading…" : a.submitted ? "Resubmit" : "Submit"}
                 </button>
               </div>
             )}
@@ -237,7 +242,7 @@ export default function StudentAssignments() {
         ))}
       </div>
 
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
 
       {viewing && (
         <DocumentViewerModal

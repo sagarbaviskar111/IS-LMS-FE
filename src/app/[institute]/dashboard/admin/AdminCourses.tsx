@@ -11,7 +11,7 @@ import ListToolbar from "./ListToolbar";
 import RowMenu from "./RowMenu";
 import { useDebounced } from "./useDebounced";
 
-const PAGE_SIZE = 12;
+
 
 const MODE_LABELS: Record<CourseMode, string> = { online: "Online", offline: "Offline", hybrid: "Hybrid" };
 const LEVEL_LABELS: Record<CourseLevel, string> = {
@@ -102,6 +102,7 @@ export default function AdminCourses() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(12);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loadError, setLoadError] = useState("");
@@ -124,7 +125,7 @@ export default function AdminCourses() {
     try {
       const res = await api.listCourses({
         page,
-        limit: PAGE_SIZE,
+        limit,
         q,
         sort,
         mode: modeF !== "all" ? modeF : undefined,
@@ -139,7 +140,7 @@ export default function AdminCourses() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, sort, modeF, stateF]);
+  }, [page, limit, q, sort, modeF, stateF]);
 
   useEffect(() => {
     load();
@@ -200,7 +201,7 @@ export default function AdminCourses() {
             setSearch(v);
             setPage(1);
           }}
-          placeholder="Search courses by name..."
+          placeholder="Search courses by name"
           filters={[
             {
               key: "mode",
@@ -259,9 +260,9 @@ export default function AdminCourses() {
           total={total}
         />
 
-        {notice && <p className={styles.messageSuccess}>{notice}</p>}
-        {loadError && <p className={styles.messageError}>{loadError}</p>}
-        {loading && <p className={styles.empty}>Loading...</p>}
+        {notice && <p className={styles.messageSuccess} role="status">{notice}</p>}
+        {loadError && <p className={styles.messageError} role="alert">{loadError}</p>}
+        {loading && courses.length === 0 && <p className={styles.sectionSubtitle}>Loading…</p>}
 
         {!loading && courses.length === 0 && !loadError && (
           <div className={styles.emptyState}>
@@ -275,7 +276,7 @@ export default function AdminCourses() {
         )}
 
         {courses.length > 0 && (
-          <div className={styles.tableWrap}>
+          <div className={`${styles.tableWrap} table-scroll`}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -290,7 +291,7 @@ export default function AdminCourses() {
                 {courses.map((c) => (
                   <tr key={c._id}>
                     <td>
-                      <strong>{c.name}</strong>
+                      <strong style={{ overflowWrap: "anywhere" }}>{c.name}</strong>
                       <div className={styles.sectionSubtitle} style={{ margin: 0 }}>
                         {LEVEL_LABELS[c.level]}
                         {durationText(c) ? ` · ${durationText(c)}` : ""}
@@ -335,7 +336,18 @@ export default function AdminCourses() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          onPageChange={setPage}
+          limit={limit}
+          limitOptions={[12, 24, 48, 100]}
+          onLimitChange={(n) => {
+            setLimit(n);
+            setPage(1);
+          }}
+        />
       </section>
 
       {editing && (
@@ -454,15 +466,15 @@ function CourseFormModal({
       <h2 className={styles.sectionTitle}>{course ? "Edit course" : "Create course"}</h2>
       <form className={styles.form} onSubmit={submit}>
         {/* ---- basics ---- */}
-        <h3 className={styles.sectionTitle} style={{ ...full, fontSize: "1rem" }}>
+        <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0, marginTop: 6, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
           Course details
         </h3>
         <label className={styles.label} style={full}>
-          Course name *
+          <span>Course name<span className={styles.required}>*</span></span>
           <input className={styles.input} value={f.name} maxLength={120} autoFocus placeholder="e.g. Full-Stack Web Development" onChange={(e) => set("name", e.target.value)} />
         </label>
         <label className={styles.label} style={full}>
-          About this course
+          <span>About this course <span className={styles.hint}>(optional)</span></span>
           <textarea className={styles.input} rows={3} value={f.description} maxLength={3000} placeholder="What students will learn and who it is for" onChange={(e) => set("description", e.target.value)} />
         </label>
         <label className={styles.label}>
@@ -486,17 +498,17 @@ function CourseFormModal({
           </select>
         </label>
         <label className={styles.label}>
-          Language
+          <span>Language <span className={styles.hint}>(optional)</span></span>
           <input className={styles.input} value={f.language} maxLength={40} placeholder="e.g. Hindi / English" onChange={(e) => set("language", e.target.value)} />
         </label>
 
         {/* ---- duration ---- */}
-        <h3 className={styles.sectionTitle} style={{ ...full, fontSize: "1rem" }}>
+        <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0, marginTop: 6, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
           Duration
         </h3>
         <label className={styles.label}>
           Duration
-          <input className={styles.input} type="number" min={0} step="any" value={f.durationValue} placeholder="e.g. 6" onChange={(e) => set("durationValue", e.target.value)} />
+          <input className={styles.input} type="number" inputMode="decimal" min={0} step="any" value={f.durationValue} placeholder="e.g. 6" onChange={(e) => set("durationValue", e.target.value)} />
         </label>
         <label className={styles.label}>
           Duration unit
@@ -507,12 +519,12 @@ function CourseFormModal({
           </select>
         </label>
         <label className={styles.label} style={full}>
-          Prerequisites
+          <span>Prerequisites <span className={styles.hint}>(optional)</span></span>
           <input className={styles.input} value={f.prerequisites} maxLength={500} placeholder="e.g. Basic computer knowledge" onChange={(e) => set("prerequisites", e.target.value)} />
         </label>
 
         {/* ---- payment ---- */}
-        <h3 className={styles.sectionTitle} style={{ ...full, fontSize: "1rem" }}>
+        <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0, marginTop: 6, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
           Fees &amp; payment plan
         </h3>
         <div style={{ ...full, ...block }}>
@@ -523,7 +535,7 @@ function CourseFormModal({
           {f.oneTimeEnabled && (
             <label className={styles.label}>
               Full amount (₹)
-              <input className={styles.input} type="number" min={0} step="any" value={f.oneTimeAmount} placeholder="e.g. 30000" onChange={(e) => set("oneTimeAmount", e.target.value)} />
+              <input className={styles.input} type="number" inputMode="decimal" min={0} step="any" value={f.oneTimeAmount} placeholder="e.g. 30000" onChange={(e) => set("oneTimeAmount", e.target.value)} />
             </label>
           )}
         </div>
@@ -569,11 +581,11 @@ function CourseFormModal({
                   </label>
                   <label className={styles.label}>
                     Amount (₹)
-                    <input className={styles.input} type="number" min={0} step="any" value={it.amount} onChange={(e) => setInstallment(i, { amount: e.target.value })} />
+                    <input className={styles.input} type="number" inputMode="decimal" min={0} step="any" value={it.amount} onChange={(e) => setInstallment(i, { amount: e.target.value })} />
                   </label>
                   <label className={styles.label}>
                     Due after (days)
-                    <input className={styles.input} type="number" min={0} value={it.dueAfterDays} onChange={(e) => setInstallment(i, { dueAfterDays: e.target.value })} />
+                    <input className={styles.input} type="number" inputMode="numeric" min={0} step={1} value={it.dueAfterDays} onChange={(e) => setInstallment(i, { dueAfterDays: e.target.value })} />
                   </label>
                   <button
                     className={styles.dangerButton}
@@ -589,7 +601,7 @@ function CourseFormModal({
               <label className={styles.label} style={{ maxWidth: 260 }}>
                 Installment charge (₹, optional)
                 <input className={styles.input} type="number" min={0} step="any" value={f.installmentCharge} placeholder="e.g. 1000" onChange={(e) => set("installmentCharge", e.target.value)} />
-                <span className={styles.sectionSubtitle} style={{ margin: 0 }}>Extra amount for paying in installments — added to the total fees.</span>
+                <span className={styles.hint}>Extra amount for paying in installments — added to the total fees.</span>
               </label>
 
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -627,7 +639,7 @@ function CourseFormModal({
         </div>
 
         {/* ---- syllabus ---- */}
-        <h3 className={styles.sectionTitle} style={{ ...full, fontSize: "1rem" }}>
+        <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0, marginTop: 6, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
           Syllabus — what will be covered
         </h3>
         <label className={styles.label} style={full}>
@@ -642,7 +654,7 @@ function CourseFormModal({
           />
         </label>
 
-        <h3 className={styles.sectionTitle} style={{ ...full, fontSize: "1rem" }}>
+        <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0, marginTop: 6, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
           Terms &amp; conditions
         </h3>
         <label className={styles.label} style={full}>
@@ -657,22 +669,22 @@ function CourseFormModal({
           />
         </label>
 
-        <label style={{ ...full, display: "flex", gap: 8, alignItems: "center" }}>
+        <label className={`${styles.checkRow} ${styles.fullRow}`}>
           <input type="checkbox" checked={f.isActive} onChange={(e) => set("isActive", e.target.checked)} />
           Course is active (open for admissions)
         </label>
 
-        {error && (
-          <p className={styles.messageError} style={full}>
-            {error}
-          </p>
-        )}
-        <div className={styles.formActions} style={full}>
-          <button className={styles.primaryButton} type="submit" disabled={busy}>
-            {busy ? "Saving..." : course ? "Save changes" : "Create course"}
-          </button>
+        <div className={styles.modalFooter}>
+          {error && (
+            <p className={styles.messageError} role="alert" style={{ margin: 0, marginRight: "auto" }}>
+              {error}
+            </p>
+          )}
           <button className={styles.smallButton} type="button" onClick={onClose} disabled={busy}>
             Cancel
+          </button>
+          <button className={styles.primaryButton} type="submit" disabled={busy}>
+            {busy ? "Saving…" : course ? "Save changes" : "Create course"}
           </button>
         </div>
       </form>
@@ -685,11 +697,11 @@ function CourseFormModal({
 function CourseDetailModal({ course: c, onClose }: { course: Course; onClose: () => void }) {
   const row = (label: string, value: React.ReactNode) =>
     value ? (
-      <div style={{ display: "flex", gap: 12 }}>
+      <div style={{ display: "flex", gap: "2px 12px", flexWrap: "wrap" }}>
         <span className={styles.sectionSubtitle} style={{ minWidth: 120, margin: 0 }}>
           {label}
         </span>
-        <span>{value}</span>
+        <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{value}</span>
       </div>
     ) : null;
 
@@ -712,7 +724,7 @@ function CourseDetailModal({ course: c, onClose }: { course: Course; onClose: ()
       <div style={{ display: "grid", gap: 6, margin: "8px 0 12px" }}>
         {c.oneTimeEnabled && row("One-time", inr(c.oneTimeAmount))}
         {c.installmentEnabled && (
-          <div className={styles.tableWrap}>
+          <div className={`${styles.tableWrap} table-scroll`}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -748,7 +760,7 @@ function CourseDetailModal({ course: c, onClose }: { course: Course; onClose: ()
         <p className={styles.empty}>No syllabus added yet.</p>
       )}
 
-      <div className={styles.formActions} style={{ marginTop: 16 }}>
+      <div className={styles.modalFooter}>
         <button className={styles.smallButton} type="button" onClick={onClose}>
           Close
         </button>
@@ -772,6 +784,9 @@ function RegistrationsModal({ course, onClose }: { course: Course; onClose: () =
   const [rows, setRows] = useState<CourseRegistrationRow[] | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<string | null>(null);
+  const [term, setTerm] = useState("");
+  const t = term.trim().toLowerCase();
+  const shownRows = (rows || []).filter((r) => !t || `${r.name} ${r.email} ${r.phone}`.toLowerCase().includes(t));
 
   useEffect(() => {
     api
@@ -784,20 +799,24 @@ function RegistrationsModal({ course, onClose }: { course: Course; onClose: () =
     <Modal onClose={onClose} dialogStyle={{ maxWidth: 760, width: "100%", maxHeight: "92vh", overflowY: "auto" }}>
       <h2 className={styles.sectionTitle}>Registrations — {course.name}</h2>
       {error && <p className={styles.messageError}>{error}</p>}
-      {!rows && !error && <p className={styles.empty}>Loading...</p>}
+      {!rows && !error && <p className={styles.sectionSubtitle}>Loading…</p>}
       {rows && rows.length === 0 && <p className={styles.empty}>No one has registered through the link yet.</p>}
-      {rows && rows.length > 0 && (
+      {rows && rows.length > 3 && (
+        <input className={styles.input} style={{ margin: "12px 0" }} type="search" aria-label="Search registrations" placeholder="Search by name, email or phone" value={term} onChange={(e) => setTerm(e.target.value)} />
+      )}
+      {rows && rows.length > 0 && shownRows.length === 0 && <p className={styles.sectionSubtitle}>No registrations match your search.</p>}
+      {rows && shownRows.length > 0 && (
         <div style={{ display: "grid", gap: 10 }}>
-          {rows.map((r) => (
+          {shownRows.map((r) => (
             <div key={r._id} style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: 12 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <div>
-                  <strong>{r.name}</strong>
+                  <strong style={{ overflowWrap: "anywhere" }}>{r.name}</strong>
                   <div className={styles.sectionSubtitle} style={{ margin: 0 }}>
                     {r.email} · {r.phone}
                   </div>
                 </div>
-                <div style={{ textAlign: "right" }}>
+                <div style={{ textAlign: "right", minWidth: 0 }}>
                   <div>
                     Paid {inr(r.amountPaid)} of {inr(r.planTotal)}
                   </div>
@@ -814,7 +833,7 @@ function RegistrationsModal({ course, onClose }: { course: Course; onClose: () =
           ))}
         </div>
       )}
-      <div className={styles.formActions} style={{ marginTop: 16 }}>
+      <div className={styles.modalFooter}>
         <button className={styles.smallButton} type="button" onClick={onClose}>
           Close
         </button>

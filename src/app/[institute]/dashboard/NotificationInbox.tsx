@@ -63,11 +63,12 @@ export default function NotificationInbox({ refreshKey }: { refreshKey?: number 
         )}
       </div>
 
+      {loading && notifications.length === 0 && <p className={adminStyles.empty}>Loading...</p>}
       {!loading && notifications.length === 0 && (
-        <p className={adminStyles.empty}>Nothing here yet.</p>
+        <p className={adminStyles.empty}>No notifications yet. New messages and alerts will appear here.</p>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
         {notifications.map((n) => (
           <div
             key={n._id}
@@ -82,10 +83,10 @@ export default function NotificationInbox({ refreshKey }: { refreshKey?: number 
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontWeight: n.read ? 500 : 700, color: "var(--foreground)", margin: 0 }}>
+              <p style={{ fontWeight: n.read ? 500 : 700, color: "var(--foreground)", margin: 0, wordBreak: "break-word" }}>
                 {n.title}
               </p>
-              <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: "4px 0" }}>{n.message}</p>
+              <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: "4px 0", wordBreak: "break-word", whiteSpace: "pre-wrap" }}>{n.message}</p>
               <p style={{ color: "var(--muted)", fontSize: "0.75rem", margin: 0 }}>
                 From {senderLabel(n)} · {new Date(n.createdAt).toLocaleString()}
               </p>
@@ -95,6 +96,7 @@ export default function NotificationInbox({ refreshKey }: { refreshKey?: number 
                 className={adminStyles.smallButton}
                 style={{ flexShrink: 0, height: "fit-content" }}
                 onClick={() => markRead(n._id)}
+                type="button"
               >
                 Mark read
               </button>

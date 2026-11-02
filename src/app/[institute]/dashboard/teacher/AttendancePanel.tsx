@@ -113,8 +113,8 @@ export default function AttendancePanel({
             <tbody>
               {records.map((r) => (
                 <tr key={r.student}>
-                  <td>{r.name}</td>
-                  <td>{r.email}</td>
+                  <td style={{ overflowWrap: "anywhere" }}>{r.name}</td>
+                  <td style={{ overflowWrap: "anywhere" }}>{r.email}</td>
                   <td>
                     <div className={adminStyles.rowActions}>
                       <button
@@ -150,9 +150,9 @@ export default function AttendancePanel({
         </div>
       )}
 
-      <div className={adminStyles.formActions} style={{ marginTop: 16 }}>
+      <div className={adminStyles.modalFooter}>
         <button className={adminStyles.primaryButton} type="button" onClick={save} disabled={saving || loading}>
-          {saving ? "Saving..." : "Save attendance"}
+          {saving ? "Saving…" : "Save attendance"}
         </button>
         <button className={adminStyles.smallButton} type="button" onClick={onClose}>
           Cancel

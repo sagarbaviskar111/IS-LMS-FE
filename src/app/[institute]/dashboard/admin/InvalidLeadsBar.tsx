@@ -118,7 +118,7 @@ export default function InvalidLeadsBar({
         )}
         <span style={{ flex: 1 }} />
         <button type="button" className={styles.dangerButton} onClick={doDelete} disabled={busy || count === 0}>
-          {busy ? "Deleting..." : `Delete selected (${count})`}
+          {busy ? "Deleting…" : `Delete selected (${count})`}
         </button>
         <button type="button" className={styles.smallButton} onClick={onToggle} disabled={busy}>
           Back to all leads

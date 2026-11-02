@@ -309,7 +309,7 @@ export default function LeadBulkUploadModal({
 
               <div className={adminStyles.formActions} style={{ marginTop: 16 }}>
                 <button className={adminStyles.primaryButton} type="button" onClick={upload} disabled={uploading || validCount === 0}>
-                  {uploading ? "Uploading..." : `Upload ${validCount} lead${validCount === 1 ? "" : "s"}`}
+                  {uploading ? "Uploading…" : `Upload ${validCount} lead${validCount === 1 ? "" : "s"}`}
                 </button>
               </div>
             </>

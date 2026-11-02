@@ -13,7 +13,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div className={dashboardStyles.card}>
       <p className={dashboardStyles.cardLabel}>{label}</p>
-      <p className={dashboardStyles.cardValue} style={{ fontSize: "1rem" }}>
+      <p className={dashboardStyles.cardValue} style={{ fontSize: "1rem", overflowWrap: "anywhere" }}>
         {value || "—"}
       </p>
     </div>

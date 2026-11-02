@@ -7,6 +7,8 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
+import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
 
 function percentageClass(pct: number | null): string {
   if (pct === null) return adminStyles.badge;
@@ -20,6 +22,11 @@ export default function AttendanceSummary() {
   const [summary, setSummary] = useState<AttendanceSummaryRow[]>([]);
   const [sessionCount, setSessionCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+  const [band, setBand] = useState("all");
+  const [sortBy, setSortBy] = useState("name");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(15);
 
   const load = useCallback(async () => {
     if (!activeBatchId) return;
@@ -33,9 +40,25 @@ export default function AttendanceSummary() {
     }
   }, [activeBatchId]);
 
+  useEffect(() => setPage(1), [q, band, sortBy, limit, activeBatchId]);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  const needle = q.trim().toLowerCase();
+  const rows = summary
+    .filter((r) => {
+      if (needle && !`${r.name} ${r.email}`.toLowerCase().includes(needle)) return false;
+      if (band === "nodata") return r.percentage === null;
+      if (band === "low") return r.percentage !== null && r.percentage < 50;
+      if (band === "mid") return r.percentage !== null && r.percentage >= 50 && r.percentage < 75;
+      if (band === "good") return r.percentage !== null && r.percentage >= 75;
+      return true;
+    })
+    .sort((a, b) => (sortBy === "pct_asc" ? (a.percentage ?? -1) - (b.percentage ?? -1) : sortBy === "pct_desc" ? (b.percentage ?? -1) - (a.percentage ?? -1) : a.name.localeCompare(b.name)));
+  const totalPages = Math.max(1, Math.ceil(rows.length / limit));
+  const pageRows = rows.slice((page - 1) * limit, page * limit);
 
   return (
     <div>
@@ -67,14 +90,24 @@ export default function AttendanceSummary() {
           </div>
         </div>
 
-        {!loading && summary.length === 0 && (
+        <ListToolbar
+          search={q}
+          onSearch={setQ}
+          placeholder="Search by name or email"
+          total={rows.length}
+          filters={[{ key: "band", label: "Attendance", value: band, onChange: setBand, options: [{ value: "all", label: "All students" }, { value: "good", label: "75% and above" }, { value: "mid", label: "50-74%" }, { value: "low", label: "Below 50%" }, { value: "nodata", label: "No data" }] }]}
+          sort={{ key: "sort", label: "Sort by", value: sortBy, onChange: setSortBy, options: [{ value: "name", label: "Name (A-Z)" }, { value: "pct_asc", label: "Lowest attendance first" }, { value: "pct_desc", label: "Highest attendance first" }] }}
+          onClear={() => { setQ(""); setBand("all"); setSortBy("name"); }}
+        />
+        {loading && <p className={adminStyles.empty} role="status">Loading attendance…</p>}
+        {!loading && rows.length === 0 && (
           <div className={styles.emptyBlock}>
             <span className={styles.emptyIcon} aria-hidden="true" />
-            <p className={styles.emptyText}>No students in this batch yet.</p>
+            <p className={styles.emptyText}>{summary.length ? "No students match your search or filters." : "No students in this batch yet."}</p>
           </div>
         )}
 
-        {summary.length > 0 && (
+        {rows.length > 0 && (
           <div className={`${adminStyles.tableWrap} ${styles.tableHoverWrap}`}>
             <table className={adminStyles.table}>
               <thead>
@@ -87,10 +120,10 @@ export default function AttendanceSummary() {
                 </tr>
               </thead>
               <tbody>
-                {summary.map((row) => (
+                {pageRows.map((row) => (
                   <tr key={row.student}>
-                    <td>{row.name}</td>
-                    <td>{row.email}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{row.name}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{row.email}</td>
                     <td>{row.present}</td>
                     <td>{row.total}</td>
                     <td>
@@ -104,6 +137,7 @@ export default function AttendanceSummary() {
             </table>
           </div>
         )}
+        <Pagination page={page} totalPages={totalPages} total={rows.length} onPageChange={setPage} limit={limit} onLimitChange={setLimit} limitOptions={[15, 25, 50, 100]} />
       </section>
     </div>
   );

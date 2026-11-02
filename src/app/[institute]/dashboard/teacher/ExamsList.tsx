@@ -10,8 +10,10 @@ import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import BatchSwitcher from "./BatchSwitcher";
 import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
+import { useDebounced } from "../admin/useDebounced";
 
-const PAGE_SIZE = 10;
+
 
 const STATUS_BADGE: Record<ExamSummary["status"], string> = {
   draft: adminStyles.badgePending,
@@ -27,6 +29,11 @@ export default function ExamsList() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [q, setQ] = useState("");
+  const dq = useDebounced(q, 300);
+  const [filter, setFilter] = useState("");
+  const [sortBy, setSortBy] = useState("");
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -37,14 +44,14 @@ export default function ExamsList() {
     if (!activeBatchId) return;
     setLoading(true);
     try {
-      const res = await api.listExams(activeBatchId, { page, limit: PAGE_SIZE });
+      const res = await api.listExams(activeBatchId, { page, limit, q: dq, sort: sortBy, status: filter });
       setExams(res.exams);
       setTotalPages(res.totalPages);
       setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, [activeBatchId, page]);
+  }, [activeBatchId, page, limit, dq, filter, sortBy]);
 
   useEffect(() => {
     load();
@@ -52,7 +59,7 @@ export default function ExamsList() {
 
   useEffect(() => {
     setPage(1);
-  }, [activeBatchId]);
+  }, [activeBatchId, dq, filter, sortBy]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +100,7 @@ export default function ExamsList() {
 
           <form className={adminStyles.form} onSubmit={handleCreate}>
             <label className={adminStyles.label}>
-              Title
+              <span>Title <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 value={title}
@@ -103,19 +110,19 @@ export default function ExamsList() {
               />
             </label>
 
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-              Description
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+              <span>Description</span>
               <input
                 className={adminStyles.input}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="optional"
+                placeholder="Optional"
               />
             </label>
 
-            <div className={adminStyles.formActions}>
+            <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
               <button className={adminStyles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Creating..." : "Create exam"}
+                {submitting ? "Creating…" : "Create exam"}
               </button>
               {error && <p className={adminStyles.messageError}>{error}</p>}
             </div>
@@ -130,10 +137,20 @@ export default function ExamsList() {
             </div>
           </div>
 
+          <ListToolbar
+            search={q}
+            onSearch={setQ}
+            placeholder="Search exams by title"
+            total={total}
+            filters={[{ key: "status", label: "Status", value: filter, onChange: setFilter, options: [{ value: "", label: "All statuses" }, { value: "draft", label: "Draft" }, { value: "published", label: "Published" }, { value: "closed", label: "Closed" }] }]}
+            sort={{ key: "sort", label: "Sort by", value: sortBy, onChange: setSortBy, options: [{ value: "", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "title", label: "Title (A-Z)" }] }}
+            onClear={() => { setQ(""); setFilter(""); setSortBy(""); }}
+          />
+          {loading && exams.length === 0 && <p className={adminStyles.empty} role="status">Loading exams…</p>}
           {!loading && exams.length === 0 && (
             <div className={styles.emptyBlock}>
               <span className={styles.emptyIcon} aria-hidden="true" />
-              <p className={styles.emptyText}>No exams yet — create one above.</p>
+              <p className={styles.emptyText}>{q || filter ? "No exams match your search or filters." : "No exams yet — create one above."}</p>
             </div>
           )}
 
@@ -152,7 +169,7 @@ export default function ExamsList() {
                 <tbody>
                   {exams.map((e) => (
                     <tr key={e._id}>
-                      <td>{e.title}</td>
+                      <td style={{ overflowWrap: "anywhere", minWidth: 160 }}>{e.title}</td>
                       <td>
                         <span className={STATUS_BADGE[e.status]}>{e.status}</span>
                         {e.resultsAnnounced && (
@@ -182,7 +199,7 @@ export default function ExamsList() {
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
         </section>
       </div>
     </div>

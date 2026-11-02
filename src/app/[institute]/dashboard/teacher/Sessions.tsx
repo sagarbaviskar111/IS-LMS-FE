@@ -9,6 +9,8 @@ import styles from "./teacher.module.css";
 import TodaySessions, { todayFirst } from "../TodaySessions";
 import BatchSwitcher from "./BatchSwitcher";
 import AttendancePanel from "./AttendancePanel";
+import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
 
 function todayStr(): string {
   const d = new Date();
@@ -74,6 +76,33 @@ export default function Sessions() {
   const [rowError, setRowError] = useState("");
 
   const [attendanceSession, setAttendanceSession] = useState<Session | null>(null);
+
+  const [q, setQ] = useState("");
+  const [when, setWhen] = useState("all");
+  const [marked, setMarked] = useState("all");
+  const [sortBy, setSortBy] = useState("date_asc");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  useEffect(() => setPage(1), [q, when, marked, sortBy, limit, activeBatchId]);
+
+  const todayKey = todayStr();
+  const filtered = todayFirst(sessions)
+    .filter((s) => {
+      const d = s.date.slice(0, 10);
+      if (when === "upcoming" && d < todayKey) return false;
+      if (when === "past" && d >= todayKey) return false;
+      if (marked === "marked" && !s.attendanceMarked) return false;
+      if (marked === "unmarked" && s.attendanceMarked) return false;
+      const needle = q.trim().toLowerCase();
+      return !needle || `${s.topic} ${s.notes || ""}`.toLowerCase().includes(needle);
+    })
+    .sort((a, b) => {
+      if (sortBy === "topic") return a.topic.localeCompare(b.topic);
+      const c = a.date.slice(0, 10).localeCompare(b.date.slice(0, 10)) || a.startTime.localeCompare(b.startTime);
+      return sortBy === "date_desc" ? -c : c;
+    });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
+  const pageRows = filtered.slice((page - 1) * limit, page * limit);
 
   const load = useCallback(async () => {
     if (!activeBatchId) return;
@@ -216,7 +245,7 @@ export default function Sessions() {
 
           <form className={adminStyles.form} onSubmit={handleSingleCreate}>
             <label className={adminStyles.label}>
-              Date
+              <span>Date <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 type="date"
@@ -227,7 +256,7 @@ export default function Sessions() {
             </label>
 
             <label className={adminStyles.label}>
-              Topic
+              <span>Topic <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 value={singleForm.topic}
@@ -238,7 +267,7 @@ export default function Sessions() {
             </label>
 
             <label className={adminStyles.label}>
-              Start time
+              <span>Start time <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 type="time"
@@ -249,7 +278,7 @@ export default function Sessions() {
             </label>
 
             <label className={adminStyles.label}>
-              End time
+              <span>End time <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 type="time"
@@ -259,17 +288,17 @@ export default function Sessions() {
               />
             </label>
 
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
               Notes
               <input
                 className={adminStyles.input}
                 value={singleForm.notes}
                 onChange={(e) => setSingleForm({ ...singleForm, notes: e.target.value })}
-                placeholder="optional"
+                placeholder="Optional"
               />
             </label>
 
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
               Meeting link
               <input
                 className={adminStyles.input}
@@ -280,9 +309,9 @@ export default function Sessions() {
               />
             </label>
 
-            <div className={adminStyles.formActions}>
+            <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
               <button className={adminStyles.primaryButton} type="submit" disabled={singleSubmitting}>
-                {singleSubmitting ? "Creating..." : "Add session"}
+                {singleSubmitting ? "Creating…" : "Add session"}
               </button>
               {singleError && <p className={adminStyles.messageError}>{singleError}</p>}
             </div>
@@ -301,7 +330,7 @@ export default function Sessions() {
 
           <form className={adminStyles.form} onSubmit={handleBulkCreate}>
             <label className={adminStyles.label}>
-              Week starting
+              <span>Week starting <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 type="date"
@@ -312,7 +341,7 @@ export default function Sessions() {
             </label>
 
             <label className={adminStyles.label}>
-              Topic
+              <span>Topic <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 value={bulkForm.topic}
@@ -323,7 +352,7 @@ export default function Sessions() {
             </label>
 
             <label className={adminStyles.label}>
-              Start time
+              <span>Start time <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 type="time"
@@ -334,7 +363,7 @@ export default function Sessions() {
             </label>
 
             <label className={adminStyles.label}>
-              End time
+              <span>End time <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 type="time"
@@ -344,7 +373,7 @@ export default function Sessions() {
               />
             </label>
 
-            <div className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+            <div className={`${adminStyles.label} ${adminStyles.fullRow}`}>
               Days
               <div className={styles.weekdayRow}>
                 {weekDays.map((dateStr, offset) => (
@@ -363,17 +392,17 @@ export default function Sessions() {
               </div>
             </div>
 
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
               Notes
               <input
                 className={adminStyles.input}
                 value={bulkForm.notes}
                 onChange={(e) => setBulkForm({ ...bulkForm, notes: e.target.value })}
-                placeholder="optional"
+                placeholder="Optional"
               />
             </label>
 
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
               Meeting link
               <input
                 className={adminStyles.input}
@@ -384,9 +413,9 @@ export default function Sessions() {
               />
             </label>
 
-            <div className={adminStyles.formActions}>
+            <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
               <button className={adminStyles.primaryButton} type="submit" disabled={bulkSubmitting}>
-                {bulkSubmitting ? "Creating..." : `Create ${selectedOffsets.length} session(s)`}
+                {bulkSubmitting ? "Creating…" : `Create ${selectedOffsets.length} session(s)`}
               </button>
               {bulkError && <p className={adminStyles.messageError}>{bulkError}</p>}
               {bulkSuccess && <p className={adminStyles.messageSuccess}>{bulkSuccess}</p>}
@@ -397,11 +426,25 @@ export default function Sessions() {
         <section className={adminStyles.section}>
           <div className={adminStyles.sectionHead}>
             <div>
-              <h2 className={adminStyles.sectionTitle}>Upcoming sessions</h2>
-              <p className={adminStyles.sectionSubtitle}>{sessions.length} scheduled</p>
+              <h2 className={adminStyles.sectionTitle}>Sessions</h2>
+              <p className={adminStyles.sectionSubtitle}>{sessions.length} scheduled in this batch</p>
             </div>
           </div>
 
+          <ListToolbar
+            search={q}
+            onSearch={setQ}
+            placeholder="Search topic or notes"
+            total={filtered.length}
+            filters={[
+              { key: "when", label: "When", value: when, onChange: setWhen, options: [{ value: "all", label: "All dates" }, { value: "upcoming", label: "Today and upcoming" }, { value: "past", label: "Past" }] },
+              { key: "marked", label: "Attendance", value: marked, onChange: setMarked, options: [{ value: "all", label: "All" }, { value: "unmarked", label: "Not marked" }, { value: "marked", label: "Marked" }] },
+            ]}
+            sort={{ key: "sort", label: "Sort by", value: sortBy, onChange: setSortBy, options: [{ value: "date_asc", label: "Date (earliest first)" }, { value: "date_desc", label: "Date (latest first)" }, { value: "topic", label: "Topic (A-Z)" }] }}
+            onClear={() => { setQ(""); setWhen("all"); setMarked("all"); setSortBy("date_asc"); }}
+          />
+
+          {loading && <p className={adminStyles.empty} role="status">Loading sessions…</p>}
           {rowError && <p className={adminStyles.messageError}>{rowError}</p>}
 
           {!loading && sessions.length === 0 && (
@@ -411,7 +454,7 @@ export default function Sessions() {
             </div>
           )}
 
-          {sessions.length > 0 && (
+          {filtered.length > 0 && (
             <div className={`${adminStyles.tableWrap} ${styles.tableHoverWrap}`}>
               <table className={adminStyles.table}>
                 <thead>
@@ -426,7 +469,7 @@ export default function Sessions() {
                   </tr>
                 </thead>
                 <tbody>
-                  {todayFirst(sessions).map((s) =>
+                  {pageRows.map((s) =>
                     editingId === s._id ? (
                       <tr key={s._id}>
                         <td>
@@ -438,7 +481,7 @@ export default function Sessions() {
                           />
                         </td>
                         <td>
-                          <div style={{ display: "flex", gap: 6 }}>
+                          <div style={{ display: "flex", gap: 6, minWidth: 220 }}>
                             <input
                               className={adminStyles.input}
                               type="time"
@@ -478,7 +521,7 @@ export default function Sessions() {
                         </td>
                         <td>—</td>
                         <td>
-                          <div className={adminStyles.rowActions}>
+                          <div className={adminStyles.rowActions} style={{ flexWrap: "wrap" }}>
                             <button className={adminStyles.primaryButton} onClick={() => saveEdit(s._id)}>
                               Save
                             </button>
@@ -496,8 +539,8 @@ export default function Sessions() {
                         <td>
                           {s.startTime} - {s.endTime}
                         </td>
-                        <td>{s.topic}</td>
-                        <td>{s.notes || "—"}</td>
+                        <td style={{ overflowWrap: "anywhere", minWidth: 140 }}>{s.topic}</td>
+                        <td style={{ overflowWrap: "anywhere", minWidth: 120, maxWidth: 260 }}>{s.notes || "—"}</td>
                         <td>
                           {s.meetingLink ? (
                             <a
@@ -526,7 +569,7 @@ export default function Sessions() {
                           </span>
                         </td>
                         <td>
-                          <div className={adminStyles.rowActions}>
+                          <div className={adminStyles.rowActions} style={{ flexWrap: "wrap" }}>
                             <button className={adminStyles.smallButton} onClick={() => setAttendanceSession(s)}>
                               Attendance
                             </button>
@@ -545,6 +588,8 @@ export default function Sessions() {
               </table>
             </div>
           )}
+          <Pagination page={page} totalPages={totalPages} total={filtered.length} onPageChange={setPage} limit={limit} onLimitChange={setLimit} />
+          {!loading && sessions.length > 0 && filtered.length === 0 && <p className={adminStyles.empty}>No sessions match your filters.</p>}
         </section>
       </div>
     </div>

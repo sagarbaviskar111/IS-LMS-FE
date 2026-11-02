@@ -452,22 +452,40 @@ export default function PublicInquiryPage() {
                   key={q.id}
                   id={`q-${q.id}`}
                   className={`${styles.field} ${COMPACT.includes(q.type) ? styles.span6 : styles.span12} ${errors[q.id] ? styles.fieldError : ""}`}
+                  role="group"
+                  aria-labelledby={`qt-${q.id}`}
+                  aria-describedby={errors[q.id] ? `qe-${q.id}` : q.description ? `qd-${q.id}` : undefined}
+                  aria-invalid={errors[q.id] ? true : undefined}
+                  aria-required={q.required || undefined}
                 >
                   <div className={styles.label}>
                     <span className={styles.qIndex}>{String(i + 1).padStart(2, "0")}</span>
-                    <span className={styles.qTitle}>
+                    <span className={styles.qTitle} id={`qt-${q.id}`}>
                       {q.title}
-                      {q.required && <span className={styles.star}>*</span>}
+                      {q.required && (
+                        <span className={styles.star} aria-hidden="true">
+                          *
+                        </span>
+                      )}
+                      {q.required && <span className={styles.srOnly}> (required)</span>}
                     </span>
                   </div>
-                  {q.description && <p className={styles.qDesc}>{q.description}</p>}
+                  {q.description && (
+                    <p className={styles.qDesc} id={`qd-${q.id}`}>
+                      {q.description}
+                    </p>
+                  )}
                   <QuestionInput q={q} value={answers[q.id]} onChange={(v) => setAnswer(q.id, v)} />
-                  {errors[q.id] && <p className={styles.errorText}>{errors[q.id]}</p>}
+                  {errors[q.id] && (
+                    <p className={styles.errorText} id={`qe-${q.id}`} role="alert">
+                      {errors[q.id]}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>
 
-            {submitError && <p className={styles.errorText}>{submitError}</p>}
+            {submitError && <p className={styles.errorText} role="alert">{submitError}</p>}
 
             <div className={styles.actions}>
               <button

@@ -202,7 +202,7 @@ export default function AdminBrandingSettings() {
       <section className={adminStyles.section}>
         <form className={adminStyles.form} onSubmit={handleSubmit}>
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            Your institute&apos;s address
+            <span>Your institute&apos;s address<span className={adminStyles.required}>*</span></span>
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: "var(--muted)", fontSize: "0.85rem", whiteSpace: "nowrap" }}>
                 {origin}/
@@ -213,6 +213,9 @@ export default function AdminBrandingSettings() {
                 onChange={(e) => setSlugInput(e.target.value)}
                 placeholder="your-institute-name"
                 required
+                autoComplete="off"
+                autoCapitalize="off"
+                spellCheck={false}
               />
             </div>
           </label>

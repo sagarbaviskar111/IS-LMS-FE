@@ -8,7 +8,7 @@ import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
 import Pagination from "../Pagination";
 
-const PAGE_SIZE = 10;
+
 
 export default function StudentPlacements() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -16,13 +16,14 @@ export default function StudentPlacements() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
   const load = () => {
     setLoading(true);
     return api
-      .studentListJobs({ page, limit: PAGE_SIZE })
+      .studentListJobs({ page, limit })
       .then((res) => {
         setJobs(res.jobs);
         setTotalPages(res.totalPages);
@@ -34,7 +35,7 @@ export default function StudentPlacements() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, limit]);
 
   const expressInterest = async (job: Job) => {
     setError("");
@@ -65,7 +66,7 @@ export default function StudentPlacements() {
         {jobs.map((job) => (
           <section key={job._id} className={adminStyles.section}>
             <div className={adminStyles.sectionHead}>
-              <div style={{ minWidth: 0 }}>
+              <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                 <h2 className={adminStyles.sectionTitle}>{job.title}</h2>
                 <p className={adminStyles.sectionSubtitle}>
                   {job.company}
@@ -77,7 +78,7 @@ export default function StudentPlacements() {
               </span>
             </div>
 
-            <p style={{ color: "var(--foreground)", fontSize: "0.9rem", lineHeight: 1.6, margin: "10px 0 12px", whiteSpace: "pre-wrap" }}>
+            <p style={{ color: "var(--foreground)", fontSize: "0.9rem", lineHeight: 1.6, margin: "10px 0 12px", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>
               {job.description}
             </p>
 
@@ -116,14 +117,14 @@ export default function StudentPlacements() {
                 disabled={busyId === job._id}
                 onClick={() => expressInterest(job)}
               >
-                {busyId === job._id ? "Submitting..." : "I'm interested"}
+                {busyId === job._id ? "Submitting…" : "I'm interested"}
               </button>
             )}
           </section>
         ))}
       </div>
 
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
     </div>
   );
 }

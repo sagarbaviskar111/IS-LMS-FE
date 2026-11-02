@@ -43,7 +43,7 @@ export default function PaymentsAttention() {
           <tbody>
             {orders.map((o) => (
               <tr key={o._id}>
-                <td>{o.student ? `${o.student.name}` : o.email || "Unknown"}</td>
+                <td style={{ overflowWrap: "anywhere" }}>{o.student ? `${o.student.name}` : o.email || "Unknown"}</td>
                 <td>{o.purpose === "course_registration" ? "Course registration" : o.purpose === "dues" ? "Dues" : "Next installment"}</td>
                 <td>{inr(o.amount)}</td>
                 <td>
@@ -52,7 +52,7 @@ export default function PaymentsAttention() {
                     : "Paid, but registration was not completed — the student can retry without paying again"}
                 </td>
                 <td>
-                  <code>{o.razorpayPaymentId}</code>
+                  <code style={{ overflowWrap: "anywhere" }}>{o.razorpayPaymentId}</code>
                   <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>{when(o.paidAt)}</div>
                 </td>
                 <td />

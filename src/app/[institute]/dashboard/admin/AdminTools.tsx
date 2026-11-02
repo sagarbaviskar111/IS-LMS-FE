@@ -6,12 +6,13 @@ import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
 import Pagination from "../Pagination";
 
-const PAGE_SIZE = 10;
+
 
 export default function AdminTools() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -27,14 +28,14 @@ export default function AdminTools() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.listTools({ page, limit: PAGE_SIZE });
+      const res = await api.listTools({ page, limit });
       setTools(res.tools);
       setTotalPages(res.totalPages);
       setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, limit]);
 
   useEffect(() => {
     load();
@@ -106,7 +107,7 @@ export default function AdminTools() {
 
           <form className={styles.form} onSubmit={handleCreate}>
             <label className={styles.label}>
-              Name
+              <span>Name<span className={styles.required}>*</span></span>
               <input
                 className={styles.input}
                 value={form.name}
@@ -117,20 +118,22 @@ export default function AdminTools() {
             </label>
 
             <label className={styles.label}>
-              Link
+              <span>Link<span className={styles.required}>*</span></span>
               <input
                 className={styles.input}
                 type="url"
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
-                placeholder="https://..."
+                placeholder="https://example.com"
+                autoComplete="off"
+                inputMode="url"
                 required
               />
             </label>
 
             <div className={styles.formActions}>
               <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Adding..." : "Add tool"}
+                {submitting ? "Adding…" : "Add tool"}
               </button>
               {formError && <p className={styles.messageError}>{formError}</p>}
             </div>
@@ -159,19 +162,21 @@ export default function AdminTools() {
               <div key={t._id} className={styles.section} style={{ marginBottom: 12 }}>
                 <div className={styles.form}>
                   <label className={styles.label}>
-                    Name
+                    <span>Name<span className={styles.required}>*</span></span>
                     <input
                       className={styles.input}
+                      required
                       value={editForm.name}
                       onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                     />
                   </label>
 
                   <label className={styles.label}>
-                    Link
+                    <span>Link<span className={styles.required}>*</span></span>
                     <input
                       className={styles.input}
                       type="url"
+                      required
                       value={editForm.url}
                       onChange={(e) => setEditForm({ ...editForm, url: e.target.value })}
                     />
@@ -184,7 +189,7 @@ export default function AdminTools() {
                       disabled={savingId === t._id}
                       onClick={() => saveEdit(t._id)}
                     >
-                      {savingId === t._id ? "Saving..." : "Save"}
+                      {savingId === t._id ? "Saving…" : "Save"}
                     </button>
                     <button className={styles.smallButton} type="button" onClick={cancelEdit}>
                       Cancel
@@ -210,9 +215,9 @@ export default function AdminTools() {
                     .filter((t) => t._id !== editingId)
                     .map((t) => (
                       <tr key={t._id}>
-                        <td>{t.name}</td>
+                        <td style={{ overflowWrap: "anywhere", minWidth: 120 }}>{t.name}</td>
                         <td>
-                          <a href={t.url} target="_blank" rel="noopener noreferrer" className={styles.linkButton}>
+                          <a href={t.url} target="_blank" rel="noopener noreferrer" className={styles.linkButton} style={{ overflowWrap: "anywhere", textAlign: "left" }}>
                             {t.url}
                           </a>
                         </td>
@@ -233,7 +238,7 @@ export default function AdminTools() {
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
         </section>
       </div>
     </div>

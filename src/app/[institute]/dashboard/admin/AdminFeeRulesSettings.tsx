@@ -96,6 +96,7 @@ export default function AdminFeeRulesSettings() {
             <input
               className={adminStyles.input}
               type="number"
+              inputMode="numeric"
               min={0}
               max={60}
               value={draft.graceDays}
@@ -134,6 +135,7 @@ export default function AdminFeeRulesSettings() {
               <input
                 className={adminStyles.input}
                 type="number"
+                inputMode="numeric"
                 min={0}
                 value={draft.amount}
                 onChange={(e) => set({ amount: e.target.value })}
@@ -146,6 +148,7 @@ export default function AdminFeeRulesSettings() {
               <input
                 className={adminStyles.input}
                 type="number"
+                inputMode="numeric"
                 min={0}
                 value={draft.maxAmount}
                 onChange={(e) => set({ maxAmount: e.target.value })}
@@ -171,6 +174,7 @@ export default function AdminFeeRulesSettings() {
             <input
               className={adminStyles.input}
               type="number"
+              inputMode="numeric"
               min={0}
               max={100}
               value={draft.sibling}

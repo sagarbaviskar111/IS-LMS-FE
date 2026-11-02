@@ -486,7 +486,11 @@
    from whatever precedes it instead of butting the first label up against
    the hint text. */
 .modalDialog form {
-  margin-top: 20px;
+  margin-top: 22px;
+}
+
+.modalDialog section + section {
+  margin-top: 18px;
 }
 
 .modalHead {
@@ -495,6 +499,8 @@
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
 }
 
 .modalCloseButton {

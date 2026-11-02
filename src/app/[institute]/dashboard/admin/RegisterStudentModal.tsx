@@ -102,6 +102,7 @@ export default function RegisterStudentModal({
   };
 
   const full = { gridColumn: "1 / -1" } as const;
+  const req = <span className={styles.required}>*</span>;
 
   return (
     <Modal onClose={onClose} dialogStyle={{ maxWidth: 640, width: "100%", maxHeight: "92vh", overflowY: "auto" }}>
@@ -116,33 +117,33 @@ export default function RegisterStudentModal({
 
       <form className={styles.form} onSubmit={submit}>
         <label className={styles.label} style={full}>
-          Full name *
-          <input className={styles.input} value={f.name} maxLength={100} autoFocus onChange={(e) => set("name", e.target.value)} />
+          <span>Full name{req}</span>
+          <input className={styles.input} value={f.name} maxLength={100} autoFocus autoComplete="off" onChange={(e) => set("name", e.target.value)} />
         </label>
         <label className={styles.label}>
-          Email *
-          <input className={styles.input} type="email" value={f.email} onChange={(e) => set("email", e.target.value)} />
+          <span>Email{req}</span>
+          <input className={styles.input} type="email" autoComplete="off" value={f.email} onChange={(e) => set("email", e.target.value)} />
         </label>
         <label className={styles.label}>
-          Phone *
-          <input className={styles.input} type="tel" value={f.phone} onChange={(e) => set("phone", e.target.value)} />
+          <span>Phone{req}</span>
+          <input className={styles.input} type="tel" inputMode="tel" autoComplete="off" placeholder="10-digit mobile number" value={f.phone} onChange={(e) => set("phone", e.target.value)} />
         </label>
         <label className={styles.label} style={full}>
-          Course *
+          <span>Course{req}</span>
           <select className={styles.select} value={f.courseId} onChange={(e) => pickCourse(e.target.value)}>
-            <option value="">{courses === null ? "Loading courses..." : "Select a course..."}</option>
+            <option value="">{courses === null ? "Loading courses…" : "Select a course"}</option>
             {(courses || []).map((c) => (
               <option key={c._id} value={c._id}>
                 {c.name}
               </option>
             ))}
           </select>
-          {courses && courses.length === 0 && <span style={{ fontWeight: 400 }}>No active courses — create a course first.</span>}
+          {courses && courses.length === 0 && <span className={styles.hint}>No active courses — create a course first.</span>}
         </label>
 
         {course && (
           <>
-            <h3 className={styles.sectionTitle} style={{ ...full, fontSize: "1rem" }}>
+            <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0 }}>
               Fees
             </h3>
             <div style={{ ...full, fontSize: "0.88rem", color: "var(--muted)" }}>
@@ -164,7 +165,7 @@ export default function RegisterStudentModal({
                 </option>
                 <option value="full">Full fee received</option>
               </select>
-              <span style={{ fontWeight: 400 }}>
+              <span className={styles.hint}>
                 {f.paymentStatus === "unpaid"
                   ? "The student will see the payment step at the end of their registration."
                   : "Already paid — the student's registration will skip the payment step."}
@@ -174,7 +175,7 @@ export default function RegisterStudentModal({
             {f.paymentStatus !== "unpaid" && (
               <>
                 <label className={styles.label}>
-                  Paid by
+                  <span>Paid by</span>
                   <select className={styles.select} value={f.method} onChange={(e) => set("method", e.target.value as "cash" | "upi" | "other")}>
                     <option value="cash">Cash</option>
                     <option value="upi">UPI</option>
@@ -182,10 +183,11 @@ export default function RegisterStudentModal({
                   </select>
                 </label>
                 <label className={styles.label}>
-                  Amount received (₹)
+                  <span>Amount received (₹){req}</span>
                   <input
                     className={styles.input}
                     type="number"
+                    inputMode="decimal"
                     min={1}
                     step="any"
                     value={f.amount}
@@ -193,7 +195,7 @@ export default function RegisterStudentModal({
                   />
                 </label>
                 <label className={styles.label} style={full}>
-                  Note (optional)
+                  <span>Note <span className={styles.hint}>(optional)</span></span>
                   <input className={styles.input} value={f.note} maxLength={200} placeholder="e.g. UPI ref no." onChange={(e) => set("note", e.target.value)} />
                 </label>
               </>
@@ -201,17 +203,17 @@ export default function RegisterStudentModal({
           </>
         )}
 
-        {error && (
-          <p className={styles.messageError} style={full}>
-            {error}
-          </p>
-        )}
-        <div className={styles.formActions} style={full}>
-          <button className={styles.primaryButton} type="submit" disabled={busy || !courses?.length}>
-            {busy ? "Registering..." : "Register student"}
-          </button>
+        <div className={styles.modalFooter}>
+          {error && (
+            <p className={styles.messageError} role="alert" style={{ margin: 0, marginRight: "auto" }}>
+              {error}
+            </p>
+          )}
           <button className={styles.smallButton} type="button" onClick={onClose} disabled={busy}>
             Cancel
+          </button>
+          <button className={styles.primaryButton} type="submit" disabled={busy || !courses?.length}>
+            {busy ? "Registering…" : "Register student"}
           </button>
         </div>
       </form>

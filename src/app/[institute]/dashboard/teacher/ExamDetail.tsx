@@ -8,6 +8,8 @@ import RichText from "../RichText";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
+import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
 
 const STATUS_BADGE: Record<string, string> = {
   draft: adminStyles.badgePending,
@@ -32,6 +34,11 @@ export default function ExamDetail() {
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
+  const [rq, setRq] = useState("");
+  const [rSort, setRSort] = useState("name");
+  const [rPage, setRPage] = useState(1);
+  const [rLimit, setRLimit] = useState(10);
+  useEffect(() => setRPage(1), [rq, rSort, rLimit]);
 
   const [qForm, setQForm] = useState(emptyQuestionForm());
   const [qError, setQError] = useState("");
@@ -177,6 +184,15 @@ export default function ExamDetail() {
     );
   }
 
+  const rNeedle = rq.trim().toLowerCase();
+  const nameOf = (s: Submission) => (typeof s.student === "object" ? s.student.name : String(s.student));
+  const emailOf = (s: Submission) => (typeof s.student === "object" ? s.student.email : "");
+  const resultRows = submissions
+    .filter((s) => !rNeedle || `${nameOf(s)} ${emailOf(s)}`.toLowerCase().includes(rNeedle))
+    .sort((a, b) => (rSort === "score_desc" ? b.score - a.score : rSort === "score_asc" ? a.score - b.score : nameOf(a).localeCompare(nameOf(b))));
+  const rTotalPages = Math.max(1, Math.ceil(resultRows.length / rLimit));
+  const resultPage = resultRows.slice((rPage - 1) * rLimit, rPage * rLimit);
+
   const isDraft = exam.status === "draft";
   const isPublished = exam.status === "published";
   const isClosed = exam.status === "closed";
@@ -188,7 +204,7 @@ export default function ExamDetail() {
 
   return (
     <div>
-      <h1 className={dashboardStyles.pageTitle}>{exam.title}</h1>
+      <h1 className={dashboardStyles.pageTitle} style={{ overflowWrap: "anywhere" }}>{exam.title}</h1>
       <p className={dashboardStyles.pageSubtitle}>{exam.description || "No description"}</p>
 
       <div className={dashboardStyles.cardGrid} style={{ marginBottom: 20 }}>
@@ -224,13 +240,13 @@ export default function ExamDetail() {
             <div>
               <h2 className={adminStyles.sectionTitle}>Actions</h2>
             </div>
-            <div className={adminStyles.rowActions}>
+            <div className={adminStyles.rowActions} style={{ flexWrap: "wrap" }}>
               <span className={STATUS_BADGE[exam.status]}>{exam.status}</span>
               {exam.resultsAnnounced && <span className={adminStyles.badge}>results announced</span>}
             </div>
           </div>
 
-          <div className={adminStyles.rowActions}>
+          <div className={adminStyles.rowActions} style={{ flexWrap: "wrap" }}>
             {isDraft && (
               <>
                 <button
@@ -275,8 +291,8 @@ export default function ExamDetail() {
             </div>
 
             <form className={adminStyles.form} onSubmit={submitQuestion}>
-              <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                Question
+              <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>Question <span className={adminStyles.required}>*</span></span>
                 <input
                   className={adminStyles.input}
                   value={qForm.text}
@@ -285,19 +301,19 @@ export default function ExamDetail() {
                 />
               </label>
 
-              <div className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                Options (select the correct one)
+              <div className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>Options <span className={adminStyles.required}>*</span> <span className={adminStyles.hint}>Tick the radio button next to the correct answer. 2 to 6 options.</span></span>
                 {qForm.options.map((opt, i) => (
                   <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}>
                     <input
                       type="radio"
-                      name="correctOption"
+                      name="correctOption" aria-label={`Option ${i + 1} is correct`}
                       checked={qForm.correctOptionIndex === i}
                       onChange={() => setQForm({ ...qForm, correctOptionIndex: i })}
                     />
                     <input
                       className={adminStyles.input}
-                      style={{ flex: 1 }}
+                      style={{ flex: "1 1 180px", minWidth: 0 }} aria-label={`Option ${i + 1}`} maxLength={300}
                       value={opt}
                       onChange={(e) => setOption(i, e.target.value)}
                       placeholder={`Option ${i + 1}`}
@@ -317,19 +333,22 @@ export default function ExamDetail() {
               </div>
 
               <label className={adminStyles.label}>
-                Marks
+                <span>Marks <span className={adminStyles.required}>*</span></span>
                 <input
                   className={adminStyles.input}
                   type="number"
                   min={1}
+                  step={1}
+                  inputMode="numeric"
                   value={qForm.marks}
                   onChange={(e) => setQForm({ ...qForm, marks: Number(e.target.value) || 1 })}
                 />
               </label>
+                <span className={adminStyles.hint}>Points awarded for a correct answer.</span>
 
-              <div className={adminStyles.formActions}>
+              <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
                 <button className={adminStyles.primaryButton} type="submit" disabled={qSubmitting}>
-                  {qSubmitting ? "Saving..." : editingQid ? "Save question" : "Add question"}
+                  {qSubmitting ? "Saving…" : editingQid ? "Save question" : "Add question"}
                 </button>
                 {editingQid && (
                   <button type="button" className={adminStyles.smallButton} onClick={resetQForm}>
@@ -359,10 +378,10 @@ export default function ExamDetail() {
 
           {exam.questions.map((q, i) => (
             <div key={q._id} className={adminStyles.section} style={{ marginBottom: 10 }}>
-              <p style={{ fontWeight: 600, marginBottom: 8 }}>
+              <p style={{ fontWeight: 600, marginBottom: 8, overflowWrap: "anywhere" }}>
                 {i + 1}. {q.text} <span style={{ color: "var(--muted)", fontWeight: 400 }}>({q.marks} mark{q.marks > 1 ? "s" : ""})</span>
               </p>
-              <ul style={{ margin: 0, paddingLeft: 20 }}>
+              <ul style={{ margin: 0, paddingLeft: 20, overflowWrap: "anywhere" }}>
                 {q.options.map((opt, oi) => (
                   <li
                     key={oi}
@@ -400,6 +419,16 @@ export default function ExamDetail() {
               </div>
             </div>
 
+            {submissions.length > 0 && (
+              <ListToolbar
+                search={rq}
+                onSearch={setRq}
+                placeholder="Search student name or email"
+                total={resultRows.length}
+                sort={{ key: "sort", label: "Sort by", value: rSort, onChange: setRSort, options: [{ value: "name", label: "Name (A-Z)" }, { value: "score_desc", label: "Highest score" }, { value: "score_asc", label: "Lowest score" }] }}
+                onClear={() => { setRq(""); setRSort("name"); }}
+              />
+            )}
             {submissions.length === 0 && (
               <div className={styles.emptyBlock}>
                 <span className={styles.emptyIcon} aria-hidden="true" />
@@ -407,7 +436,7 @@ export default function ExamDetail() {
               </div>
             )}
 
-            {submissions.length > 0 && (
+            {resultRows.length > 0 && (
               <div className={`${adminStyles.tableWrap} ${styles.tableHoverWrap}`}>
                 <table className={adminStyles.table}>
                   <thead>
@@ -419,10 +448,10 @@ export default function ExamDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {submissions.map((s) => (
+                    {resultPage.map((s) => (
                       <tr key={s._id}>
-                        <td>{typeof s.student === "object" ? s.student.name : s.student}</td>
-                        <td>{typeof s.student === "object" ? s.student.email : "—"}</td>
+                        <td style={{ overflowWrap: "anywhere" }}>{typeof s.student === "object" ? s.student.name : s.student}</td>
+                        <td style={{ overflowWrap: "anywhere" }}>{typeof s.student === "object" ? s.student.email : "—"}</td>
                         <td>
                           {s.score} / {s.totalMarks}
                           {!!s.adjustment && (
@@ -444,6 +473,8 @@ export default function ExamDetail() {
                 </table>
               </div>
             )}
+            {submissions.length > 0 && resultRows.length === 0 && <p className={adminStyles.empty}>No students match your search.</p>}
+            <Pagination page={rPage} totalPages={rTotalPages} total={resultRows.length} onPageChange={setRPage} limit={rLimit} onLimitChange={setRLimit} />
           </section>
         )}
       </div>

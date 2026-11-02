@@ -129,16 +129,19 @@ export default function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      <form onSubmit={handleSend} style={{ display: "flex", gap: 8, marginTop: 12 }}>
+      <form onSubmit={handleSend} style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
         <input
           className={adminStyles.input}
           style={{ flex: 1 }}
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Type a message..."
+          aria-label="Message"
+          autoComplete="off"
+          maxLength={2000}
         />
         <button className={adminStyles.primaryButton} type="submit" disabled={sending || !text.trim()}>
-          Send
+          {sending ? "Sending…" : "Send"}
         </button>
       </form>
       {error && <p className={adminStyles.messageError}>{error}</p>}

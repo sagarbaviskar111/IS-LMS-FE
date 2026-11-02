@@ -92,7 +92,7 @@ export default function ReviewModal({
       <div className={dashboardStyles.modalHead}>
         <div>
           <h2 className={adminStyles.sectionTitle}>Review</h2>
-          <p className={adminStyles.sectionSubtitle}>{target.studentName}</p>
+          <p className={adminStyles.sectionSubtitle} style={{ overflowWrap: "anywhere" }}>{target.studentName}</p>
         </div>
         <button className={dashboardStyles.modalCloseButton} type="button" onClick={onClose} aria-label="Close">
           ✕
@@ -101,8 +101,8 @@ export default function ReviewModal({
 
       <form className={adminStyles.form} onSubmit={submit}>
         <label className={adminStyles.label}>
-          {isExam ? "Add / remove points" : "Points"}
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <span>{isExam ? "Add / remove points" : "Points"}</span>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <button className={adminStyles.smallButton} type="button" onClick={() => step(-1)} aria-label="Remove a point">
               −
             </button>
@@ -110,6 +110,8 @@ export default function ReviewModal({
               className={adminStyles.input}
               style={{ maxWidth: 120, textAlign: "center" }}
               type="number"
+              inputMode="decimal"
+              aria-label={isExam ? "Points to add or remove" : "Points"}
               step="any"
               value={value}
               placeholder={isExam ? "0" : "Not graded"}
@@ -132,7 +134,7 @@ export default function ReviewModal({
 
         {!isExam && (
           <div className={adminStyles.label}>
-            Decision
+            <span>Decision</span>
             <div style={{ display: "grid", gap: 6 }}>
               {(
                 [
@@ -150,7 +152,7 @@ export default function ReviewModal({
             </div>
             {decision === "resubmit" && (
               <label className={adminStyles.label} style={{ marginTop: 8 }}>
-                Student can resubmit until
+                <span>Student can resubmit until <span className={adminStyles.required}>*</span></span>
                 <input
                   className={adminStyles.input}
                   type="datetime-local"
@@ -168,13 +170,13 @@ export default function ReviewModal({
         )}
 
         <div className={adminStyles.label}>
-          Review
+          <span>Review <span className={adminStyles.hint}>(shown to the student)</span></span>
           <RichTextEditor value={target.review} onChange={setReview} placeholder="Write feedback for the student…" />
         </div>
 
-        <div className={adminStyles.formActions}>
+        <div className={adminStyles.modalFooter}>
           <button className={adminStyles.primaryButton} type="submit" disabled={saving}>
-            {saving ? "Saving..." : "Save review"}
+            {saving ? "Saving…" : "Save review"}
           </button>
           {error && <p className={adminStyles.messageError}>{error}</p>}
         </div>

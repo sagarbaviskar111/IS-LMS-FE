@@ -6,8 +6,10 @@ import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
 import Modal from "../Modal";
 import Pagination from "../Pagination";
+import ListToolbar from "./ListToolbar";
+import { useDebounced } from "./useDebounced";
 
-const PAGE_SIZE = 10;
+
 
 const emptyForm = {
   title: "",
@@ -27,6 +29,11 @@ export default function AdminPlacements() {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounced(search);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -49,7 +56,7 @@ export default function AdminPlacements() {
     setLoading(true);
     try {
       const [jobsRes, batchesRes] = await Promise.all([
-        api.listJobs({ page, limit: PAGE_SIZE }),
+        api.listJobs({ page, limit, q: debouncedSearch, status: statusFilter === "all" ? "" : statusFilter, sort }),
         api.listBatches({ limit: 200 }),
       ]);
       setJobs(jobsRes.jobs);
@@ -59,7 +66,7 @@ export default function AdminPlacements() {
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, limit, debouncedSearch, statusFilter, sort]);
 
   useEffect(() => {
     load();
@@ -183,7 +190,7 @@ export default function AdminPlacements() {
                 disabled={parsing || !pasteText.trim()}
                 onClick={handleAutoFill}
               >
-                {parsing ? "Reading..." : "Auto-fill ✨"}
+                {parsing ? "Reading…" : "Auto-fill ✨"}
               </button>
               {parseError && <p className={styles.messageError} style={{ margin: 0 }}>{parseError}</p>}
             </div>
@@ -191,7 +198,7 @@ export default function AdminPlacements() {
 
           <form className={styles.form} onSubmit={handleCreate}>
             <label className={styles.label}>
-              Job title
+              <span>Job title<span className={styles.required}>*</span></span>
               <input
                 className={styles.input}
                 value={form.title}
@@ -202,7 +209,7 @@ export default function AdminPlacements() {
             </label>
 
             <label className={styles.label}>
-              Company
+              <span>Company<span className={styles.required}>*</span></span>
               <input
                 className={styles.input}
                 value={form.company}
@@ -213,7 +220,7 @@ export default function AdminPlacements() {
             </label>
 
             <label className={styles.label}>
-              Location
+              Location (optional)
               <input
                 className={styles.input}
                 value={form.location}
@@ -222,8 +229,8 @@ export default function AdminPlacements() {
               />
             </label>
 
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Skills
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              Skills (optional)
               <input
                 className={styles.input}
                 value={form.skills}
@@ -232,8 +239,8 @@ export default function AdminPlacements() {
               />
             </label>
 
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Responsibilities
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              Responsibilities (optional)
               <textarea
                 className={styles.input}
                 value={form.responsibilities}
@@ -244,8 +251,8 @@ export default function AdminPlacements() {
               />
             </label>
 
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Description
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              <span>Description<span className={styles.required}>*</span></span>
               <textarea
                 className={styles.input}
                 value={form.description}
@@ -257,7 +264,7 @@ export default function AdminPlacements() {
               />
             </label>
 
-            <div className={styles.label} style={{ gridColumn: "1 / -1" }}>
+            <div className={`${styles.label} ${styles.fullRow}`}>
               Who can see this
               <div className={styles.tabs}>
                 <button
@@ -278,8 +285,8 @@ export default function AdminPlacements() {
             </div>
 
             {form.visibility === "batch" && (
-              <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-                Batch
+              <label className={`${styles.label} ${styles.fullRow}`}>
+                <span>Batch<span className={styles.required}>*</span></span>
                 <select
                   className={styles.select}
                   value={form.batchId}
@@ -296,7 +303,7 @@ export default function AdminPlacements() {
               </label>
             )}
 
-            <div className={styles.label} style={{ gridColumn: "1 / -1" }}>
+            <div className={`${styles.label} ${styles.fullRow}`}>
               How students apply
               <div className={styles.tabs}>
                 <button
@@ -317,8 +324,8 @@ export default function AdminPlacements() {
             </div>
 
             {form.applicationMode === "link" && (
-              <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-                Apply link or HR email
+              <label className={`${styles.label} ${styles.fullRow}`}>
+                <span>Apply link or HR email<span className={styles.required}>*</span></span>
                 <input
                   className={styles.input}
                   type="text"
@@ -330,9 +337,9 @@ export default function AdminPlacements() {
               </label>
             )}
 
-            <div className={styles.formActions}>
+            <div className={styles.formActions} style={{ gridColumn: "1 / -1" }}>
               <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Posting..." : "Post job"}
+                {submitting ? "Posting…" : "Post job"}
               </button>
               {formError && <p className={styles.messageError}>{formError}</p>}
             </div>
@@ -347,14 +354,64 @@ export default function AdminPlacements() {
             </div>
           </div>
 
+          <ListToolbar
+            search={search}
+            onSearch={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Search title, company or location…"
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                value: statusFilter,
+                options: [
+                  { value: "all", label: "All jobs" },
+                  { value: "open", label: "Open" },
+                  { value: "closed", label: "Closed" },
+                ],
+                onChange: (v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                },
+              },
+            ]}
+            sort={{
+              key: "sort",
+              label: "Sort by",
+              value: sort,
+              options: [
+                { value: "newest", label: "Newest first" },
+                { value: "oldest", label: "Oldest first" },
+                { value: "title", label: "Title A–Z" },
+                { value: "company", label: "Company A–Z" },
+              ],
+              onChange: (v) => {
+                setSort(v);
+                setPage(1);
+              },
+            }}
+            onClear={() => {
+              setSearch("");
+              setStatusFilter("all");
+              setSort("newest");
+              setPage(1);
+            }}
+            total={total}
+          />
+
           {rowError && <p className={styles.messageError}>{rowError}</p>}
+          {loading && jobs.length === 0 && <p className={styles.empty}>Loading jobs…</p>}
 
           {!loading && jobs.length === 0 && (
             <div className={styles.emptyState}>
               <span className={styles.emptyStateIcon} aria-hidden="true">
                 💼
               </span>
-              <p className={styles.emptyStateText}>No jobs posted yet — post one above.</p>
+              <p className={styles.emptyStateText}>
+                {search || statusFilter !== "all" ? "No jobs match your search." : "No jobs posted yet — post one above."}
+              </p>
             </div>
           )}
 
@@ -374,8 +431,8 @@ export default function AdminPlacements() {
                 <tbody>
                   {jobs.map((j) => (
                     <tr key={j._id}>
-                      <td>{j.title}</td>
-                      <td>{j.company}</td>
+                      <td style={{ overflowWrap: "anywhere", minWidth: 140 }}>{j.title}</td>
+                      <td style={{ overflowWrap: "anywhere" }}>{j.company}</td>
                       <td>{j.visibility === "all" ? "All students" : typeof j.batch === "object" && j.batch ? j.batch.name : "Batch"}</td>
                       <td>
                         {j.applicationMode === "link" ? (
@@ -412,7 +469,7 @@ export default function AdminPlacements() {
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
         </section>
       </div>
 
@@ -422,7 +479,7 @@ export default function AdminPlacements() {
             <div>
               <h2 className={styles.sectionTitle}>{interestsFor?.title}</h2>
               <p className={styles.sectionSubtitle}>
-                {interestsLoading ? "Loading..." : `${interests.length} interested`}
+                {interestsLoading ? "Loading…" : `${interests.length} interested`}
               </p>
             </div>
             <button

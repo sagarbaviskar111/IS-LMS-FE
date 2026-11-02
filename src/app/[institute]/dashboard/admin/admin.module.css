@@ -484,3 +484,180 @@
     gap: 10px;
   }
 }
+
+/* ======================================================================
+   Shared form kit. Every form in the app builds from these pieces so
+   spacing, labels, hints and buttons look and behave the same everywhere.
+
+   <form className={styles.form}>                     two-column grid, 1 on phones
+     <label className={styles.label}>Name <input className={styles.input} /></label>
+     <label className={`${styles.label} ${styles.fullRow}`}> ...wide field... </label>
+     <p className={styles.hint}>help text under a field</p>
+     <fieldset className={styles.formSection}>
+       <legend className={styles.formSectionTitle}>Group title</legend> ...
+     </fieldset>
+     <div className={styles.formActions}> buttons + messages </div>
+   </form>
+   ====================================================================== */
+
+.form {
+  align-items: start;
+}
+
+.fullRow {
+  grid-column: 1 / -1;
+}
+
+.required {
+  color: var(--danger);
+  margin-left: 2px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+textarea.input {
+  min-height: 104px;
+  line-height: 1.5;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.input:disabled,
+.select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  background: var(--surface-alt);
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.select {
+  cursor: pointer;
+}
+
+/* A titled group of fields inside a long form. */
+.formSection {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 18px 16px;
+  margin: 0;
+  padding: 18px 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-alt);
+  min-width: 0;
+}
+
+.formSectionTitle {
+  padding: 0 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* A checkbox or radio with its text, as one comfortable tap target. */
+.checkRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--foreground);
+  cursor: pointer;
+}
+
+.checkRow input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--brand);
+}
+
+/* Save / cancel row. Inside a modal it stays visible while the form scrolls. */
+.formActions {
+  padding-top: 6px;
+}
+
+.modalFooter {
+  grid-column: 1 / -1;
+  position: sticky;
+  bottom: -28px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px -28px -28px;
+  padding: 14px 28px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+@media (max-width: 480px) {
+  .modalFooter {
+    bottom: -20px;
+    margin: 8px -20px -20px;
+    padding: 12px 20px;
+  }
+}
+
+@media (max-width: 560px) {
+  .form,
+  .formSection {
+    grid-template-columns: 1fr;
+  }
+  .section {
+    padding: 18px;
+  }
+}
+
+/* Lists: a little more air, clearer header, and a visible keyboard focus. */
+.table th {
+  background: var(--surface-alt);
+}
+
+.table th:first-child {
+  border-top-left-radius: var(--radius-sm);
+}
+
+.table th:last-child {
+  background: var(--surface-alt);
+  border-top-right-radius: var(--radius-sm);
+}
+
+.smallButton:focus-visible,
+.primaryButton:focus-visible,
+.input:focus-visible,
+.select:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.smallButton:disabled,
+.primaryButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

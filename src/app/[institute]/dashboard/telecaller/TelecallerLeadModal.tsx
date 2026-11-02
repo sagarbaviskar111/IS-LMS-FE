@@ -116,7 +116,7 @@ export default function TelecallerLeadModal({
     <Modal onClose={onClose}>
       <div className={dashboardStyles.modalHead}>
         <div>
-          <h2 className={adminStyles.sectionTitle}>{lead.name}</h2>
+          <h2 className={adminStyles.sectionTitle} style={{ overflowWrap: "anywhere" }}>{lead.name}</h2>
           <p className={adminStyles.sectionSubtitle}>
             {lead.phone} {lead.email ? `· ${lead.email}` : ""}
           </p>
@@ -140,7 +140,7 @@ export default function TelecallerLeadModal({
         </button>
       </div>
 
-      {lead.notes && <p className={adminStyles.sectionSubtitle}>{lead.notes}</p>}
+      {lead.notes && <p className={adminStyles.sectionSubtitle} style={{ overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{lead.notes}</p>}
 
       <section className={adminStyles.section} style={{ marginTop: 16 }}>
         <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.95rem" }}>
@@ -170,7 +170,7 @@ export default function TelecallerLeadModal({
           </button>
         </div>
         <div className={adminStyles.label}>
-          Message (used for WhatsApp, SMS and Email)
+          <span>Message <span className={adminStyles.hint}>(used for WhatsApp, SMS and Email)</span></span>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "4px 0 6px", alignItems: "center" }}>
             {quick.map((q) => (
               <button
@@ -204,7 +204,7 @@ export default function TelecallerLeadModal({
           </h3>
           <form className={adminStyles.form} onSubmit={submitCall}>
             <label className={adminStyles.label}>
-              Call outcome (becomes the lead&apos;s status)
+              <span>Call outcome <span className={adminStyles.required}>*</span></span>
               <select className={adminStyles.select} value={response} onChange={(e) => chooseOutcome(e.target.value as CallResponse)}>
                 {CALL_OUTCOMES.map((r) => (
                   <option key={r} value={r}>
@@ -212,10 +212,11 @@ export default function TelecallerLeadModal({
                   </option>
                 ))}
               </select>
+              <span className={adminStyles.hint}>This becomes the lead&apos;s new status.</span>
             </label>
             {!closing && (
               <label className={adminStyles.label}>
-                Follow up on
+                <span>Follow up on</span>
                 <input
                   className={adminStyles.input}
                   type="datetime-local"
@@ -235,18 +236,18 @@ export default function TelecallerLeadModal({
                 </div>
               </label>
             )}
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-              Notes
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+              <span>Notes</span>
               <input
                 className={adminStyles.input}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="optional"
+                placeholder="What was discussed? (optional)" maxLength={500}
               />
             </label>
-            <div className={adminStyles.formActions}>
+            <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
               <button className={adminStyles.primaryButton} type="submit" disabled={callSubmitting}>
-                {callSubmitting ? "Saving..." : "Log call"}
+                {callSubmitting ? "Saving…" : "Log call"}
               </button>
               {callError && <p className={adminStyles.messageError}>{callError}</p>}
             </div>
@@ -277,7 +278,7 @@ export default function TelecallerLeadModal({
                   <tr key={c._id}>
                     <td>{new Date(c.createdAt).toLocaleString()}</td>
                     <td>{STATUS_LABELS[c.response]}</td>
-                    <td>{c.notes || "—"}</td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 140 }}>{c.notes || "—"}</td>
                     <td>{who(c.calledBy)}</td>
                   </tr>
                 ))}

@@ -82,6 +82,49 @@
   box-shadow: 0 0 0 3px var(--brand-soft);
 }
 
+.req {
+  color: var(--danger);
+}
+
+.hint {
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.passwordWrap {
+  position: relative;
+  display: flex;
+}
+
+.passwordWrap .input {
+  width: 100%;
+  padding-right: 64px;
+}
+
+.toggleBtn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--brand);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.toggleBtn:focus-visible,
+.submitButton:focus-visible,
+.addButton:focus-visible,
+.removeButton:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
 .checkboxLabel {
   display: flex;
   flex-direction: row;

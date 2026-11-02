@@ -8,26 +8,27 @@ import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
 import Pagination from "../Pagination";
 
-const PAGE_SIZE = 10;
+
 
 export default function StudentTools() {
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
   const load = useCallback(() => {
     setLoading(true);
     return api
-      .studentTools({ page, limit: PAGE_SIZE })
+      .studentTools({ page, limit })
       .then((res) => {
         setTools(res.tools);
         setTotalPages(res.totalPages);
         setTotal(res.total);
       })
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, limit]);
 
   useEffect(() => {
     load();
@@ -56,7 +57,7 @@ export default function StudentTools() {
               <tbody>
                 {tools.map((t) => (
                   <tr key={t._id}>
-                    <td>{t.name}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{t.name}</td>
                     <td>
                       <a
                         href={t.url}
@@ -75,7 +76,7 @@ export default function StudentTools() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
       </section>
     </div>
   );

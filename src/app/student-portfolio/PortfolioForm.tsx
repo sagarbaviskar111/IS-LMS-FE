@@ -215,6 +215,7 @@ export default function PortfolioForm({
   const [name, setName] = useState(initial?.name ?? "");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [dob, setDob] = useState("");
   const [headline, setHeadline] = useState(initial?.headline ?? "");
   const [phone, setPhone] = useState(initial?.phone ?? "");
@@ -292,9 +293,13 @@ export default function PortfolioForm({
 
         <div className={styles.grid}>
           <label className={styles.label}>
-            Name
+            <span>
+              Name <span className={styles.req} aria-hidden="true">*</span>
+            </span>
             <input
               className={styles.input}
+              name="name"
+              autoComplete="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -303,10 +308,17 @@ export default function PortfolioForm({
 
           {!isEdit && (
             <label className={styles.label}>
-              Email
+              <span>
+                Email <span className={styles.req} aria-hidden="true">*</span>
+              </span>
               <input
                 className={styles.input}
                 type="email"
+                name="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -316,24 +328,48 @@ export default function PortfolioForm({
 
           {!isEdit && (
             <label className={styles.label}>
-              Password
-              <input
-                className={styles.input}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
-                required
-              />
+              <span>
+                Password <span className={styles.req} aria-hidden="true">*</span>
+              </span>
+              <span className={styles.passwordWrap}>
+                <input
+                  className={styles.input}
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  aria-describedby="pf-pw-hint"
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.toggleBtn}
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </span>
+              <span id="pf-pw-hint" className={styles.hint}>
+                At least 6 characters.
+              </span>
             </label>
           )}
 
           {!isEdit && (
             <label className={styles.label}>
-              Date of birth
+              <span>
+                Date of birth <span className={styles.req} aria-hidden="true">*</span>
+              </span>
               <input
                 className={styles.input}
                 type="date"
+                name="dob"
+                autoComplete="bday"
+                max={new Date().toISOString().slice(0, 10)}
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
                 required
@@ -356,6 +392,8 @@ export default function PortfolioForm({
             <input
               className={styles.input}
               type="tel"
+              inputMode="tel"
+              autoComplete="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
             />
@@ -791,7 +829,7 @@ export default function PortfolioForm({
         </>
       )}
 
-      {error && <p className={styles.error}>{error}</p>}
+      {error && <p className={styles.error} role="alert">{error}</p>}
 
       <div className={styles.footer}>
         <button className={styles.submitButton} type="submit" disabled={submitting}>

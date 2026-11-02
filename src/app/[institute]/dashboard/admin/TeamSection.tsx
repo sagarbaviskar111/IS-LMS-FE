@@ -18,7 +18,7 @@ import RowMenu, { MenuItem } from "./RowMenu";
 import { useDebounced } from "./useDebounced";
 import { can } from "@/lib/permissions";
 
-const PAGE_SIZE = 10;
+
 
 type TeamRole = "student" | "teacher" | "telecaller";
 
@@ -51,6 +51,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -83,7 +84,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
           role,
           status: "team",
           page,
-          limit: PAGE_SIZE,
+          limit,
           q,
           sort,
           active: stateF === "active" ? "1" : stateF === "inactive" ? "0" : undefined,
@@ -104,7 +105,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
     } finally {
       setLoading(false);
     }
-  }, [role, usesBatches, page, q, sort, stateF, courseF, batchF]);
+  }, [role, usesBatches, page, limit, q, sort, stateF, courseF, batchF]);
 
   useEffect(() => {
     load();
@@ -320,53 +321,67 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
 
           <form className={styles.form} onSubmit={handleCreate}>
             <label className={styles.label}>
-              Full name
+              <span>
+                Full name<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 value={form.name}
+                autoComplete="off"
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 required
               />
             </label>
 
             <label className={styles.label}>
-              Email
+              <span>
+                Email<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 type="email"
+                autoComplete="off"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
                 required
               />
+              <span className={styles.hint}>They log in with this email.</span>
             </label>
 
             <label className={styles.label}>
               Phone
               <input
                 className={styles.input}
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
             </label>
 
             <label className={styles.label}>
-              Password
+              <span>
+                Password<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 type="password"
+                autoComplete="new-password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
                 minLength={6}
                 required
               />
+              <span className={styles.hint}>At least 6 characters.</span>
             </label>
 
-            <div className={styles.formActions}>
+            <div className={`${styles.formActions} ${styles.fullRow}`}>
               <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Creating..." : `Create ${singular.toLowerCase()}`}
+                {submitting ? "Creating…" : `Create ${singular.toLowerCase()}`}
               </button>
-              {formError && <p className={styles.messageError}>{formError}</p>}
-              {formSuccess && <p className={styles.messageSuccess}>{formSuccess}</p>}
+              {formError && <p className={styles.messageError} role="alert">{formError}</p>}
+              {formSuccess && <p className={styles.messageSuccess} role="status">{formSuccess}</p>}
             </div>
           </form>
         </section>
@@ -447,7 +462,8 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
             total={total}
           />
 
-          {rowError && <p className={styles.messageError}>{rowError}</p>}
+          {rowError && <p className={styles.messageError} role="alert">{rowError}</p>}
+          {loading && team.length === 0 && <p className={styles.sectionSubtitle}>Loading…</p>}
 
           {!loading && team.length === 0 && (
             <div className={styles.emptyState}>
@@ -463,7 +479,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
           )}
 
           {team.length > 0 && (
-            <div className={styles.tableWrap}>
+            <div className={`${styles.tableWrap} table-scroll`}>
               <table className={styles.table}>
                 <thead>
                   <tr>
@@ -529,7 +545,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
                               />
                             )}
                           </td>
-                          <td>{u.email}</td>
+                          <td style={{ overflowWrap: "anywhere" }}>{u.email}</td>
                           {role === "student" ? (
                             <td>{courseName(u)}</td>
                           ) : (
@@ -563,9 +579,9 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
                     return (
                       <tr key={u._id}>
                         <td>
-                          <strong>{u.name}</strong>
+                          <strong style={{ overflowWrap: "anywhere" }}>{u.name}</strong>
                         </td>
-                        <td>{u.email}</td>
+                        <td style={{ overflowWrap: "anywhere" }}>{u.email}</td>
                         {role === "student" ? (
                           <td>{courseName(u)}</td>
                         ) : (
@@ -597,7 +613,17 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setPage}
+            limit={limit}
+            onLimitChange={(n) => {
+              setLimit(n);
+              setPage(1);
+            }}
+          />
         </section>
       </div>
     </div>

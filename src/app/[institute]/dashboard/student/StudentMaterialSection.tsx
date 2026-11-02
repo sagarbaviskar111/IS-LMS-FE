@@ -11,7 +11,7 @@ import StudentEmptyState from "./StudentEmptyState";
 import StudentLoading from "./StudentLoading";
 import Pagination from "../Pagination";
 
-const PAGE_SIZE = 10;
+
 
 function sessionDateLabel(m: Material): string | null {
   if (typeof m.session !== "object" || !m.session) return null;
@@ -29,12 +29,13 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
   const [viewing, setViewing] = useState<Material | null>(null);
   const [watching, setWatching] = useState<Material | null>(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([api.myStudentBatch(), api.studentMaterials({ type, page, limit: PAGE_SIZE })])
+    Promise.all([api.myStudentBatch(), api.studentMaterials({ type, page, limit })])
       .then(([batchRes, materialsRes]) => {
         setBatch(batchRes.batch);
         setMaterials(materialsRes.materials);
@@ -42,7 +43,7 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
         setTotal(materialsRes.total);
       })
       .finally(() => setLoading(false));
-  }, [type, page]);
+  }, [type, page, limit]);
 
   useEffect(() => {
     setPage(1);
@@ -93,8 +94,8 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
               <tbody>
                 {materials.map((v) => (
                   <tr key={v._id}>
-                    <td>{v.title}</td>
-                    <td>{v.locked ? v.lockedReason || "Access blocked" : v.description || "—"}</td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 140 }}>{v.title}</td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 160 }}>{v.locked ? v.lockedReason || "Access blocked" : v.description || "—"}</td>
                     <td>{sessionDateLabel(v) ? `Class on ${sessionDateLabel(v)}` : "—"}</td>
                     <td>
                       {v.locked ? (
@@ -134,8 +135,8 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
               <tbody>
                 {materials.map((d) => (
                   <tr key={d._id}>
-                    <td>{d.title}</td>
-                    <td>{d.description || "—"}</td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 140 }}>{d.title}</td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 160 }}>{d.description || "—"}</td>
                     <td>{sessionDateLabel(d) ? `Class on ${sessionDateLabel(d)}` : "—"}</td>
                     <td>
                       <button
@@ -154,7 +155,7 @@ export default function StudentMaterialSection({ type }: { type: "document" | "v
         </section>
       )}
 
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setLimit(n); setPage(1); }} />
 
       {viewing && viewing.fileUrl && (
         <DocumentViewerModal

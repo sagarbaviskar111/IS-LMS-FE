@@ -124,7 +124,7 @@ export default function AdminRazorpaySettings() {
       {(showForm || (settings && !connected)) && (
         <form className={adminStyles.form} onSubmit={save} autoComplete="off">
           <label className={adminStyles.label}>
-            Key ID
+            <span>Key ID<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               value={keyId}
@@ -135,18 +135,20 @@ export default function AdminRazorpaySettings() {
             />
           </label>
           <label className={adminStyles.label}>
-            Key Secret
+            <span>Key Secret<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               type="password"
               value={keySecret}
               onChange={(e) => setKeySecret(e.target.value)}
               placeholder="Shown only once in Razorpay"
+              spellCheck={false}
+              autoCapitalize="off"
               autoComplete="new-password"
               required
             />
           </label>
-          <div className={adminStyles.formActions}>
+          <div className={`${adminStyles.formActions} ${adminStyles.fullRow}`}>
             <button className={adminStyles.primaryButton} disabled={busy}>
               {busy ? "Checking keys…" : "Save and verify"}
             </button>

@@ -80,8 +80,8 @@ export default function TeacherNotifications() {
           </div>
 
           <form className={styles.form} onSubmit={handleSubmit}>
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Recipient
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              <span>Recipient <span className={styles.required}>*</span></span>
               <select
                 className={styles.select}
                 value={broadcast ? "__all__" : recipientId}
@@ -106,24 +106,28 @@ export default function TeacherNotifications() {
               </select>
             </label>
 
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Title
-              <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} required />
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              <span>Title <span className={styles.required}>*</span></span>
+              <input className={styles.input} value={title} maxLength={120} placeholder="e.g. Class timing changed" onChange={(e) => setTitle(e.target.value)} required />
             </label>
 
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Message
-              <input
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              <span>Message <span className={styles.required}>*</span></span>
+              <textarea
                 className={styles.input}
+                rows={4}
                 value={message}
+                maxLength={1000}
+                placeholder="Write your message to the students"
                 onChange={(e) => setMessage(e.target.value)}
                 required
               />
+              <span className={styles.hint}>{message.length}/1000 characters</span>
             </label>
 
-            <div className={styles.formActions}>
+            <div className={styles.formActions} style={{ flexWrap: "wrap" }}>
               <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Sending..." : "Send"}
+                {submitting ? "Sending…" : "Send"}
               </button>
               {error && <p className={styles.messageError}>{error}</p>}
               {success && <p className={styles.messageSuccess}>{success}</p>}

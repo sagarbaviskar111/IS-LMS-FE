@@ -393,17 +393,22 @@ export default function InquiryFormBuilder({ formId }: { formId?: string }) {
         <section className={styles.section}>
           <div className={styles.form} style={{ gridTemplateColumns: "1fr" }}>
             <label className={styles.label}>
-              Form subject
+              <span>
+                Form subject<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g. Admission Inquiry 2026"
                 maxLength={200}
+                autoComplete="off"
+                required
               />
+              <span className={styles.hint}>Shown as the heading students see. {subject.length}/200</span>
             </label>
             <label className={styles.label}>
-              Description
+              Description (optional)
               <textarea
                 className={styles.input}
                 value={description}
@@ -452,7 +457,11 @@ export default function InquiryFormBuilder({ formId }: { formId?: string }) {
           </div>
         </div>
 
-        {error && <p className={styles.messageError}>{error}</p>}
+        {error && (
+          <p className={styles.messageError} role="alert">
+            {error}
+          </p>
+        )}
 
         <div className={styles.formActions}>
           <button type="button" className={styles.primaryButton} onClick={handleSave} disabled={saving}>

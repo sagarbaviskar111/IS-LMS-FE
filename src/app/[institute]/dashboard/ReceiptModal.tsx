@@ -92,7 +92,7 @@ export default function ReceiptModal({
               </div>
             ))}
           </div>
-          <div className={adminStyles.formActions} style={{ marginTop: 18 }}>
+          <div className={adminStyles.formActions} style={{ marginTop: 18, justifyContent: "flex-end" }}>
             <button className={adminStyles.primaryButton} type="button" onClick={() => printReceipt(receipt)}>
               Download / Print PDF
             </button>

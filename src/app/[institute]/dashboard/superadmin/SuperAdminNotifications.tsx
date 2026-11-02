@@ -68,10 +68,13 @@ export default function SuperAdminNotifications() {
           </div>
 
           <form className={styles.form} onSubmit={handleSubmit}>
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Recipient
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              <span>
+                Recipient<span className={styles.required}>*</span>
+              </span>
               <select
                 className={styles.select}
+                required={!broadcast}
                 value={broadcast ? "__all__" : recipientId}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -94,24 +97,36 @@ export default function SuperAdminNotifications() {
               </select>
             </label>
 
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Title
-              <input className={styles.input} value={title} onChange={(e) => setTitle(e.target.value)} required />
-            </label>
-
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Message
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              <span>
+                Title<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                autoComplete="off"
                 required
               />
             </label>
 
-            <div className={styles.formActions}>
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              <span>
+                Message<span className={styles.required}>*</span>
+              </span>
+              <textarea
+                className={styles.input}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                rows={4}
+                required
+              />
+              <span className={styles.hint}>Admins see this in their notification inbox.</span>
+            </label>
+
+            <div className={`${styles.formActions} ${styles.fullRow}`}>
               <button className={styles.primaryButton} type="submit" disabled={submitting}>
-                {submitting ? "Sending..." : "Send"}
+                {submitting ? "Sending…" : broadcast ? "Send to all admins" : "Send"}
               </button>
               {error && <p className={styles.messageError}>{error}</p>}
               {success && <p className={styles.messageSuccess}>{success}</p>}

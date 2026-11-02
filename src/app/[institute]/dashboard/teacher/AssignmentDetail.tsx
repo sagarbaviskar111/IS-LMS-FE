@@ -9,6 +9,8 @@ import RichText from "../RichText";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
+import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
 import DocumentViewerModal from "../DocumentViewerModal";
 
 interface ViewingFile {
@@ -43,6 +45,13 @@ export default function AssignmentDetail() {
   const [cancelBusy, setCancelBusy] = useState(false);
   const [notSubmitted, setNotSubmitted] = useState<{ _id: string; name: string; email: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sq, setSq] = useState("");
+  const [sSort, setSSort] = useState("recent");
+  const [sPage, setSPage] = useState(1);
+  const [sLimit, setSLimit] = useState(10);
+  const [nPage, setNPage] = useState(1);
+  const [nLimit, setNLimit] = useState(10);
+  useEffect(() => setSPage(1), [sq, sSort, sLimit, filter]);
 
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState("");
@@ -110,6 +119,16 @@ export default function AssignmentDetail() {
     filter === "all" ? true : filter === "todo" ? !s.decision : s.decision === filter
   );
 
+  const nameOf = (s: AssignmentSubmissionRow) => (typeof s.student === "object" ? s.student.name : String(s.student));
+  const needle = sq.trim().toLowerCase();
+  const sRows = visible
+    .filter((s) => !needle || `${nameOf(s)} ${typeof s.student === "object" ? s.student.email : ""}`.toLowerCase().includes(needle))
+    .sort((a, b) => (sSort === "name" ? nameOf(a).localeCompare(nameOf(b)) : sSort === "oldest" ? +new Date(a.submittedAt) - +new Date(b.submittedAt) : +new Date(b.submittedAt) - +new Date(a.submittedAt)));
+  const sTotalPages = Math.max(1, Math.ceil(sRows.length / sLimit));
+  const sPageRows = sRows.slice((sPage - 1) * sLimit, sPage * sLimit);
+  const nTotalPages = Math.max(1, Math.ceil(notSubmitted.length / nLimit));
+  const nPageRows = notSubmitted.slice((nPage - 1) * nLimit, nPage * nLimit);
+
   if (loading || !assignment) {
     return (
       <div className={styles.loadingRow}>
@@ -121,7 +140,7 @@ export default function AssignmentDetail() {
 
   return (
     <div>
-      <h1 className={dashboardStyles.pageTitle}>{assignment.title}</h1>
+      <h1 className={dashboardStyles.pageTitle} style={{ overflowWrap: "anywhere" }}>{assignment.title}</h1>
       <p className={dashboardStyles.pageSubtitle}>{assignment.description || "No description"}</p>
 
       <div className={dashboardStyles.cardGrid} style={{ marginBottom: 20 }}>
@@ -157,7 +176,7 @@ export default function AssignmentDetail() {
             <div>
               <h2 className={adminStyles.sectionTitle}>Details</h2>
             </div>
-            <div className={adminStyles.rowActions}>
+            <div className={adminStyles.rowActions} style={{ flexWrap: "wrap" }}>
               {!editing && (
                 <button className={adminStyles.smallButton} onClick={startEdit}>
                   Edit
@@ -203,8 +222,8 @@ export default function AssignmentDetail() {
 
           {editing && (
             <form className={adminStyles.form} onSubmit={saveEdit} style={{ marginTop: 16 }}>
-              <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                Title
+              <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>Title <span className={adminStyles.required}>*</span></span>
                 <input
                   className={adminStyles.input}
                   value={title}
@@ -212,17 +231,17 @@ export default function AssignmentDetail() {
                   required
                 />
               </label>
-              <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                Description
+              <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>Description</span>
                 <input
                   className={adminStyles.input}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="optional"
+                  placeholder="Optional"
                 />
               </label>
               <label className={adminStyles.label}>
-                Due date
+                <span>Due date <span className={adminStyles.required}>*</span></span>
                 <input
                   className={adminStyles.input}
                   type="datetime-local"
@@ -231,9 +250,9 @@ export default function AssignmentDetail() {
                   required
                 />
               </label>
-              <div className={adminStyles.formActions}>
+              <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
                 <button className={adminStyles.primaryButton} type="submit" disabled={saving}>
-                  {saving ? "Saving..." : "Save changes"}
+                  {saving ? "Saving…" : "Save changes"}
                 </button>
                 <button type="button" className={adminStyles.smallButton} onClick={() => setEditing(false)}>
                   Cancel
@@ -283,6 +302,16 @@ export default function AssignmentDetail() {
           )}
 
           {submissions.length > 0 && (
+            <ListToolbar
+              search={sq}
+              onSearch={setSq}
+              placeholder="Search student name or email"
+              total={sRows.length}
+              sort={{ key: "sort", label: "Sort by", value: sSort, onChange: setSSort, options: [{ value: "recent", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "name", label: "Name (A-Z)" }] }}
+              onClear={() => { setSq(""); setSSort("recent"); setFilter("all"); }}
+            />
+          )}
+          {submissions.length > 0 && (
             <div className={`${adminStyles.tableWrap} ${styles.tableHoverWrap}`}>
               <table className={adminStyles.table}>
                 <thead>
@@ -297,10 +326,10 @@ export default function AssignmentDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {visible.map((s) => (
+                  {sPageRows.map((s) => (
                     <tr key={s._id}>
-                      <td>{typeof s.student === "object" ? s.student.name : s.student}</td>
-                      <td>{typeof s.student === "object" ? s.student.email : "—"}</td>
+                      <td style={{ overflowWrap: "anywhere" }}>{typeof s.student === "object" ? s.student.name : s.student}</td>
+                      <td style={{ overflowWrap: "anywhere" }}>{typeof s.student === "object" ? s.student.email : "—"}</td>
                       <td>{new Date(s.submittedAt).toLocaleString()}</td>
                       <td>
                         <button
@@ -338,6 +367,8 @@ export default function AssignmentDetail() {
               </table>
             </div>
           )}
+          {submissions.length > 0 && sRows.length === 0 && <p className={adminStyles.empty}>No submissions match your search or filter.</p>}
+          <Pagination page={sPage} totalPages={sTotalPages} total={sRows.length} onPageChange={setSPage} limit={sLimit} onLimitChange={setSLimit} />
         </section>
 
         <section className={adminStyles.section}>
@@ -363,16 +394,17 @@ export default function AssignmentDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {notSubmitted.map((s) => (
+                  {nPageRows.map((s) => (
                     <tr key={s._id}>
-                      <td>{s.name}</td>
-                      <td>{s.email}</td>
+                      <td style={{ overflowWrap: "anywhere" }}>{s.name}</td>
+                      <td style={{ overflowWrap: "anywhere" }}>{s.email}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+          <Pagination page={nPage} totalPages={nTotalPages} total={notSubmitted.length} onPageChange={setNPage} limit={nLimit} onLimitChange={(n) => { setNPage(1); setNLimit(n); }} />
         </section>
       </div>
 
@@ -412,10 +444,10 @@ export default function AssignmentDetail() {
             later.
           </p>
           <label className={adminStyles.label}>
-            Reason (shown to students)
-            <input className={adminStyles.input} value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
+            <span>Reason <span className={adminStyles.hint}>(shown to students, optional)</span></span>
+            <input className={adminStyles.input} value={cancelReason} maxLength={300} autoFocus onChange={(e) => setCancelReason(e.target.value)} />
           </label>
-          <div className={adminStyles.formActions}>
+          <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
             <button
               className={adminStyles.dangerButton}
               disabled={cancelBusy}
@@ -431,7 +463,10 @@ export default function AssignmentDetail() {
                 }
               }}
             >
-              {cancelBusy ? "Cancelling..." : "Cancel assignment"}
+              {cancelBusy ? "Cancelling…" : "Cancel assignment"}
+            </button>
+            <button type="button" className={adminStyles.smallButton} onClick={() => setCancelling(false)} disabled={cancelBusy}>
+              Keep assignment
             </button>
           </div>
         </Modal>

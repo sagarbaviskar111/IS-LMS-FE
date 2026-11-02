@@ -11,7 +11,6 @@ import { STATUS_LABELS } from "@/lib/leadStatus";
 import InvalidLeadsBar from "./InvalidLeadsBar";
 import LeadFilters,{ EMPTY_LEAD_FILTERS, activeFilterCount } from "./LeadFilters";
 
-const PAGE_SIZE = 10;
 
 const STATUS_BADGE: Record<LeadStatus, string> = {
   new: styles.badgePending,
@@ -42,6 +41,7 @@ export default function AdminLeads() {
   const [loading, setLoading] = useState(true);
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState<LeadFilterState>(EMPTY_LEAD_FILTERS);
@@ -60,7 +60,7 @@ export default function AdminLeads() {
     setLoading(true);
     try {
       const [leadsRes, telecallersRes, sourcesRes] = await Promise.all([
-        api.listLeads({ page, limit: PAGE_SIZE, ...filters, invalid: invalidOnly }),
+        api.listLeads({ page, limit, ...filters, invalid: invalidOnly }),
         // Full list for the reassign dropdown/create form — not the browsable page.
         api.listUsers({ role: "telecaller", status: "team", limit: 500 }),
         api.leadSources(),
@@ -74,7 +74,7 @@ export default function AdminLeads() {
     } finally {
       setLoading(false);
     }
-  }, [page, filters, invalidOnly]);
+  }, [page, limit, filters, invalidOnly]);
 
   useEffect(() => {
     load();
@@ -157,41 +157,52 @@ export default function AdminLeads() {
 
           <form className={styles.form} onSubmit={handleCreate}>
             <label className={styles.label}>
-              Name
+              <span>
+                Name<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
+                autoComplete="off"
                 required
               />
             </label>
             <label className={styles.label}>
-              Phone
+              <span>
+                Phone<span className={styles.required}>*</span>
+              </span>
               <input
                 className={styles.input}
+                type="tel"
+                inputMode="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                autoComplete="off"
                 required
               />
             </label>
             <label className={styles.label}>
-              Email
+              Email (optional)
               <input
                 className={styles.input}
                 type="email"
+                inputMode="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="optional"
+                autoComplete="off"
+                placeholder="name@example.com"
               />
             </label>
-            <label className={styles.label} style={{ gridColumn: "1 / -1" }}>
-              Notes
+            <label className={`${styles.label} ${styles.fullRow}`}>
+              Notes (optional)
               <input
                 className={styles.input}
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="optional — how they found us, what they're interested in, etc."
+                placeholder="How they found us, what they're interested in, etc."
               />
+              <span className={styles.hint}>The lead is assigned automatically to the telecaller with the fewest leads.</span>
             </label>
             <div className={styles.formActions}>
               <button className={styles.primaryButton} type="submit" disabled={submitting || telecallers.length === 0}>
@@ -283,9 +294,9 @@ export default function AdminLeads() {
                           />
                         </td>
                       )}
-                      <td>{l.name}</td>
-                      <td>{l.phone}</td>
-                      {invalidOnly && <td>{l.email || "—"}</td>}
+                      <td style={{ overflowWrap: "anywhere", minWidth: 120 }}>{l.name}</td>
+                      <td style={{ whiteSpace: "nowrap" }}>{l.phone}</td>
+                      {invalidOnly && <td style={{ overflowWrap: "anywhere" }}>{l.email || "—"}</td>}
                       <td>
                         {l.source === "webhook" || l.source === "inquiry_form" || l.source === "import" ? (
                           <span className={styles.badgePending}>
@@ -317,7 +328,17 @@ export default function AdminLeads() {
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            onPageChange={setPage}
+            limit={limit}
+            onLimitChange={(n) => {
+              setPage(1);
+              setLimit(n);
+            }}
+          />
         </section>
       </div>
     </div>

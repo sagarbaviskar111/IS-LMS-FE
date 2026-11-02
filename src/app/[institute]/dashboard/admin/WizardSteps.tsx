@@ -30,7 +30,7 @@ export default function WizardSteps({
         const active = i === current;
         return (
           <div key={step.title} className={`${styles.step} ${active ? styles.stepActive : ""}`}>
-            <button type="button" className={styles.stepHead} onClick={() => onChange(active ? -1 : i)}>
+            <button type="button" className={styles.stepHead} aria-expanded={active} onClick={() => onChange(active ? -1 : i)}>
               <span
                 className={`${styles.badge} ${step.done ? styles.badgeDone : active ? styles.badgeActive : ""}`}
               >

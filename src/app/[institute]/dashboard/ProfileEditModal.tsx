@@ -105,26 +105,30 @@ export default function ProfileEditModal({ user, onClose }: { user: User; onClos
           </label>
 
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            Name
+            <span>Name<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              autoComplete="name"
             />
           </label>
 
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            Phone number
+            <span>Phone number<span style={{ fontWeight: 400, color: "var(--muted)" }}> (optional)</span></span>
             <input
               className={adminStyles.input}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="Add a phone number"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
             />
           </label>
 
-          <div className={adminStyles.formActions} style={{ gridColumn: "1 / -1" }}>
+          <div className={adminStyles.modalFooter}>
             <button className={adminStyles.primaryButton} type="submit" disabled={saving}>
               {saving ? "Saving..." : "Save changes"}
             </button>

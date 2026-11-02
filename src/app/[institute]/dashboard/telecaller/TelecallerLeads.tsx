@@ -11,7 +11,7 @@ import Pagination from "../Pagination";
 import InvalidLeadsBar from "../admin/InvalidLeadsBar";
 import LeadFilters,{ EMPTY_LEAD_FILTERS, activeFilterCount } from "../admin/LeadFilters";
 
-const PAGE_SIZE = 10;
+
 
 // Semantic status colors (design tokens) instead of the generic
 // brand/pending badges — makes lead state scannable at a glance.
@@ -44,6 +44,7 @@ export default function TelecallerLeads() {
   const [loading, setLoading] = useState(true);
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [filters, setFilters] = useState<LeadFilterState>(EMPTY_LEAD_FILTERS);
@@ -58,7 +59,7 @@ export default function TelecallerLeads() {
     setLoading(true);
     try {
       const [res, sourcesRes, summaryRes] = await Promise.all([
-        api.myLeads({ page, limit: PAGE_SIZE, ...filters, invalid: invalidOnly }),
+        api.myLeads({ page, limit, ...filters, invalid: invalidOnly }),
         api.myLeadSources(),
         api.leadSummary(),
       ]);
@@ -71,7 +72,7 @@ export default function TelecallerLeads() {
     } finally {
       setLoading(false);
     }
-  }, [page, filters, invalidOnly]);
+  }, [page, limit, filters, invalidOnly]);
 
   useEffect(() => {
     load();
@@ -81,7 +82,7 @@ export default function TelecallerLeads() {
   useEffect(() => {
     setSelected(new Set());
     setAllSelected(false);
-  }, [page, filters, invalidOnly]);
+  }, [page, limit, filters, invalidOnly]);
 
   // Quick-filter chips: one tap to "who do I call now?".
   const chips: { label: string; count: number | null; patch: Partial<LeadFilterState>; alert?: boolean }[] = [
@@ -241,9 +242,9 @@ export default function TelecallerLeads() {
                         />
                       </td>
                     )}
-                    <td>{l.name}</td>
+                    <td style={{ maxWidth: 200, overflowWrap: "anywhere" }}>{l.name}</td>
                     <td>{l.phone}</td>
-                    <td>{l.email || "—"}</td>
+                    <td style={{ maxWidth: 220, overflowWrap: "anywhere" }}>{l.email || "—"}</td>
                     <td>
                       <span className={STATUS_BADGE[l.status]}>{STATUS_LABELS[l.status]}</span>
                     </td>
@@ -290,7 +291,7 @@ export default function TelecallerLeads() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
       </section>
     </div>
   );

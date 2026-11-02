@@ -145,3 +145,41 @@
     padding-left: 14px;
   }
 }
+
+.stepHead:focus-visible,
+.providerCard:focus-visible {
+  outline: 2px solid var(--brand, #2563eb);
+  outline-offset: -2px;
+}
+
+.stepHead:hover {
+  background: var(--surface-alt, rgba(0, 0, 0, 0.03));
+}
+
+.stepBody {
+  overflow-wrap: anywhere;
+}
+
+.stepTitle {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.nav > button {
+  min-height: 40px;
+}
+
+.openLink {
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  .nav > button,
+  .openLink {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+  .providerRow {
+    grid-template-columns: 1fr;
+  }
+}

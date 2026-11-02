@@ -95,15 +95,16 @@ export default function TelecallerQuickMessages() {
             type="button"
             onClick={startNew}
             disabled={busy || messages.length >= MAX || editing !== null}
+            title={messages.length >= MAX ? `Limit of ${MAX} messages reached` : undefined}
           >
             + New message
           </button>
         </div>
 
         {editing !== null && (
-          <form className={adminStyles.form} onSubmit={save} style={{ marginBottom: 16 }}>
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-              Button name
+          <form className={adminStyles.form} onSubmit={save} noValidate style={{ marginBottom: 16 }}>
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+              <span>Button name <span className={adminStyles.required}>*</span></span>
               <input
                 className={adminStyles.input}
                 value={draft.label}
@@ -112,9 +113,10 @@ export default function TelecallerQuickMessages() {
                 placeholder="e.g. Fee details"
                 onChange={(e) => setDraft({ ...draft, label: e.target.value })}
               />
+              <span className={adminStyles.hint}>{draft.label.length}/40 — shown on the one-tap button.</span>
             </label>
-            <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-              Message
+            <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+              <span>Message <span className={adminStyles.required}>*</span></span>
               <textarea
                 className={adminStyles.input}
                 rows={4}
@@ -123,10 +125,11 @@ export default function TelecallerQuickMessages() {
                 placeholder="Hi {name}, this is {caller} from {institute}…"
                 onChange={(e) => setDraft({ ...draft, text: e.target.value })}
               />
+              <span className={adminStyles.hint}>{draft.text.length}/1000 characters.</span>
             </label>
             <div className={adminStyles.formActions}>
               <button className={adminStyles.primaryButton} type="submit" disabled={busy}>
-                {busy ? "Saving..." : editing === -1 ? "Add message" : "Save changes"}
+                {busy ? "Saving…" : editing === -1 ? "Add message" : "Save changes"}
               </button>
               <button className={adminStyles.smallButton} type="button" onClick={() => setEditing(null)} disabled={busy}>
                 Cancel
@@ -138,7 +141,7 @@ export default function TelecallerQuickMessages() {
         {error && <p className={adminStyles.messageError}>{error}</p>}
         {notice && <p className={adminStyles.messageSuccess}>{notice}</p>}
 
-        {loading && <p className={adminStyles.empty}>Loading...</p>}
+        {loading && <p className={adminStyles.empty} role="status">Loading your messages…</p>}
         {!loading && messages.length === 0 && editing === null && (
           <p className={adminStyles.empty}>No quick messages yet — add your first one.</p>
         )}
@@ -154,17 +157,17 @@ export default function TelecallerQuickMessages() {
                   padding: 12,
                   display: "flex",
                   gap: 12,
-                  alignItems: "flex-start",
+                  alignItems: "flex-start", flexWrap: "wrap",
                   justifyContent: "space-between",
                 }}
               >
-                <div style={{ minWidth: 0 }}>
+                <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
                   <div style={{ fontWeight: 600, color: "var(--foreground)" }}>{m.label}</div>
                   <p className={adminStyles.sectionSubtitle} style={{ margin: "4px 0 0", whiteSpace: "pre-wrap" }}>
                     {m.text}
                   </p>
                 </div>
-                <div className={adminStyles.rowActions} style={{ flexWrap: "nowrap" }}>
+                <div className={adminStyles.rowActions} style={{ flexWrap: "wrap", justifyContent: "flex-end" }}>
                   <button className={adminStyles.smallButton} type="button" onClick={() => startEdit(i)} disabled={busy || editing !== null}>
                     Edit
                   </button>

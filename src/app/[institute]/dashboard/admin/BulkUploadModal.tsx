@@ -165,7 +165,7 @@ export default function BulkUploadModal({
 
       {result ? (
         <section className={adminStyles.section} style={{ marginTop: 16 }}>
-          <p className={adminStyles.messageSuccess}>
+          <p className={adminStyles.messageSuccess} role="status">
             {result.created.length} {singular}{result.created.length === 1 ? "" : "s"} created.
           </p>
 
@@ -174,7 +174,7 @@ export default function BulkUploadModal({
               <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.9rem", marginTop: 16 }}>
                 Auto-generated passwords — save these now, they won&apos;t be shown again
               </h3>
-              <div className={adminStyles.tableWrap}>
+              <div className={`${adminStyles.tableWrap} table-scroll`}>
                 <table className={adminStyles.table}>
                   <thead>
                     <tr>
@@ -189,7 +189,7 @@ export default function BulkUploadModal({
                       .map((c) => (
                         <tr key={c.email}>
                           <td>{c.name}</td>
-                          <td>{c.email}</td>
+                          <td style={{ overflowWrap: "anywhere" }}>{c.email}</td>
                           <td style={{ fontFamily: "monospace" }}>{c.password}</td>
                         </tr>
                       ))}
@@ -204,7 +204,7 @@ export default function BulkUploadModal({
               <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.9rem", marginTop: 16 }}>
                 {result.skipped.length} row{result.skipped.length === 1 ? "" : "s"} skipped
               </h3>
-              <div className={adminStyles.tableWrap}>
+              <div className={`${adminStyles.tableWrap} table-scroll`}>
                 <table className={adminStyles.table}>
                   <thead>
                     <tr>
@@ -219,7 +219,7 @@ export default function BulkUploadModal({
                       <tr key={s.row}>
                         <td>{s.row}</td>
                         <td>{s.name || "—"}</td>
-                        <td>{s.email || "—"}</td>
+                        <td style={{ overflowWrap: "anywhere" }}>{s.email || "—"}</td>
                         <td className={adminStyles.messageError} style={{ margin: 0 }}>
                           {s.reason}
                         </td>
@@ -263,7 +263,7 @@ export default function BulkUploadModal({
           </div>
 
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            CSV or Excel file
+            <span>CSV or Excel file<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.fileInput}
               type="file"
@@ -272,7 +272,7 @@ export default function BulkUploadModal({
             />
           </label>
 
-          {parseError && <p className={adminStyles.messageError}>{parseError}</p>}
+          {parseError && <p className={adminStyles.messageError} role="alert">{parseError}</p>}
 
           {rows && (
             <>
@@ -286,7 +286,7 @@ export default function BulkUploadModal({
                 )}
               </p>
 
-              <div className={adminStyles.tableWrap} style={{ maxHeight: 260, overflowY: "auto" }}>
+              <div className={`${adminStyles.tableWrap} table-scroll`} style={{ maxHeight: 260, overflowY: "auto" }}>
                 <table className={adminStyles.table}>
                   <thead>
                     <tr>
@@ -303,7 +303,7 @@ export default function BulkUploadModal({
                       return (
                         <tr key={i} style={invalid ? { opacity: 0.5 } : undefined}>
                           <td>{r.name || "—"}</td>
-                          <td>{r.email || "—"}</td>
+                          <td style={{ overflowWrap: "anywhere" }}>{r.email || "—"}</td>
                           <td>{r.phone || "—"}</td>
                           {role === "student" && <td>{r.batch || "—"}</td>}
                           {role === "teacher" && <td>{r.batches || "—"}</td>}
@@ -321,7 +321,10 @@ export default function BulkUploadModal({
                   onClick={upload}
                   disabled={uploading || validRows.length === 0}
                 >
-                  {uploading ? "Uploading..." : `Upload ${validRows.length} ${singular}${validRows.length === 1 ? "" : "s"}`}
+                  {uploading ? "Uploading…" : `Upload ${validRows.length} ${singular}${validRows.length === 1 ? "" : "s"}`}
+                </button>
+                <button className={adminStyles.smallButton} type="button" onClick={onClose} disabled={uploading}>
+                  Cancel
                 </button>
               </div>
             </>

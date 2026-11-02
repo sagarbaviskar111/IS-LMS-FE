@@ -10,8 +10,10 @@ import BatchSwitcher from "./BatchSwitcher";
 import DocumentViewerModal from "../DocumentViewerModal";
 import VideoPlayerModal from "../VideoPlayerModal";
 import Pagination from "../Pagination";
+import ListToolbar from "../admin/ListToolbar";
+import { useDebounced } from "../admin/useDebounced";
 
-const PAGE_SIZE = 10;
+
 
 const DOCUMENT_ACCEPT =
   ".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain";
@@ -42,6 +44,10 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [q, setQ] = useState("");
+  const dq = useDebounced(q, 300);
+  const [sortBy, setSortBy] = useState("");
 
   const [sessionId, setSessionId] = useState("");
   const [title, setTitle] = useState("");
@@ -74,7 +80,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
     setLoading(true);
     try {
       const [materialsRes, sessionsRes] = await Promise.all([
-        api.listMaterials(activeBatchId, { type, page, limit: PAGE_SIZE }),
+        api.listMaterials(activeBatchId, { type, page, limit, q: dq, sort: sortBy }),
         api.listSessions(activeBatchId),
       ]);
       setMaterials(materialsRes.materials);
@@ -84,7 +90,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
     } finally {
       setLoading(false);
     }
-  }, [activeBatchId, type, page]);
+  }, [activeBatchId, type, page, limit, dq, sortBy]);
 
   useEffect(() => {
     load();
@@ -94,7 +100,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
   // on page 1 rather than an empty page from the previous selection.
   useEffect(() => {
     setPage(1);
-  }, [activeBatchId, type]);
+  }, [activeBatchId, type, dq, sortBy]);
 
   const resetFileInput = () => {
     const el = document.getElementById(`${type}-file`) as HTMLInputElement | null;
@@ -191,8 +197,8 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
             </p>
           ) : (
             <form className={adminStyles.form} onSubmit={handleUpload}>
-              <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                Session {isVideo ? "" : "(optional)"}
+              <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>Session {isVideo ? <span className={adminStyles.required}>*</span> : "(optional)"}</span>
                 <select
                   className={adminStyles.select}
                   value={sessionId}
@@ -215,8 +221,8 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
                 </select>
               </label>
 
-              <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                Title
+              <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>Title <span className={adminStyles.required}>*</span></span>
                 <input
                   className={adminStyles.input}
                   value={title}
@@ -226,18 +232,18 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
                 />
               </label>
 
-              <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                Description
+              <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>Description</span>
                 <input
                   className={adminStyles.input}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="optional"
+                  placeholder="Optional"
                 />
               </label>
 
-              <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-                File (up to {maxSizeLabel})
+              <label className={`${adminStyles.label} ${adminStyles.fullRow}`}>
+                <span>File <span className={adminStyles.required}>*</span> <span className={adminStyles.hint}>(up to {maxSizeLabel})</span></span>
                 <input
                   id={`${type}-file`}
                   className={adminStyles.input}
@@ -263,13 +269,13 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
                 </div>
               )}
 
-              <div className={adminStyles.formActions}>
+              <div className={adminStyles.formActions} style={{ flexWrap: "wrap" }}>
                 <button
                   className={adminStyles.primaryButton}
                   type="submit"
                   disabled={uploading || !file || (isVideo && !sessionId)}
                 >
-                  {uploading ? `Uploading... ${uploadProgress}%` : `Upload ${noun}`}
+                  {uploading ? `Uploading… ${uploadProgress}%` : `Upload ${noun}`}
                 </button>
                 {error && <p className={adminStyles.messageError}>{error}</p>}
               </div>
@@ -287,10 +293,19 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
             </div>
           </div>
 
+          <ListToolbar
+            search={q}
+            onSearch={setQ}
+            placeholder="Search by title"
+            total={total}
+            sort={{ key: "sort", label: "Sort by", value: sortBy, onChange: setSortBy, options: [{ value: "", label: "Newest first" }, { value: "oldest", label: "Oldest first" }, { value: "title", label: "Title (A-Z)" }, { value: "size", label: "Largest first" }] }}
+            onClear={() => { setQ(""); setSortBy(""); }}
+          />
+          {loading && materials.length === 0 && <p className={adminStyles.empty} role="status">Loading…</p>}
           {!loading && materials.length === 0 && (
             <div className={styles.emptyBlock}>
               <span className={styles.emptyIcon} aria-hidden="true" />
-              <p className={styles.emptyText}>Nothing uploaded yet.</p>
+              <p className={styles.emptyText}>{q ? "Nothing matches your search." : "Nothing uploaded yet."}</p>
             </div>
           )}
 
@@ -311,12 +326,12 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
                     const linkedSession = typeof m.session === "object" ? m.session : null;
                     return (
                       <tr key={m._id}>
-                        <td>{m.title}</td>
-                        <td>{linkedSession ? sessionLabel(linkedSession) : "—"}</td>
+                        <td style={{ overflowWrap: "anywhere", minWidth: 160 }}>{m.title}</td>
+                        <td style={{ overflowWrap: "anywhere", minWidth: 140 }}>{linkedSession ? sessionLabel(linkedSession) : "—"}</td>
                         <td>{formatSize(m.fileSize)}</td>
                         <td>{new Date(m.createdAt).toLocaleDateString()}</td>
                         <td>
-                          <div className={adminStyles.rowActions}>
+                          <div className={adminStyles.rowActions} style={{ flexWrap: "wrap" }}>
                             {m.youtubeVideoId || m.videoUrl ? (
                               <button className={adminStyles.smallButton} onClick={() => setWatching(m)}>
                                 Open
@@ -339,7 +354,7 @@ export default function MaterialSection({ type }: { type: "document" | "video" }
             </div>
           )}
 
-          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+          <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
         </section>
       </div>
 

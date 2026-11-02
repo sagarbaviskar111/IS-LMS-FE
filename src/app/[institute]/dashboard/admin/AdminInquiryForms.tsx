@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import ListToolbar from "./ListToolbar";
+import Pagination from "../Pagination";
 import { useParams } from "next/navigation";
 import { api, ApiError, InquiryForm } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
@@ -19,6 +21,30 @@ export default function AdminInquiryForms({ role = "admin" }: { role?: "admin" |
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sort, setSort] = useState("newest");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const list = forms.filter(
+      (f) =>
+        (!q || f.subject.toLowerCase().includes(q)) &&
+        (statusFilter === "all" || (statusFilter === "open") === f.isActive)
+    );
+    list.sort((a, b2) => {
+      if (sort === "oldest") return +new Date(a.createdAt) - +new Date(b2.createdAt);
+      if (sort === "responses") return b2.responseCount - a.responseCount;
+      if (sort === "subject") return a.subject.localeCompare(b2.subject);
+      return +new Date(b2.createdAt) - +new Date(a.createdAt);
+    });
+    return list;
+  }, [forms, search, statusFilter, sort]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
+  const curPage = Math.min(page, totalPages);
+  const visible = filtered.slice((curPage - 1) * limit, curPage * limit);
 
   const load = useCallback(async () => {
     try {
@@ -91,6 +117,62 @@ export default function AdminInquiryForms({ role = "admin" }: { role?: "admin" |
         </div>
 
         {error && <p className={styles.messageError}>{error}</p>}
+        {loading && <p className={styles.empty}>Loading forms…</p>}
+
+        {forms.length > 0 && (
+          <ListToolbar
+            search={search}
+            onSearch={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder="Search forms by subject…"
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                value: statusFilter,
+                options: [
+                  { value: "all", label: "All statuses" },
+                  { value: "open", label: "Accepting responses" },
+                  { value: "closed", label: "Closed" },
+                ],
+                onChange: (v) => {
+                  setStatusFilter(v);
+                  setPage(1);
+                },
+              },
+            ]}
+            sort={{
+              key: "sort",
+              label: "Sort by",
+              value: sort,
+              options: [
+                { value: "newest", label: "Newest first" },
+                { value: "oldest", label: "Oldest first" },
+                { value: "responses", label: "Most responses" },
+                { value: "subject", label: "Subject A–Z" },
+              ],
+              onChange: (v) => {
+                setSort(v);
+                setPage(1);
+              },
+            }}
+            onClear={() => {
+              setSearch("");
+              setStatusFilter("all");
+              setSort("newest");
+              setPage(1);
+            }}
+            total={filtered.length}
+          />
+        )}
+
+        {forms.length > 0 && filtered.length === 0 && (
+          <div className={styles.emptyState}>
+            <p className={styles.emptyStateText}>No forms match your search.</p>
+          </div>
+        )}
 
         {!loading && forms.length === 0 && (
           <div className={styles.emptyState}>
@@ -101,7 +183,7 @@ export default function AdminInquiryForms({ role = "admin" }: { role?: "admin" |
           </div>
         )}
 
-        {forms.length > 0 && (
+        {visible.length > 0 && (
           <div className={styles.tableWrap}>
             <table className={styles.table}>
               <thead>
@@ -115,9 +197,9 @@ export default function AdminInquiryForms({ role = "admin" }: { role?: "admin" |
                 </tr>
               </thead>
               <tbody>
-                {forms.map((f) => (
+                {visible.map((f) => (
                   <tr key={f._id}>
-                    <td>{f.subject}</td>
+                    <td style={{ overflowWrap: "anywhere", minWidth: 160 }}>{f.subject}</td>
                     <td>{f.responseCount}</td>
                     <td>
                       <span className={f.isActive ? styles.badgeSuccess : styles.badgeInactive}>
@@ -164,6 +246,18 @@ export default function AdminInquiryForms({ role = "admin" }: { role?: "admin" |
             </table>
           </div>
         )}
+
+        <Pagination
+          page={curPage}
+          totalPages={totalPages}
+          total={filtered.length}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => {
+            setPage(1);
+            setLimit(n);
+          }}
+        />
       </section>
     </div>
   );

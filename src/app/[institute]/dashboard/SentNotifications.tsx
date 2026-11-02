@@ -7,12 +7,13 @@ import adminStyles from "./admin/admin.module.css";
 import Modal from "./Modal";
 import Pagination from "./Pagination";
 
-const PAGE_SIZE = 10;
+
 
 export default function SentNotifications({ refreshKey }: { refreshKey?: number }) {
   const [sent, setSent] = useState<SentNotificationSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
 
@@ -22,14 +23,14 @@ export default function SentNotifications({ refreshKey }: { refreshKey?: number 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.listSentNotifications({ page, limit: PAGE_SIZE });
+      const res = await api.listSentNotifications({ page, limit });
       setSent(res.sent);
       setTotalPages(res.totalPages);
       setTotal(res.total);
     } finally {
       setLoading(false);
     }
-  }, [page]);
+  }, [page, limit]);
 
   useEffect(() => {
     load();
@@ -54,6 +55,7 @@ export default function SentNotifications({ refreshKey }: { refreshKey?: number 
         </div>
       </div>
 
+      {loading && sent.length === 0 && <p className={adminStyles.empty}>Loading…</p>}
       {!loading && sent.length === 0 && <p className={adminStyles.empty}>You haven&apos;t sent anything yet.</p>}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -78,7 +80,7 @@ export default function SentNotifications({ refreshKey }: { refreshKey?: number 
             }}
           >
             <div style={{ minWidth: 0 }}>
-              <p style={{ fontWeight: 600, color: "var(--foreground)", margin: 0 }}>{s.title}</p>
+              <p style={{ fontWeight: 600, color: "var(--foreground)", margin: 0, overflowWrap: "anywhere" }}>{s.title}</p>
               <p
                 style={{
                   color: "var(--muted)",
@@ -105,13 +107,13 @@ export default function SentNotifications({ refreshKey }: { refreshKey?: number 
         ))}
       </div>
 
-      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+      <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
 
       {(detail || detailLoading) && (
         <Modal onClose={() => setDetail(null)}>
           <div className={dashboardStyles.modalHead}>
             <div>
-              <h2 className={adminStyles.sectionTitle}>{detailLoading ? "Loading..." : detail?.title}</h2>
+              <h2 className={adminStyles.sectionTitle}>{detailLoading ? "Loading…" : detail?.title}</h2>
               {detail && (
                 <p className={adminStyles.sectionSubtitle}>
                   {detail.message} · sent {new Date(detail.createdAt).toLocaleString()}

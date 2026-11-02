@@ -172,7 +172,7 @@ export default function AdminStorageSettings() {
       <form className={adminStyles.form} onSubmit={submit}>
         {provider === "r2" && (
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            Cloudflare Account ID
+            <span>Cloudflare Account ID<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               value={accountId}
@@ -183,7 +183,7 @@ export default function AdminStorageSettings() {
           </label>
         )}
         <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-          Access Key ID
+          <span>Access Key ID<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
             value={accessKeyId}
@@ -193,7 +193,7 @@ export default function AdminStorageSettings() {
           />
         </label>
         <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-          Secret Access Key
+          <span>Secret Access Key<span className={adminStyles.required}>*</span></span>
           <input
             className={adminStyles.input}
             type="password"
@@ -204,12 +204,12 @@ export default function AdminStorageSettings() {
           />
         </label>
         <label className={adminStyles.label}>
-          Bucket name
-          <input className={adminStyles.input} value={bucket} onChange={(e) => setBucket(e.target.value)} required />
+          <span>Bucket name<span className={adminStyles.required}>*</span></span>
+          <input className={adminStyles.input} value={bucket} onChange={(e) => setBucket(e.target.value)} autoComplete="off" spellCheck={false} required />
         </label>
         {provider === "s3" && (
           <label className={adminStyles.label}>
-            Region
+            <span>Region<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               value={region}
@@ -219,7 +219,7 @@ export default function AdminStorageSettings() {
             />
           </label>
         )}
-        <div className={adminStyles.formActions}>
+        <div className={`${adminStyles.formActions} ${adminStyles.fullRow}`}>
           <button className={adminStyles.primaryButton} type="submit" disabled={saving}>
             {saving ? "Testing connection..." : "Test & save"}
           </button>

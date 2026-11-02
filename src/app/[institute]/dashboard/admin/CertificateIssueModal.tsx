@@ -426,7 +426,7 @@ export default function CertificateIssueModal({
         />
       </label>
       <label className={adminStyles.label}>
-        Certificate date
+        <span>Certificate date<span className={adminStyles.required}>*</span></span>
         <input className={adminStyles.input} type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
       </label>
       <label className={adminStyles.label}>
@@ -794,18 +794,7 @@ export default function CertificateIssueModal({
         </section>
 
         {error && <p className={adminStyles.messageError}>{error}</p>}
-        <div
-          className={adminStyles.formActions}
-          style={{
-            position: "sticky",
-            bottom: -28,
-            margin: "0 -28px -28px",
-            padding: "14px 28px",
-            background: "var(--surface)",
-            borderTop: "1px solid var(--border)",
-            justifyContent: "flex-end",
-          }}
-        >
+        <div className={adminStyles.modalFooter}>
           <button type="button" className={adminStyles.smallButton} onClick={onClose}>
             Cancel
           </button>

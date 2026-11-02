@@ -7,7 +7,7 @@ import adminStyles from "../admin/admin.module.css";
 import styles from "./teacher.module.css";
 import Pagination from "../Pagination";
 
-const PAGE_SIZE = 10;
+
 
 export default function Tools() {
   const [tools, setTools] = useState<Tool[]>([]);
@@ -15,18 +15,19 @@ export default function Tools() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(10);
 
   const load = useCallback(() => {
     setLoading(true);
     return api
-      .teacherTools({ page, limit: PAGE_SIZE })
+      .teacherTools({ page, limit })
       .then((res) => {
         setTools(res.tools);
         setTotalPages(res.totalPages);
         setTotal(res.total);
       })
       .finally(() => setLoading(false));
-  }, [page]);
+  }, [page, limit]);
 
   useEffect(() => {
     load();
@@ -38,10 +39,11 @@ export default function Tools() {
       <p className={dashboardStyles.pageSubtitle}>Tools your admin has shared with you.</p>
 
       <section className={adminStyles.section}>
+        {loading && tools.length === 0 && <p className={adminStyles.empty} role="status">Loading tools…</p>}
         {!loading && tools.length === 0 && (
           <div className={styles.emptyBlock}>
             <span className={styles.emptyIcon} aria-hidden="true" />
-            <p className={styles.emptyText}>No tools have been added yet.</p>
+            <p className={styles.emptyText}>No tools have been shared with you yet.</p>
           </div>
         )}
 
@@ -57,7 +59,7 @@ export default function Tools() {
               <tbody>
                 {tools.map((t) => (
                   <tr key={t._id}>
-                    <td>{t.name}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{t.name}</td>
                     <td>
                       <a
                         href={t.url}
@@ -76,7 +78,7 @@ export default function Tools() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} onLimitChange={(n) => { setPage(1); setLimit(n); }} />
       </section>
     </div>
   );

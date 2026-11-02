@@ -36,6 +36,24 @@ function loadRazorpayScript(): Promise<void> {
 
 type Step = "form" | "payment" | "done";
 
+function Steps({ current, withPayment }: { current: number; withPayment: boolean }) {
+  const labels = withPayment ? ["Your details", "Payment"] : ["Your details"];
+  return (
+    <ol className={styles.steps} aria-label="Registration progress">
+      {labels.map((l, i) => (
+        <li
+          key={l}
+          className={`${styles.stepItem} ${i + 1 === current ? styles.stepActive : ""} ${i + 1 < current ? styles.stepDone : ""}`}
+          aria-current={i + 1 === current ? "step" : undefined}
+        >
+          <span className={styles.stepNum}>{i + 1 < current ? "✓" : i + 1}</span>
+          {l}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 export default function RegisterViaLeadPage() {
   const { token } = useParams<{ token: string }>();
 
@@ -47,6 +65,7 @@ export default function RegisterViaLeadPage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -185,12 +204,13 @@ export default function RegisterViaLeadPage() {
 
         {loadState === "ready" && step === "payment" && (
           <div className={styles.card}>
+            <Steps current={2} withPayment />
             <h1 className={styles.title}>Almost there</h1>
             <p className={styles.subtitle}>
               Pay ₹{paymentAmount} to complete your registration with {coachingClassName}.
             </p>
 
-            {paymentError && <p className={styles.error}>{paymentError}</p>}
+            {paymentError && <p className={styles.error} role="alert">{paymentError}</p>}
 
             <button className={styles.button} type="button" onClick={handlePayNow} disabled={payingNow}>
               {payingNow ? "Starting payment..." : "Pay now"}
@@ -204,15 +224,24 @@ export default function RegisterViaLeadPage() {
 
         {loadState === "ready" && step === "form" && (
           <form className={styles.card} onSubmit={handleSubmit}>
+            <Steps current={1} withPayment={feeAmount > 0} />
             <h1 className={styles.title}>Complete your registration</h1>
             <p className={styles.subtitle}>Joining {coachingClassName} as a student</p>
-            {feeAmount > 0 && <p className={styles.subtitle}>Registration fee: ₹{feeAmount}</p>}
+            {feeAmount > 0 && (
+              <p className={styles.inviteBadge}>
+                Registration fee: <strong>₹{feeAmount}</strong> (you will pay after creating your account)
+              </p>
+            )}
 
             <div className={styles.row}>
               <label className={styles.label}>
-                Full name
+                <span>
+                  Full name <span className={styles.req} aria-hidden="true">*</span>
+                </span>
                 <input
                   className={styles.input}
+                  name="name"
+                  autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
@@ -220,9 +249,15 @@ export default function RegisterViaLeadPage() {
               </label>
 
               <label className={styles.label}>
-                Phone
+                <span>
+                  Phone <span className={styles.optional}>(optional)</span>
+                </span>
                 <input
                   className={styles.input}
+                  type="tel"
+                  name="phone"
+                  inputMode="tel"
+                  autoComplete="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
@@ -230,29 +265,59 @@ export default function RegisterViaLeadPage() {
             </div>
 
             <label className={styles.label}>
-              Email
+              <span>
+                Email <span className={styles.req} aria-hidden="true">*</span>
+              </span>
               <input
                 className={styles.input}
                 type="email"
+                name="email"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                spellCheck={false}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <span className={styles.hint}>You will use this email to sign in.</span>
             </label>
 
             <label className={styles.label}>
-              Password
-              <input
-                className={styles.input}
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                minLength={6}
-                required
-              />
+              <span>
+                Password <span className={styles.req} aria-hidden="true">*</span>
+              </span>
+              <span className={styles.passwordWrap}>
+                <input
+                  className={`${styles.input} ${styles.passwordInput}`}
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  aria-describedby="reg-pw-hint"
+                  required
+                />
+                <button
+                  type="button"
+                  className={styles.toggleBtn}
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </span>
+              <span
+                id="reg-pw-hint"
+                className={`${styles.hint} ${password.length > 0 && password.length < 6 ? styles.hintWarn : ""}`}
+              >
+                At least 6 characters.
+              </span>
             </label>
 
-            {error && <p className={styles.error}>{error}</p>}
+            {error && <p className={styles.error} role="alert">{error}</p>}
 
             <button className={styles.button} type="submit" disabled={submitting}>
               {submitting ? "Submitting..." : "Create account"}

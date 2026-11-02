@@ -10,7 +10,7 @@ import ListToolbar from "./ListToolbar";
 import RowMenu from "./RowMenu";
 import { useDebounced } from "./useDebounced";
 
-const PAGE_SIZE = 10;
+
 
 const MODE_LABELS: Record<CourseMode, string> = { online: "Online", offline: "Offline", hybrid: "Hybrid" };
 
@@ -26,6 +26,7 @@ export default function Batches() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
@@ -47,7 +48,7 @@ export default function Batches() {
       const [batchesRes, studentsRes, teachersRes, groupsRes, coursesRes] = await Promise.all([
         api.listBatches({
           page,
-          limit: PAGE_SIZE,
+          limit,
           q,
           sort,
           course: courseF !== "all" ? courseF : undefined,
@@ -56,7 +57,7 @@ export default function Batches() {
         // Full rosters for the pickers — not the browsable page.
         api.listUsers({ role: "student", status: "team", limit: 500 }),
         api.listUsers({ role: "teacher", status: "team", limit: 500 }),
-        api.listStudentGroups(),
+        api.listStudentGroups({ limit: 100 }),
         api.listCourses({ limit: 500 }),
       ]);
       setBatches(batchesRes.batches);
@@ -69,7 +70,7 @@ export default function Batches() {
     } finally {
       setLoading(false);
     }
-  }, [page, q, sort, courseF, modeF]);
+  }, [page, limit, q, sort, courseF, modeF]);
 
   useEffect(() => {
     load();
@@ -118,7 +119,7 @@ export default function Batches() {
             setSearch(v);
             setPage(1);
           }}
-          placeholder="Search batches by name..."
+          placeholder="Search batches by name"
           filters={[
             {
               key: "course",
@@ -173,9 +174,9 @@ export default function Batches() {
           total={total}
         />
 
-        {notice && <p className={styles.messageSuccess}>{notice}</p>}
-        {error && <p className={styles.messageError}>{error}</p>}
-        {loading && <p className={styles.empty}>Loading...</p>}
+        {notice && <p className={styles.messageSuccess} role="status">{notice}</p>}
+        {error && <p className={styles.messageError} role="alert">{error}</p>}
+        {loading && batches.length === 0 && <p className={styles.sectionSubtitle}>Loading…</p>}
 
         {!loading && courses.length === 0 && (
           <p className={styles.messageError}>
@@ -197,7 +198,7 @@ export default function Batches() {
         )}
 
         {batches.length > 0 && (
-          <div className={styles.tableWrap}>
+          <div className={`${styles.tableWrap} table-scroll`}>
             <table className={styles.table}>
               <thead>
                 <tr>
@@ -214,9 +215,9 @@ export default function Batches() {
                 {batches.map((b) => (
                   <tr key={b._id}>
                     <td>
-                      <strong>{b.name}</strong>
+                      <strong style={{ overflowWrap: "anywhere" }}>{b.name}</strong>
                       {b.description && (
-                        <div className={styles.sectionSubtitle} style={{ margin: 0 }}>
+                        <div className={styles.sectionSubtitle} style={{ margin: 0, overflowWrap: "anywhere", maxWidth: 320 }}>
                           {b.description}
                         </div>
                       )}
@@ -254,7 +255,17 @@ export default function Batches() {
           </div>
         )}
 
-        <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => {
+            setLimit(n);
+            setPage(1);
+          }}
+        />
       </section>
 
       {formFor && (
@@ -362,9 +373,9 @@ function BatchFormModal({
       <h2 className={styles.sectionTitle}>{batch ? "Edit batch" : "Create batch"}</h2>
       <form className={styles.form} onSubmit={submit}>
         <label className={styles.label} style={full}>
-          Course *
+          <span>Course<span className={styles.required}>*</span></span>
           <select className={styles.select} value={f.course} onChange={(e) => pickCourse(e.target.value)} autoFocus>
-            <option value="">Select a course...</option>
+            <option value="">Select a course</option>
             {selectable.map((c) => (
               <option key={c._id} value={c._id}>
                 {c.name}
@@ -373,7 +384,7 @@ function BatchFormModal({
           </select>
         </label>
         <label className={styles.label} style={full}>
-          Batch name *
+          <span>Batch name<span className={styles.required}>*</span></span>
           <input className={styles.input} value={f.name} maxLength={120} placeholder="e.g. Morning Batch A" onChange={(e) => set("name", e.target.value)} />
         </label>
         <label className={styles.label}>
@@ -385,8 +396,9 @@ function BatchFormModal({
           <input className={styles.input} type="date" value={f.endDate} min={f.startDate || undefined} onChange={(e) => set("endDate", e.target.value)} />
         </label>
         <label className={styles.label}>
-          Number of students (blank = no limit)
-          <input className={styles.input} type="number" min={0} value={f.maxStudents} onChange={(e) => set("maxStudents", e.target.value)} />
+          Maximum students
+          <input className={styles.input} type="number" inputMode="numeric" min={0} step={1} placeholder="No limit" value={f.maxStudents} onChange={(e) => set("maxStudents", e.target.value)} />
+          <span className={styles.hint}>Leave blank for no limit.</span>
         </label>
         <label className={styles.label}>
           Mode
@@ -399,21 +411,21 @@ function BatchFormModal({
           </select>
         </label>
         <label className={styles.label} style={full}>
-          Description
-          <input className={styles.input} value={f.description} placeholder="optional" onChange={(e) => set("description", e.target.value)} />
+          <span>Description <span className={styles.hint}>(optional)</span></span>
+          <input className={styles.input} value={f.description} maxLength={300} onChange={(e) => set("description", e.target.value)} />
         </label>
 
-        {error && (
-          <p className={styles.messageError} style={full}>
-            {error}
-          </p>
-        )}
-        <div className={styles.formActions} style={full}>
-          <button className={styles.primaryButton} type="submit" disabled={busy}>
-            {busy ? "Saving..." : batch ? "Save changes" : "Create batch"}
-          </button>
+        <div className={styles.modalFooter}>
+          {error && (
+            <p className={styles.messageError} role="alert" style={{ margin: 0, marginRight: "auto" }}>
+              {error}
+            </p>
+          )}
           <button className={styles.smallButton} type="button" onClick={onClose} disabled={busy}>
             Cancel
+          </button>
+          <button className={styles.primaryButton} type="submit" disabled={busy}>
+            {busy ? "Saving…" : batch ? "Save changes" : "Create batch"}
           </button>
         </div>
       </form>
@@ -496,7 +508,7 @@ function MembersModal({
       </p>
 
       <div style={{ display: "grid", gap: 14, marginTop: 18 }}>
-        <input className={styles.input} value={query} placeholder={`Search ${isStudent ? "students" : "teachers"}...`} onChange={(e) => setQuery(e.target.value)} />
+        <input className={styles.input} type="search" aria-label="Search people" value={query} placeholder={`Search ${isStudent ? "students" : "teachers"} by name or email`} onChange={(e) => setQuery(e.target.value)} />
         {isStudent && groups.length > 0 && (
           <select
             className={styles.select}
@@ -505,7 +517,7 @@ function MembersModal({
               if (e.target.value) addGroup(e.target.value);
             }}
           >
-            <option value="">Add a saved group...</option>
+            <option value="">Add a saved group</option>
             {groups.map((g) => (
               <option key={g._id} value={g._id}>
                 {g.name} ({g.students.length})
@@ -538,13 +550,17 @@ function MembersModal({
         </div>
       </div>
 
-      {error && <p className={styles.messageError}>{error}</p>}
-      <div className={styles.formActions} style={{ marginTop: 20 }}>
-        <button className={styles.primaryButton} type="button" onClick={save} disabled={busy}>
-          {busy ? "Saving..." : "Save"}
-        </button>
+      <div className={styles.modalFooter} style={{ marginTop: 20 }}>
+        {error && (
+          <p className={styles.messageError} role="alert" style={{ margin: 0, marginRight: "auto" }}>
+            {error}
+          </p>
+        )}
         <button className={styles.smallButton} type="button" onClick={onClose} disabled={busy}>
           Cancel
+        </button>
+        <button className={styles.primaryButton} type="button" onClick={save} disabled={busy}>
+          {busy ? "Saving…" : "Save"}
         </button>
       </div>
     </Modal>

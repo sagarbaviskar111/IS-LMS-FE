@@ -52,11 +52,11 @@ export default function StudentCertificates() {
       {items.length === 0 && !error && (
         <StudentEmptyState title="No certificates yet" hint="When your institute issues one, it will appear here." />
       )}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16, marginTop: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: 16, marginTop: 16 }}>
         {items.map((c) => (
           <div key={c._id} className={dashboardStyles.card}>
             <p className={dashboardStyles.cardLabel}>{c.templateName}</p>
-            <p className={dashboardStyles.cardValue} style={{ fontSize: "1.05rem" }}>
+            <p className={dashboardStyles.cardValue} style={{ fontSize: "1.05rem", overflowWrap: "anywhere" }}>
               {c.course || "Certificate"}
             </p>
             <p style={{ margin: "6px 0", color: "var(--muted)", fontSize: "0.85rem" }}>

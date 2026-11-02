@@ -65,16 +65,16 @@ export default function AdminPasswordResetSettings({ onOpenSenderEmail }: { onOp
           <p className={adminStyles.empty}>Loading...</p>
         ) : (
           <>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+            <label className={adminStyles.checkRow} htmlFor="allowSelfPasswordReset">
               <input
                 id="allowSelfPasswordReset"
                 type="checkbox"
                 checked={allowSelfPasswordReset}
                 onChange={toggle}
                 disabled={saving}
-                style={{ width: 18, height: 18, marginTop: 3, accentColor: "var(--brand)" }}
+                style={{ width: 18, height: 18 }}
               />
-              <label htmlFor="allowSelfPasswordReset" style={{ cursor: "pointer" }}>
+              <div>
                 <div style={{ fontWeight: 600, color: "var(--foreground)" }}>
                   Let my team reset their own password by email
                 </div>
@@ -93,8 +93,8 @@ export default function AdminPasswordResetSettings({ onOpenSenderEmail }: { onOp
                     </>
                   )}
                 </p>
-              </label>
-            </div>
+              </div>
+            </label>
 
             {error && <p className={adminStyles.messageError} style={{ marginTop: 12 }}>{error}</p>}
             {notice && <p className={adminStyles.messageSuccess} style={{ marginTop: 12 }}>{notice}</p>}

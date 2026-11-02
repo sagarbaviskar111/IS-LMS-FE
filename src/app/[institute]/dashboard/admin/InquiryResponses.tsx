@@ -19,7 +19,7 @@ import Pagination from "../Pagination";
 import styles from "./admin.module.css";
 import b from "./inquiry.module.css";
 
-const PAGE_SIZE = 20;
+
 const CHOICE = ["multiple_choice", "checkboxes", "dropdown"];
 const FILTERABLE = [
   "short_text",
@@ -223,6 +223,7 @@ export default function InquiryResponses({ role = "admin" }: { role?: "admin" | 
   const [responses, setResponses] = useState<InquiryResponseRow[]>([]);
   const [summary, setSummary] = useState<Record<string, InquirySummary>>({});
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -265,7 +266,7 @@ export default function InquiryResponses({ role = "admin" }: { role?: "admin" | 
     setLoading(true);
     setError("");
     try {
-      const res = await api.listInquiryResponses(id, { page, limit: PAGE_SIZE, ...query() });
+      const res = await api.listInquiryResponses(id, { page, limit, ...query() });
       setResponses(res.responses);
       setSummary(res.summary);
       setTotal(res.total);
@@ -275,7 +276,7 @@ export default function InquiryResponses({ role = "admin" }: { role?: "admin" | 
     } finally {
       setLoading(false);
     }
-  }, [id, page, query]);
+  }, [id, page, limit, query]);
 
   useEffect(() => {
     load();
@@ -473,6 +474,7 @@ export default function InquiryResponses({ role = "admin" }: { role?: "admin" | 
           ))}
         </div>
 
+        {loading && responses.length === 0 && <p className={styles.empty}>Loading responses…</p>}
         {!loading && total === 0 && (
           <div className={styles.emptyState}>
             <span className={styles.emptyStateIcon} aria-hidden="true">📭</span>
@@ -527,7 +529,7 @@ export default function InquiryResponses({ role = "admin" }: { role?: "admin" | 
                             disabled={busyId === r._id || !canAddLead}
                             title={canAddLead ? "Add this person to your leads" : "This form has no Name + Phone number question"}
                           >
-                            {busyId === r._id ? "Adding…" : "Lead"}
+                            {busyId === r._id ? "Adding…" : "Add to leads"}
                           </button>
                         )}
                       </div>
@@ -539,7 +541,7 @@ export default function InquiryResponses({ role = "admin" }: { role?: "admin" | 
           </div>
         )}
 
-        {tab === "responses" && <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} />}
+        {tab === "responses" && <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage} limit={limit} limitOptions={[10, 20, 50, 100]} onLimitChange={(n) => { setPage(1); setLimit(n); }} />}
       </section>
     </div>
   );

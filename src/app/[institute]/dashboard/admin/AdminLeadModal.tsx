@@ -65,7 +65,7 @@ export default function AdminLeadModal({
           Assigned telecaller
         </h3>
         <div className={adminStyles.inviteRow}>
-          <select className={adminStyles.select} value={reassignId} onChange={(e) => setReassignId(e.target.value)}>
+          <select className={adminStyles.select} aria-label="Assigned telecaller" value={reassignId} onChange={(e) => setReassignId(e.target.value)}>
             {telecallers.map((t) => (
               <option key={t._id} value={t._id}>
                 {t.name}
@@ -78,7 +78,7 @@ export default function AdminLeadModal({
             onClick={submitReassign}
             disabled={reassignBusy || reassignId === currentTelecallerId}
           >
-            {reassignBusy ? "Reassigning..." : "Reassign"}
+            {reassignBusy ? "Reassigning…" : "Reassign"}
           </button>
         </div>
         {reassignError && <p className={adminStyles.messageError}>{reassignError}</p>}
@@ -105,7 +105,7 @@ export default function AdminLeadModal({
                   <tr key={c._id}>
                     <td>{new Date(c.createdAt).toLocaleString()}</td>
                     <td>{STATUS_LABELS[c.response]}</td>
-                    <td>{c.notes || "—"}</td>
+                    <td style={{ overflowWrap: "anywhere" }}>{c.notes || "—"}</td>
                     <td>{who(c.calledBy)}</td>
                   </tr>
                 ))}

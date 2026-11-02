@@ -284,28 +284,29 @@ export default function StudentPaymentModal({
         </h3>
         <form className={adminStyles.form} onSubmit={submitPayment}>
           <label className={adminStyles.label}>
-            Amount (₹)
+            <span>Amount (₹)<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               type="number"
               min={1}
+              inputMode="numeric"
               value={payAmount}
               onChange={(e) => setPayAmount(e.target.value)}
               required
             />
           </label>
           <label className={adminStyles.label}>
-            Note
+            Note (optional)
             <input
               className={adminStyles.input}
               value={payNote}
               onChange={(e) => setPayNote(e.target.value)}
-              placeholder="optional"
+              placeholder="e.g. cash received at the counter"
             />
           </label>
           <div className={adminStyles.formActions}>
             <button className={adminStyles.primaryButton} type="submit" disabled={paySubmitting}>
-              {paySubmitting ? "Saving..." : "Record payment"}
+              {paySubmitting ? "Saving…" : "Record payment"}
             </button>
             {payError && <p className={adminStyles.messageError}>{payError}</p>}
             {paySuccess && <p className={adminStyles.messageSuccess}>{paySuccess}</p>}
@@ -365,7 +366,7 @@ export default function StudentPaymentModal({
                           disabled={savingItem === it._id}
                           onClick={() => saveInstallmentDate(it._id)}
                         >
-                          {savingItem === it._id ? "Saving..." : "Save"}
+                          {savingItem === it._id ? "Saving…" : "Save"}
                         </button>
                       )}
                     </td>
@@ -415,7 +416,7 @@ export default function StudentPaymentModal({
           </label>
           <div className={adminStyles.formActions}>
             <button className={adminStyles.primaryButton} type="submit" disabled={editSubmitting}>
-              {editSubmitting ? "Saving..." : "Save details"}
+              {editSubmitting ? "Saving…" : "Save details"}
             </button>
             {editError && <p className={adminStyles.messageError}>{editError}</p>}
             {editSuccess && <p className={adminStyles.messageSuccess}>{editSuccess}</p>}
@@ -441,6 +442,8 @@ export default function StudentPaymentModal({
             type="number"
             min={1}
             placeholder="Extra days"
+            aria-label="Extra days"
+            inputMode="numeric"
             value={extendDays}
             onChange={(e) => setExtendDays(e.target.value)}
           />
@@ -450,7 +453,7 @@ export default function StudentPaymentModal({
             onClick={submitExtend}
             disabled={extendSubmitting}
           >
-            {extendSubmitting ? "Extending..." : "Extend"}
+            {extendSubmitting ? "Extending…" : "Extend"}
           </button>
         </div>
         {extendError && <p className={adminStyles.messageError}>{extendError}</p>}
@@ -464,15 +467,15 @@ export default function StudentPaymentModal({
         <p className={adminStyles.sectionSubtitle}>
           Takes money off what is still unpaid{hasSchedule ? ", spread over the remaining installments" : " (of one installment, for every cycle from now on)"}.
         </p>
-        <div className={adminStyles.inviteRow} style={{ flexWrap: "wrap" }}>
-          <select className={adminStyles.select} value={concKind} onChange={(e) => setConcKind(e.target.value as typeof concKind)}>
+        <div className={adminStyles.inviteRow} style={{ flexWrap: "wrap", alignItems: "center" }}>
+          <select className={adminStyles.select} aria-label="Type of concession" value={concKind} onChange={(e) => setConcKind(e.target.value as typeof concKind)}>
             <option value="scholarship">Scholarship</option>
             <option value="discount">Discount</option>
             <option value="sibling">Sibling discount (institute %)</option>
           </select>
           {concKind !== "sibling" && (
             <>
-              <select className={adminStyles.select} value={concMode} onChange={(e) => setConcMode(e.target.value as typeof concMode)}>
+              <select className={adminStyles.select} aria-label="Concession mode" value={concMode} onChange={(e) => setConcMode(e.target.value as typeof concMode)}>
                 <option value="percent">Percent (%)</option>
                 <option value="flat">Amount (₹)</option>
               </select>
@@ -481,6 +484,8 @@ export default function StudentPaymentModal({
                 type="number"
                 min={1}
                 placeholder={concMode === "percent" ? "e.g. 10" : "e.g. 2000"}
+            aria-label="Concession value"
+            inputMode="decimal"
                 value={concValue}
                 onChange={(e) => setConcValue(e.target.value)}
               />
@@ -489,11 +494,12 @@ export default function StudentPaymentModal({
           <input
             className={adminStyles.input}
             placeholder="Reason (optional)"
+            aria-label="Reason"
             value={concNote}
             onChange={(e) => setConcNote(e.target.value)}
           />
           <button className={adminStyles.smallButton} type="button" onClick={submitConcession} disabled={concSubmitting}>
-            {concSubmitting ? "Applying..." : "Apply"}
+            {concSubmitting ? "Applying…" : "Apply"}
           </button>
         </div>
         {concError && <p className={adminStyles.messageError}>{concError}</p>}
@@ -524,6 +530,7 @@ export default function StudentPaymentModal({
               className={adminStyles.input}
               type="number"
               min={1}
+              inputMode="numeric"
               style={{ maxWidth: 90 }}
               value={reactivateDays}
               onChange={(e) => setReactivateDays(e.target.value)}

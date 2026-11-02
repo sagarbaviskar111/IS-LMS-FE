@@ -12,6 +12,7 @@ export default function PortfolioLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,26 +46,46 @@ export default function PortfolioLoginPage() {
             <input
               className={styles.input}
               type="email"
+              name="email"
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              aria-invalid={!!error}
               required
             />
           </label>
 
           <label className={styles.label}>
             Password
-            <input
-              className={styles.input}
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <span className={styles.passwordWrap}>
+              <input
+                className={styles.input}
+                type={showPassword ? "text" : "password"}
+                name="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                aria-invalid={!!error}
+                required
+              />
+              <button
+                type="button"
+                className={styles.toggleBtn}
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </button>
+            </span>
           </label>
 
-          {error && <p className={styles.error}>{error}</p>}
+          {error && <p className={styles.error} role="alert">{error}</p>}
 
           <button className={styles.button} type="submit" disabled={submitting}>
             {submitting ? "Signing in..." : "Sign in"}

@@ -224,17 +224,19 @@ export default function AdminYoutubeSettings() {
             </p>
           )}
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            Client ID
+            <span>Client ID<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               value={clientId}
               onChange={(e) => setClientId(e.target.value)}
               placeholder="xxxxxxxxxx.apps.googleusercontent.com"
+              autoComplete="off"
+              spellCheck={false}
               required
             />
           </label>
           <label className={adminStyles.label} style={{ gridColumn: "1 / -1" }}>
-            Client secret
+            <span>Client secret<span className={adminStyles.required}>*</span></span>
             <input
               className={adminStyles.input}
               type="password"
@@ -244,7 +246,7 @@ export default function AdminYoutubeSettings() {
               required
             />
           </label>
-          <div className={adminStyles.formActions}>
+          <div className={`${adminStyles.formActions} ${adminStyles.fullRow}`}>
             <button className={adminStyles.primaryButton} type="submit" disabled={savingCredentials}>
               {savingCredentials ? "Saving..." : status?.hasCredentials ? "Replace keys" : "Save keys"}
             </button>

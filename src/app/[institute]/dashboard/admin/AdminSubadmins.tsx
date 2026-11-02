@@ -11,6 +11,8 @@ import {
 } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
+import subStyles from "./AdminSubadmins.module.css";
+import ListToolbar from "./ListToolbar";
 import Modal from "../Modal";
 import Pagination from "../Pagination";
 
@@ -43,12 +45,13 @@ function PermissionPicker({
     else next[key] = level as "view" | "manage";
     onChange(next);
   };
+  const granted = Object.keys(value).length;
   return (
     <div>
-      <p className={adminStyles.sectionSubtitle} style={{ marginBottom: 8 }}>
-        Start from a ready-made set, then adjust:
+      <p className={adminStyles.hint} style={{ marginBottom: 8 }}>
+        Start from a ready-made set, then adjust any area below.
       </p>
-      <div className={adminStyles.rowActions} style={{ marginBottom: 12, flexWrap: "wrap" }}>
+      <div className={subStyles.presets} style={{ marginBottom: 14 }}>
         {presets.map((p) => (
           <button key={p.key} type="button" className={adminStyles.smallButton} onClick={() => onChange({ ...p.permissions })}>
             {p.label}
@@ -58,41 +61,40 @@ function PermissionPicker({
           Clear all
         </button>
       </div>
-      <div className={`${adminStyles.tableWrap} table-scroll`}>
-        <table className={adminStyles.table}>
-          <thead>
-            <tr>
-              <th>Area</th>
-              <th>Access</th>
-            </tr>
-          </thead>
-          <tbody>
-            {modules.map((m) => (
-              <tr key={m.key}>
-                <td>
-                  <strong>{m.label}</strong>
-                  <br />
-                  <span className={adminStyles.sectionSubtitle}>{m.hint}</span>
-                </td>
-                <td>
-                  <select
-                    className={adminStyles.select}
-                    value={value[m.key] || ""}
-                    onChange={(e) => set(m.key, e.target.value)}
-                    aria-label={`Access to ${m.label}`}
-                  >
-                    <option value="">No access</option>
-                    <option value="view">View only</option>
-                    <option value="manage">View &amp; change</option>
-                  </select>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className={subStyles.matrix}>
+        <div className={subStyles.matrixHead}>
+          <span>Area</span>
+          <span>Access</span>
+        </div>
+        {modules.map((m) => {
+          const cur = value[m.key] || "";
+          const opts: [string, string, string?][] = [
+            ["", "No access", subStyles.none],
+            ["view", "View"],
+            ["manage", "View & change"],
+          ];
+          return (
+            <div key={m.key} className={subStyles.matrixRow} role="radiogroup" aria-labelledby={`perm-${m.key}`}>
+              <div>
+                <span id={`perm-${m.key}`} className={subStyles.areaName}>
+                  {m.label}
+                </span>
+                <span className={subStyles.areaHint}>{m.hint}</span>
+              </div>
+              <div className={subStyles.segment}>
+                {opts.map(([v, text, cls]) => (
+                  <label key={v || "none"}>
+                    <input type="radio" name={`perm-${m.key}`} checked={cur === v} onChange={() => set(m.key, v)} />
+                    <span className={cls}>{text}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
-      <p className={adminStyles.sectionSubtitle} style={{ marginTop: 8 }}>
-        Settings, online payment keys, sender email, fee rules and sub-admins always stay with you.
+      <p className={adminStyles.hint} style={{ marginTop: 8 }}>
+        {granted} of {modules.length} areas enabled. Settings, online payment keys, sender email, fee rules and sub-admins always stay with you.
       </p>
     </div>
   );
@@ -143,6 +145,23 @@ export default function AdminSubadmins() {
       })
       .catch(() => {});
   }, [actPage, actWho, people.length]);
+
+  const [q, setQ] = useState("");
+  const [statusF, setStatusF] = useState("all");
+  const [sortBy, setSortBy] = useState("name");
+  const shown = people
+    .filter((p) => {
+      const t = q.trim().toLowerCase();
+      if (t && !`${p.name} ${p.email} ${p.phone || ""}`.toLowerCase().includes(t)) return false;
+      if (statusF === "active") return p.isActive;
+      if (statusF === "blocked") return !p.isActive;
+      return true;
+    })
+    .sort((a, b) =>
+      sortBy === "access"
+        ? Object.keys(b.permissions).length - Object.keys(a.permissions).length
+        : a.name.localeCompare(b.name)
+    );
 
   const openNew = () => {
     setForm(EMPTY);
@@ -234,7 +253,7 @@ export default function AdminSubadmins() {
           </button>
         </div>
 
-        {loading && <p>Loading…</p>}
+        {loading && <p className={adminStyles.sectionSubtitle}>Loading…</p>}
         {!loading && people.length === 0 && (
           <div className={adminStyles.emptyState}>
             <span className={adminStyles.emptyStateIcon} aria-hidden="true">🤝</span>
@@ -242,7 +261,47 @@ export default function AdminSubadmins() {
           </div>
         )}
 
-        {people.length > 0 && (
+        {people.length > 1 && (
+          <ListToolbar
+            search={q}
+            onSearch={setQ}
+            placeholder="Search name, email or phone"
+            filters={[
+              {
+                key: "status",
+                label: "Status",
+                value: statusF,
+                onChange: setStatusF,
+                options: [
+                  { value: "all", label: "All" },
+                  { value: "active", label: "Active" },
+                  { value: "blocked", label: "Blocked" },
+                ],
+              },
+            ]}
+            sort={{
+              key: "sort",
+              label: "Sort by",
+              value: sortBy,
+              onChange: setSortBy,
+              options: [
+                { value: "name", label: "Name (A-Z)" },
+                { value: "access", label: "Most access" },
+              ],
+            }}
+            onClear={() => {
+              setQ("");
+              setStatusF("all");
+              setSortBy("name");
+            }}
+            total={shown.length}
+          />
+        )}
+        {people.length > 0 && shown.length === 0 && (
+          <p className={adminStyles.sectionSubtitle}>No sub-admins match your search.</p>
+        )}
+
+        {shown.length > 0 && (
           <div className={`${adminStyles.tableWrap} table-scroll`}>
             <table className={adminStyles.table}>
               <thead>
@@ -254,14 +313,14 @@ export default function AdminSubadmins() {
                 </tr>
               </thead>
               <tbody>
-                {people.map((p) => (
+                {shown.map((p) => (
                   <tr key={p._id}>
                     <td>
                       <strong>{p.name}</strong>
                       <br />
                       <span className={adminStyles.sectionSubtitle}>{p.email}</span>
                     </td>
-                    <td style={{ maxWidth: 360 }}>{summarize(p.permissions, modules)}</td>
+                    <td className={subStyles.cellWrap}>{summarize(p.permissions, modules)}</td>
                     <td>
                       <span className={p.isActive ? adminStyles.badgeSuccess : adminStyles.badgeInactive}>
                         {p.isActive ? "Active" : "Blocked"}
@@ -353,50 +412,90 @@ export default function AdminSubadmins() {
             </button>
           </div>
           <form className={adminStyles.form} onSubmit={save}>
-            <label className={adminStyles.label}>
-              Full name
-              <input className={adminStyles.input} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            </label>
-            <label className={adminStyles.label}>
-              Email (their login)
-              <input
-                className={adminStyles.input}
-                type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                disabled={editing !== "new"}
-                required
-              />
-            </label>
-            <label className={adminStyles.label}>
-              Phone
-              <input className={adminStyles.input} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-            </label>
-            <label className={adminStyles.label}>
-              {editing === "new" ? "Password" : "New password (leave empty to keep the current one)"}
-              <input
-                className={adminStyles.input}
-                type="password"
-                autoComplete="new-password"
-                minLength={6}
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                required={editing === "new"}
-              />
-            </label>
+            <fieldset className={adminStyles.formSection}>
+              <legend className={adminStyles.formSectionTitle}>Login details</legend>
+              <label className={adminStyles.label}>
+                <span>
+                  Full name<span className={adminStyles.required}>*</span>
+                </span>
+                <input
+                  className={adminStyles.input}
+                  value={form.name}
+                  autoComplete="off"
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  required
+                />
+              </label>
+              <label className={adminStyles.label}>
+                <span>
+                  Email<span className={adminStyles.required}>*</span>
+                </span>
+                <input
+                  className={adminStyles.input}
+                  type="email"
+                  autoComplete="off"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  disabled={editing !== "new"}
+                  required
+                />
+                <span className={adminStyles.hint}>
+                  {editing === "new" ? "They log in with this email." : "The login email cannot be changed."}
+                </span>
+              </label>
+              <label className={adminStyles.label}>
+                Phone
+                <input
+                  className={adminStyles.input}
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="off"
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                />
+              </label>
+              <label className={adminStyles.label}>
+                <span>
+                  {editing === "new" ? "Password" : "New password"}
+                  {editing === "new" && <span className={adminStyles.required}>*</span>}
+                </span>
+                <input
+                  className={adminStyles.input}
+                  type="password"
+                  autoComplete="new-password"
+                  minLength={6}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  required={editing === "new"}
+                />
+                <span className={adminStyles.hint}>
+                  {editing === "new" ? "At least 6 characters." : "Leave empty to keep the current password."}
+                </span>
+              </label>
+            </fieldset>
 
-            <PermissionPicker
-              modules={modules}
-              presets={presets}
-              value={form.permissions}
-              onChange={(permissions) => setForm({ ...form, permissions })}
-            />
+            <fieldset className={adminStyles.formSection} style={{ gridTemplateColumns: "1fr" }}>
+              <legend className={adminStyles.formSectionTitle}>What they can do</legend>
+              <PermissionPicker
+                modules={modules}
+                presets={presets}
+                value={form.permissions}
+                onChange={(permissions) => setForm({ ...form, permissions })}
+              />
+            </fieldset>
 
-            <div className={adminStyles.formActions}>
+            <div className={adminStyles.modalFooter}>
+              {formError && (
+                <p className={adminStyles.messageError} role="alert" style={{ margin: 0, marginRight: "auto" }}>
+                  {formError}
+                </p>
+              )}
+              <button className={adminStyles.smallButton} type="button" onClick={() => setEditing(null)} disabled={saving}>
+                Cancel
+              </button>
               <button className={adminStyles.primaryButton} type="submit" disabled={saving}>
                 {saving ? "Saving…" : editing === "new" ? "Create sub-admin" : "Save changes"}
               </button>
-              {formError && <p className={adminStyles.messageError}>{formError}</p>}
             </div>
           </form>
         </Modal>
