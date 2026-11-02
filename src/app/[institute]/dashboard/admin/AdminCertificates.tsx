@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, CertField, CertFieldKey, CertQr, Certificate, CertTemplate } from "@/lib/api";
+import { api, CertBatch, CertField, CertFieldKey, CertQr, Certificate, CertTemplate } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 import certStyles from "./certificates.module.css";
@@ -9,6 +9,7 @@ import Modal from "../Modal";
 import Pagination from "../Pagination";
 import { useDebounced } from "./useDebounced";
 import CertificateIssueModal from "./CertificateIssueModal";
+import CertificateEmailProgress from "./CertificateEmailProgress";
 import { errMsg, pdfName, saveBlob } from "./certificateUtils";
 
 const PAGE_SIZE = 15;
@@ -103,7 +104,7 @@ export default function AdminCertificates() {
       <h1 className={dashboardStyles.pageTitle}>Certificates</h1>
       <p className={dashboardStyles.pageSubtitle}>
         Upload your own certificate design once, place the name and number on it, then issue certificates one by one or
-        for a whole batch. Each one carries a QR code anyone can scan to verify it.
+        for a whole batch, and email them to everyone. Each one can carry a QR code that anyone can scan to verify it and download the PDF.
       </p>
 
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "16px 0" }}>
@@ -820,12 +821,27 @@ function Register({ templates }: { templates: CertTemplate[] }) {
   const [revoking, setRevoking] = useState<Certificate | null>(null);
   const [copied, setCopied] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [batches, setBatches] = useState<CertBatch[]>([]);
+  const [batch, setBatch] = useState("");
+  const [emailJobId, setEmailJobId] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const loadBatches = useCallback(() => {
+    api
+      .certBatches()
+      .then((r) => setBatches(r.batches))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    loadBatches();
+  }, [loadBatches]);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const r = await api.listCertificates({ q: debounced, template, status, page, limit: PAGE_SIZE });
+      const r = await api.listCertificates({ q: debounced, template, batch, status, page, limit: PAGE_SIZE });
       setRows(r.certificates);
       setTotal(r.total);
       setTotalPages(r.totalPages);
@@ -834,13 +850,13 @@ function Register({ templates }: { templates: CertTemplate[] }) {
     } finally {
       setLoading(false);
     }
-  }, [debounced, template, status, page]);
+  }, [debounced, template, batch, status, page]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  useEffect(() => setPage(1), [debounced, template, status]);
+  useEffect(() => setPage(1), [debounced, template, batch, status]);
 
   const download = async (c: Certificate) => {
     setBusyId(c._id);
@@ -883,6 +899,54 @@ function Register({ templates }: { templates: CertTemplate[] }) {
     }
   };
 
+  const emailOne = async (c: Certificate) => {
+    setBusyId(c._id);
+    setError("");
+    setNotice("");
+    try {
+      const { certificate } = await api.emailCertificate(c._id);
+      setRows((rs) => rs.map((r) => (r._id === c._id ? { ...r, ...certificate } : r)));
+      setNotice(`Emailed ${c.studentName}.`);
+      loadBatches();
+    } catch (err) {
+      setError(errMsg(err, "Could not send the email"));
+      load();
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const startEmails = async (payload: { ids?: string[]; batchId?: string; resend?: boolean }) => {
+    setBusyId("email");
+    setError("");
+    setNotice("");
+    try {
+      const r = await api.emailCertificates(payload);
+      setEmailJobId(r.jobId);
+    } catch (err) {
+      setError(errMsg(err, "Could not start emailing"));
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const setQr = async (ids: string[], enabled: boolean) => {
+    setBusyId("qr");
+    setError("");
+    setNotice("");
+    try {
+      await api.setCertificatesQr(ids, enabled);
+      setNotice(`QR code ${enabled ? "added to" : "removed from"} ${ids.length} certificate${ids.length === 1 ? "" : "s"}. New PDFs and downloads will follow this.`);
+      await load();
+    } catch (err) {
+      setError(errMsg(err, "Could not change the QR code"));
+    } finally {
+      setBusyId("");
+    }
+  };
+
+  const currentBatch = batches.find((b) => b._id === batch);
+  const unsentInBatch = currentBatch ? currentBatch.withEmail - currentBatch.emailed : 0;
   const allOnPage = rows.length > 0 && rows.every((r) => picked.has(r._id));
 
   return (
@@ -890,9 +954,24 @@ function Register({ templates }: { templates: CertTemplate[] }) {
       <div className={adminStyles.sectionHead}>
         <h2 className={adminStyles.sectionTitle}>Issued certificates ({total})</h2>
         {picked.size > 0 && (
-          <button className={adminStyles.primaryButton} onClick={downloadPicked} disabled={busyId === "bulk"}>
-            {busyId === "bulk" ? "Preparing…" : `Download ${picked.size} as one PDF`}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className={adminStyles.primaryButton} onClick={downloadPicked} disabled={busyId === "bulk"}>
+              {busyId === "bulk" ? "Preparing…" : `Download ${picked.size} as one PDF`}
+            </button>
+            <button
+              className={adminStyles.smallButton}
+              onClick={() => startEmails({ ids: [...picked], resend: true })}
+              disabled={busyId === "email" || !!emailJobId}
+            >
+              Email {picked.size} selected
+            </button>
+            <button className={adminStyles.smallButton} onClick={() => setQr([...picked], false)} disabled={busyId === "qr"}>
+              Remove QR
+            </button>
+            <button className={adminStyles.smallButton} onClick={() => setQr([...picked], true)} disabled={busyId === "qr"}>
+              Add QR
+            </button>
+          </div>
         )}
       </div>
 
@@ -912,6 +991,14 @@ function Register({ templates }: { templates: CertTemplate[] }) {
             </option>
           ))}
         </select>
+        <select className={adminStyles.select} style={{ maxWidth: 240 }} value={batch} onChange={(e) => setBatch(e.target.value)} aria-label="Certificate batch">
+          <option value="">All certificate batches</option>
+          {batches.map((b) => (
+            <option key={b._id} value={b._id}>
+              {b.name} ({b.total})
+            </option>
+          ))}
+        </select>
         <select className={adminStyles.select} style={{ maxWidth: 160 }} value={status} onChange={(e) => setStatus(e.target.value)}>
           <option value="">All statuses</option>
           <option value="active">Active</option>
@@ -919,6 +1006,66 @@ function Register({ templates }: { templates: CertTemplate[] }) {
         </select>
       </div>
 
+      {currentBatch && (
+        <div
+          style={{
+            display: "flex",
+            gap: 12,
+            alignItems: "center",
+            flexWrap: "wrap",
+            padding: "12px 16px",
+            marginBottom: 12,
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-md)",
+            background: "var(--surface-alt)",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 220 }}>
+            <strong>{currentBatch.name}</strong>
+            <div style={{ color: "var(--muted)", fontSize: "0.85rem" }}>
+              {currentBatch.total} certificate{currentBatch.total === 1 ? "" : "s"} · {currentBatch.emailed} emailed · {currentBatch.withEmail - currentBatch.emailed} waiting
+              {currentBatch.total > currentBatch.withEmail ? ` · ${currentBatch.total - currentBatch.withEmail} without email` : ""}
+            </div>
+          </div>
+          <button
+            className={adminStyles.primaryButton}
+            onClick={() => startEmails({ batchId: currentBatch._id })}
+            disabled={busyId === "email" || !!emailJobId || unsentInBatch <= 0}
+            title={unsentInBatch <= 0 ? "Everyone with an email address has been emailed" : undefined}
+          >
+            {unsentInBatch > 0 ? `Email unsent (${unsentInBatch})` : "All emailed"}
+          </button>
+          <button
+            className={adminStyles.smallButton}
+            onClick={() => startEmails({ batchId: currentBatch._id, resend: true })}
+            disabled={busyId === "email" || !!emailJobId}
+          >
+            Email everyone again
+          </button>
+        </div>
+      )}
+
+      {emailJobId && (
+        <div style={{ padding: "12px 16px", marginBottom: 12, border: "1px solid var(--border)", borderRadius: "var(--radius-md)" }}>
+          <CertificateEmailProgress
+            key={emailJobId}
+            jobId={emailJobId}
+            onFinished={() => {
+              load();
+              loadBatches();
+            }}
+          />
+          <button className={adminStyles.smallButton} style={{ marginTop: 8 }} onClick={() => setEmailJobId("")}>
+            Hide
+          </button>
+        </div>
+      )}
+
+      {notice && (
+        <p className={adminStyles.sectionSubtitle} role="status">
+          {notice}
+        </p>
+      )}
       {error && <p className={adminStyles.messageError}>{error}</p>}
       {loading && <p className={adminStyles.empty}>Loading…</p>}
       {!loading && rows.length === 0 && <p className={adminStyles.empty}>No certificates issued yet.</p>}
@@ -946,6 +1093,7 @@ function Register({ templates }: { templates: CertTemplate[] }) {
                 <th>Student</th>
                 <th>Course</th>
                 <th>Date</th>
+                <th>Email</th>
                 <th>Status</th>
                 <th />
               </tr>
@@ -970,7 +1118,11 @@ function Register({ templates }: { templates: CertTemplate[] }) {
                   </td>
                   <td>
                     <strong>{c.certificateNo}</strong>
-                    <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>{c.templateName}</div>
+                    <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
+                      {c.templateName}
+                      {c.batchName ? ` · ${c.batchName}` : ""}
+                    </div>
+                    {c.qrEnabled === false && <div style={{ color: "var(--muted)", fontSize: "0.78rem" }}>No QR code</div>}
                   </td>
                   <td>{c.studentName}</td>
                   <td>
@@ -978,6 +1130,21 @@ function Register({ templates }: { templates: CertTemplate[] }) {
                     {c.grade && <div style={{ color: "var(--muted)", fontSize: "0.8rem" }}>Grade: {c.grade}</div>}
                   </td>
                   <td>{fmtDate(c.date)}</td>
+                  <td>
+                    {c.emailedAt ? (
+                      <span className={adminStyles.badgeSuccess} title={`Emailed ${new Date(c.emailedAt).toLocaleString()}`}>
+                        Sent {fmtDate(c.emailedAt)}
+                      </span>
+                    ) : c.emailError ? (
+                      <span title={c.emailError} style={{ color: "#b91c1c", fontWeight: 600 }}>
+                        Failed
+                      </span>
+                    ) : c.hasEmail ? (
+                      <span style={{ color: "var(--muted)" }}>Not sent</span>
+                    ) : (
+                      <span style={{ color: "var(--muted)" }}>No email</span>
+                    )}
+                  </td>
                   <td>
                     {c.status === "active" ? (
                       <span className={adminStyles.badgeSuccess}>Active</span>
@@ -991,6 +1158,14 @@ function Register({ templates }: { templates: CertTemplate[] }) {
                     <div className={adminStyles.rowActions}>
                       <button className={adminStyles.smallButton} onClick={() => download(c)} disabled={busyId === c._id}>
                         {busyId === c._id ? "…" : "PDF"}
+                      </button>
+                      {c.status === "active" && c.hasEmail && (
+                        <button className={adminStyles.smallButton} onClick={() => emailOne(c)} disabled={busyId === c._id}>
+                          {busyId === c._id ? "Sending…" : c.emailedAt ? "Email again" : "Email"}
+                        </button>
+                      )}
+                      <button className={adminStyles.smallButton} onClick={() => setQr([c._id], c.qrEnabled === false)} disabled={busyId === "qr"}>
+                        {c.qrEnabled === false ? "Add QR" : "Remove QR"}
                       </button>
                       <button className={adminStyles.smallButton} onClick={() => copyLink(c)}>
                         {copied === c._id ? "Copied" : "Copy link"}

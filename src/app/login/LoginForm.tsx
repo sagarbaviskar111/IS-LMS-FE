@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { payWithRazorpay } from "@/lib/razorpay";
 import { api, ApiError, Institute } from "@/lib/api";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
@@ -52,7 +53,10 @@ export default function LoginForm({
     setError("");
     setSubmitting(true);
     try {
-      await api.payDues({ email, password });
+      const creds = { email, password };
+      const order = await api.createDuesOrder(creds);
+      const proof = order.mode === "gateway" ? await payWithRazorpay(order, { title: "Fee payment", description: "Dues" }) : undefined;
+      await api.payDues(creds, proof);
       // Account is active again — sign straight in.
       await doLogin(email, password);
       return;

@@ -1,3 +1,4 @@
+import type { PaymentOrder, RazorpayProof } from "./razorpay";
 import { dayEndISO, dayStartISO } from "./dates";
 
 // In dev the configured address is often this PC's LAN IP (so a phone can reach
@@ -267,6 +268,34 @@ export interface EnrollmentSummary {
   state: "no_link" | "active" | "expired" | "used";
 }
 
+// What the server returns right after an online payment was recorded.
+export interface PaidReceipt {
+  _id: string;
+  amount: number;
+  receiptNo: string;
+  createdAt: string;
+}
+
+export interface PaymentAttention {
+  _id: string;
+  purpose: "dues" | "next_installment" | "course_registration";
+  amount: number;
+  excess: number;
+  status: "paid" | "fulfilled";
+  paidAt: string | null;
+  student: { name: string; email: string } | null;
+  email: string | null;
+  razorpayOrderId: string;
+  razorpayPaymentId: string | null;
+}
+
+export interface RazorpaySettings {
+  configured: boolean;
+  keyId: string | null;
+  mode: "test" | "live" | null;
+  connectedAt: string | null;
+}
+
 export interface RegisterStudentPayload {
   name: string;
   email: string;
@@ -279,6 +308,8 @@ export interface RegisterStudentPayload {
 }
 
 export interface CourseRegistrationInfo {
+  // gateway = real Razorpay checkout, dev = no keys on a dev machine, none = not available
+  paymentMode?: "gateway" | "dev" | "none";
   institute: { name: string; slug: string; logoUrl: string | null };
   enrollment: EnrollmentLinkInfo | null;
   course: Pick<
@@ -422,6 +453,8 @@ export interface MyRegistration {
 }
 
 export interface StudentPaymentSummary {
+  // False only where online payment isn't available at all (no Razorpay keys on production).
+  onlinePayment?: boolean;
   // Course students: every installment with its own due date.
   schedule?: InstallmentItem[];
   installmentAmount?: number;
@@ -1207,6 +1240,38 @@ export interface Certificate {
   revokedReason: string;
   issuedAt: string;
   verifyUrl: string;
+  qrEnabled?: boolean;
+  batchId?: string | null;
+  batchName?: string;
+  hasEmail?: boolean;
+  emailedAt?: string | null;
+  emailError?: string;
+}
+
+export interface CertBatch {
+  _id: string;
+  name: string;
+  templateName: string;
+  createdAt: string;
+  total: number;
+  withEmail: number;
+  emailed: number;
+}
+
+export interface CertEmailJob {
+  id: string;
+  state: "running" | "done";
+  total: number;
+  done: number;
+  sent: number;
+  failed: number;
+  noEmail: number;
+  alreadySent: number;
+  revoked: number;
+  // Waiting for tomorrow because the 90-a-day email limit was reached.
+  limited: number;
+  notSent: number;
+  error: string;
 }
 
 export interface CertificateVerification {
@@ -1234,6 +1299,8 @@ export interface CertSheetRow {
 
 export interface IssueResult {
   certificates: Certificate[];
+  batch?: { _id: string; name: string } | null;
+  emailJob?: { jobId: string; total: number } | { error: string } | null;
   skipped: { studentId: string | null; name: string; reason: string }[];
   invalid?: { row: number; name: string; reason: string }[];
 }
@@ -1246,6 +1313,9 @@ export interface IssueCertificatesPayload {
   grade?: string;
   certificateNo?: string;
   allowDuplicate?: boolean;
+  batchName?: string;
+  qrEnabled?: boolean;
+  sendEmail?: boolean;
 }
 
 export const api = {
@@ -1407,7 +1477,7 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify(payload),
     }),
-  getEmailSettings: () => request<{ address: string | null; hasCredentials: boolean }>("/api/users/email-settings"),
+  getEmailSettings: () => request<{ address: string | null; hasCredentials: boolean; sentToday: number; reminderLimit: number }>("/api/users/email-settings"),
   updateEmailSettings: (payload: { address: string; appPassword: string }) =>
     request<{ message: string }>("/api/users/email-settings", {
       method: "PATCH",
@@ -1959,6 +2029,18 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload),
     }),
+  // Convert a lead the same way Students > Register student works
+  registerLeadStudent: (id: string, payload: RegisterStudentPayload) =>
+    request<{ student: User; enrollment: EnrollmentSummary; lead: Lead }>(`/api/leads/${id}/register-student`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  leadEnrollment: (id: string) => request<{ enrollment: EnrollmentSummary | null }>(`/api/leads/${id}/enrollment`),
+  createLeadEnrollmentLink: (id: string, expiresInHours: number) =>
+    request<{ enrollment: EnrollmentSummary }>(`/api/leads/${id}/enrollment-link`, {
+      method: "POST",
+      body: JSON.stringify({ expiresInHours }),
+    }),
   generateLeadLink: (id: string, feeAmount?: number) =>
     request<{ token: string; feeAmount: number }>(`/api/leads/${id}/registration-link`, {
       method: "POST",
@@ -2007,6 +2089,18 @@ export const api = {
     request<{ student: User; lead: Lead }>(`/api/telecaller/leads/${id}/register`, {
       method: "POST",
       body: JSON.stringify(payload),
+    }),
+  telecallerCourses: () => request<{ courses: Course[] }>("/api/telecaller/courses"),
+  registerMyLeadStudent: (id: string, payload: RegisterStudentPayload) =>
+    request<{ student: User; enrollment: EnrollmentSummary; lead: Lead }>(`/api/telecaller/leads/${id}/register-student`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  myLeadEnrollment: (id: string) => request<{ enrollment: EnrollmentSummary | null }>(`/api/telecaller/leads/${id}/enrollment`),
+  createMyLeadEnrollmentLink: (id: string, expiresInHours: number) =>
+    request<{ enrollment: EnrollmentSummary }>(`/api/telecaller/leads/${id}/enrollment-link`, {
+      method: "POST",
+      body: JSON.stringify({ expiresInHours }),
     }),
   generateMyLeadLink: (id: string, feeAmount?: number) =>
     request<{ token: string; feeAmount: number }>(`/api/telecaller/leads/${id}/registration-link`, {
@@ -2114,8 +2208,13 @@ export const api = {
     if (!res.ok) throw new ApiError("Could not load the file", res.status);
     return res.blob();
   },
-  payNextInstallment: () =>
-    request<{ nextDueDate: string }>("/api/student/payments/next-installment", { method: "POST" }),
+  payNextInstallment: (razorpay?: RazorpayProof) =>
+    request<{ nextDueDate: string; payment: PaidReceipt; excess: number }>("/api/student/payments/next-installment", {
+      method: "POST",
+      body: JSON.stringify({ razorpay }),
+    }),
+  createNextInstallmentOrder: () =>
+    request<PaymentOrder>("/api/student/payments/next-installment/order", { method: "POST" }),
   // Student: own payment history
   myPayments: (opts?: { page?: number; limit?: number }) => {
     const params = new URLSearchParams();
@@ -2180,10 +2279,14 @@ export const api = {
     rows: CertSheetRow[];
     defaults: { course?: string; grade?: string; date?: string };
     allowDuplicate?: boolean;
+    batchName?: string;
+    qrEnabled?: boolean;
+    sendEmail?: boolean;
   }) => request<IssueResult>("/api/certificates/issue-sheet", { method: "POST", body: JSON.stringify(payload) }),
-  listCertificates: (q: { template?: string; status?: string; q?: string; page?: number; limit?: number } = {}) => {
+  listCertificates: (q: { template?: string; batch?: string; status?: string; q?: string; page?: number; limit?: number } = {}) => {
     const params = new URLSearchParams();
     if (q.template) params.set("template", q.template);
+    if (q.batch) params.set("batch", q.batch);
     if (q.status) params.set("status", q.status);
     if (q.q?.trim()) params.set("q", q.q.trim());
     if (q.page) params.set("page", String(q.page));
@@ -2201,6 +2304,16 @@ export const api = {
   certificatePdf: (id: string) => fetchBlob(`/api/certificates/${id}/pdf`),
   certificatesPdf: (ids: string[]) =>
     fetchBlob("/api/certificates/pdf", { method: "POST", body: JSON.stringify({ ids }) }),
+  certBatches: () => request<{ batches: CertBatch[] }>("/api/certificates/batches"),
+  // Many at once: the chosen certificates, or a whole batch. Runs in the background; poll certEmailJob.
+  emailCertificates: (payload: { ids?: string[]; batchId?: string; resend?: boolean }) =>
+    request<{ jobId: string; total: number }>("/api/certificates/email", { method: "POST", body: JSON.stringify(payload) }),
+  certEmailJob: (id: string) => request<{ job: CertEmailJob }>(`/api/certificates/email-jobs/${id}`),
+  emailCertificate: (id: string) =>
+    request<{ certificate: Certificate }>(`/api/certificates/${id}/email`, { method: "POST" }),
+  setCertificatesQr: (ids: string[], enabled: boolean) =>
+    request<{ updated: number; qrEnabled: boolean }>("/api/certificates/qr", { method: "POST", body: JSON.stringify({ ids, enabled }) }),
+  verifyCertificatePdf: (code: string) => fetchBlob(`/api/certificates/verify/${encodeURIComponent(code)}/pdf`),
   myCertificates: () => request<{ certificates: Certificate[] }>("/api/student/certificates"),
   myCertificatePdf: (id: string) => fetchBlob(`/api/student/certificates/${id}/pdf`),
   verifyCertificate: (code: string) =>
@@ -2246,11 +2359,30 @@ export const api = {
       body: JSON.stringify({ days }),
     }),
   // Pay the full balance due. Pass credentials when locked out of the account.
-  payDues: (credentials?: { email: string; password: string }) =>
-    request<{ message: string }>(credentials ? "/api/auth/dues-payment" : "/api/auth/me/dues-payment", {
+  // Pay the full balance due. Pass credentials when locked out of the account, and
+  // the Razorpay proof once the student has paid in checkout.
+  payDues: (credentials?: { email: string; password: string }, razorpay?: RazorpayProof) =>
+    request<{ message: string; payment: PaidReceipt; excess: number }>(credentials ? "/api/auth/dues-payment" : "/api/auth/me/dues-payment", {
+      method: "POST",
+      body: JSON.stringify({ ...(credentials ?? {}), razorpay }),
+    }),
+  createDuesOrder: (credentials?: { email: string; password: string }) =>
+    request<PaymentOrder>(credentials ? "/api/auth/dues-payment/order" : "/api/auth/me/dues-payment/order", {
       method: "POST",
       body: JSON.stringify(credentials ?? {}),
     }),
+  createRegistrationOrder: (token: string, payload: { slug: string; plan: string; email?: string; name?: string }) =>
+    request<PaymentOrder | { mode: "paid"; orderId: string; amount: number }>(`/api/course-registration/${encodeURIComponent(token)}/payment-order`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  // Admin: the institute's own Razorpay account
+  paymentsNeedingAttention: () => request<{ orders: PaymentAttention[] }>("/api/payments/orders/attention"),
+  getRazorpaySettings: () => request<{ razorpay: RazorpaySettings }>("/api/institutes/razorpay"),
+  saveRazorpaySettings: (payload: { keyId: string; keySecret: string }) =>
+    request<{ razorpay: RazorpaySettings }>("/api/institutes/razorpay", { method: "PUT", body: JSON.stringify(payload) }),
+  removeRazorpaySettings: () => request<{ razorpay: RazorpaySettings }>("/api/institutes/razorpay", { method: "DELETE" }),
 
   // Admin: YouTube integration for session recordings
   getYoutubeStatus: () => request<YoutubeStatus>("/api/admin/youtube/status"),

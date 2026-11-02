@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { api, Role, User } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
+import SenderEmailWarning from "./SenderEmailWarning";
 
 const TEAM_ROLES: { value: Role; label: string; path: string }[] = [
   { value: "student", label: "Students", path: "students" },
@@ -71,6 +72,8 @@ export default function AdminOverview() {
       <p className={dashboardStyles.pageSubtitle}>
         Manage your coaching class — students, teachers, and telecallers.
       </p>
+
+      <SenderEmailWarning />
 
       <div className={dashboardStyles.cardGrid} style={{ marginBottom: 20 }}>
         {TEAM_ROLES.map((r) => (

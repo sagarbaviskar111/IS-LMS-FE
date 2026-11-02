@@ -35,48 +35,62 @@ function getNavSections(
   const network = { href: `${base}/dashboard/${role}/network`, label: "Class Network", badge: chatUnreadCount };
 
   switch (role) {
+    // Menus are grouped by what people do together, most-used first:
+    // related pages sit under one heading instead of one long flat list.
     case "superadmin":
       return [
+        { items: [{ href: `${base}/dashboard/superadmin`, label: "Overview" }] },
         {
+          title: "Website",
           items: [
-            { href: `${base}/dashboard/superadmin`, label: "Overview" },
-            { href: `${base}/dashboard/superadmin/job-emails`, label: "Job Email Contacts" },
             { href: `${base}/dashboard/superadmin/testimonials`, label: "Landing Reviews" },
+            { href: `${base}/dashboard/superadmin/job-emails`, label: "Job Email Contacts" },
           ],
         },
         {
-          title: "Settings",
-          items: [{ href: `${base}/dashboard/superadmin/email`, label: "Email Settings" }],
+          title: "Platform",
+          items: [{ href: `${base}/dashboard/superadmin/email`, label: "Email Settings" }, notifications],
         },
-        { items: [notifications] },
       ];
     case "admin":
       return [
         { items: [{ href: `${base}/dashboard/admin`, label: "Overview" }] },
         {
-          title: "Students",
+          title: "Admissions",
           items: [
             { href: `${base}/dashboard/admin/leads`, label: "Leads" },
             { href: `${base}/dashboard/admin/inquiry-forms`, label: "Inquiry Forms" },
+            { href: `${base}/dashboard/admin/pending`, label: "Pending Approvals", badge: pendingCount },
+          ],
+        },
+        {
+          title: "People",
+          items: [
             { href: `${base}/dashboard/admin/students`, label: "Students" },
             { href: `${base}/dashboard/admin/groups`, label: "Student Groups" },
+            { href: `${base}/dashboard/admin/teachers`, label: "Teachers" },
+            { href: `${base}/dashboard/admin/telecallers`, label: "Telecallers" },
+          ],
+        },
+        {
+          title: "Academics",
+          items: [
+            { href: `${base}/dashboard/admin/courses`, label: "Courses" },
+            { href: `${base}/dashboard/admin/batches`, label: "Batches" },
+          ],
+        },
+        {
+          title: "Finance & Records",
+          items: [
+            { href: `${base}/dashboard/admin/finance`, label: "Finance" },
+            { href: `${base}/dashboard/admin/certificates`, label: "Certificates" },
             { href: `${base}/dashboard/admin/placements`, label: "Job Placements" },
           ],
         },
         {
+          title: "Workspace",
           items: [
-            { href: `${base}/dashboard/admin/teachers`, label: "Teachers" },
-            { href: `${base}/dashboard/admin/telecallers`, label: "Telecallers" },
-            { href: `${base}/dashboard/admin/courses`, label: "Courses" },
-            { href: `${base}/dashboard/admin/batches`, label: "Batches" },
-            { href: `${base}/dashboard/admin/finance`, label: "Finance" },
-            { href: `${base}/dashboard/admin/certificates`, label: "Certificates" },
-            { href: `${base}/dashboard/admin/pending`, label: "Pending Approvals", badge: pendingCount },
             { href: `${base}/dashboard/admin/tools`, label: "Tools" },
-          ],
-        },
-        {
-          items: [
             { href: `${base}/dashboard/admin/settings`, label: "Settings" },
             notifications,
           ],
@@ -84,50 +98,70 @@ function getNavSections(
       ];
     case "teacher":
       return [
+        { items: [{ href: `${base}/dashboard/teacher`, label: "Overview" }] },
         {
+          title: "Classes",
           items: [
-            { href: `${base}/dashboard/teacher`, label: "Overview" },
             { href: `${base}/dashboard/teacher/sessions`, label: "Sessions" },
             { href: `${base}/dashboard/teacher/attendance`, label: "Attendance" },
-            { href: `${base}/dashboard/teacher/materials/study`, label: "Study Material" },
             { href: `${base}/dashboard/teacher/materials/recordings`, label: "Session Recording" },
+            { href: `${base}/dashboard/teacher/materials/study`, label: "Study Material" },
+          ],
+        },
+        {
+          title: "Assessments",
+          items: [
             { href: `${base}/dashboard/teacher/exams`, label: "Exams" },
             { href: `${base}/dashboard/teacher/assignments`, label: "Assignments" },
-            { href: `${base}/dashboard/teacher/tools`, label: "Tools" },
-            network,
-            notifications,
           ],
+        },
+        {
+          title: "Connect & Tools",
+          items: [network, notifications, { href: `${base}/dashboard/teacher/tools`, label: "Tools" }],
         },
       ];
     case "student":
       return [
+        { items: [{ href: `${base}/dashboard/student`, label: "Overview" }] },
         {
+          title: "Learning",
           items: [
-            { href: `${base}/dashboard/student`, label: "Overview" },
-            { href: `${base}/dashboard/student/materials/study`, label: "Study Material" },
             { href: `${base}/dashboard/student/materials/recordings`, label: "Session Recording" },
-            { href: `${base}/dashboard/student/exams`, label: "Exams" },
+            { href: `${base}/dashboard/student/materials/study`, label: "Study Material" },
             { href: `${base}/dashboard/student/assignments`, label: "Assignments" },
-            { href: `${base}/dashboard/student/payments`, label: "Payments" },
-            { href: `${base}/dashboard/student/documents`, label: "My Documents" },
-            { href: `${base}/dashboard/student/certificates`, label: "My Certificates" },
-            { href: `${base}/dashboard/student/placements`, label: "Job Placements" },
-            { href: `${base}/dashboard/student/tools`, label: "Tools" },
-            network,
-            notifications,
+            { href: `${base}/dashboard/student/exams`, label: "Exams" },
           ],
         },
+        {
+          title: "My Records",
+          items: [
+            { href: `${base}/dashboard/student/payments`, label: "Payments" },
+            { href: `${base}/dashboard/student/certificates`, label: "My Certificates" },
+            { href: `${base}/dashboard/student/documents`, label: "My Documents" },
+          ],
+        },
+        {
+          title: "Career",
+          items: [
+            { href: `${base}/dashboard/student/placements`, label: "Job Placements" },
+            { href: `${base}/dashboard/student/tools`, label: "Tools" },
+          ],
+        },
+        { title: "Connect", items: [network, notifications] },
       ];
     case "telecaller":
       return [
+        { items: [{ href: `${base}/dashboard/telecaller`, label: "Overview" }] },
         {
+          title: "Leads",
           items: [
-            { href: `${base}/dashboard/telecaller`, label: "Overview" },
             { href: `${base}/dashboard/telecaller/leads`, label: "My Leads" },
             { href: `${base}/dashboard/telecaller/inquiry-forms`, label: "Inquiry Forms" },
-            notifications,
-            { href: `${base}/dashboard/telecaller/quick-messages`, label: "Quick Messages" },
           ],
+        },
+        {
+          title: "Communication",
+          items: [{ href: `${base}/dashboard/telecaller/quick-messages`, label: "Quick Messages" }, notifications],
         },
       ];
     default:

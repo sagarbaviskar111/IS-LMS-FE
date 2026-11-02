@@ -5,12 +5,12 @@ import styles from "./landing.module.css";
 import navStyles from "./LandingNav.module.css";
 
 const NAV_LINKS = [
-  { href: "#services", label: "Services" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#showcase", label: "Product" },
-  { href: "#reviews", label: "Reviews" },
+  { href: "/#services", label: "Services" },
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#showcase", label: "Product" },
+  { href: "/#reviews", label: "Reviews" },
   { href: "/student-portfolio", label: "Student Portfolio" },
-  { href: "#faq", label: "FAQ" },
+  { href: "/#faq", label: "FAQ" },
 ];
 
 export default function LandingNav() {
@@ -22,17 +22,11 @@ export default function LandingNav() {
         </Link>
 
         <nav className={navStyles.links}>
-          {NAV_LINKS.map((link) =>
-            link.href.startsWith("#") ? (
-              <a key={link.href} href={link.href} className={navStyles.link}>
-                {link.label}
-              </a>
-            ) : (
-              <Link key={link.href} href={link.href} className={navStyles.link}>
-                {link.label}
-              </Link>
-            )
-          )}
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className={navStyles.link}>
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
         <div className={navStyles.actions}>

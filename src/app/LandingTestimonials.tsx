@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SiteFooter from "@/components/SiteFooter";
 import sharedStyles from "./landing.module.css";
 import styles from "./LandingTestimonials.module.css";
 import { DEFAULT_TESTIMONIALS, TestimonialItem } from "@/lib/defaultTestimonials";
@@ -150,92 +151,7 @@ export default async function LandingTestimonials() {
         </div>
       </section>
 
-      <footer className={styles.footer}>
-        <div className={sharedStyles.container}>
-          <div className={styles.footerTop}>
-            <div className={styles.footerBrand}>
-              <div className={styles.footerBrandRow}>
-                <div className={styles.footerMark}>IS</div>
-                <span className={styles.footerBrandName}>InstituteSathi</span>
-              </div>
-              <p className={styles.footerTagline}>
-                The all-in-one dashboard for coaching institutes.
-              </p>
-            </div>
-
-            <div className={styles.footerCols}>
-              <div className={styles.footerCol}>
-                <p className={styles.footerColTitle}>Product</p>
-                <ul className={styles.footerColList}>
-                  <li>
-                    <a href="#services" className={styles.footerColLink}>
-                      Services
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#how-it-works" className={styles.footerColLink}>
-                      How it works
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#showcase" className={styles.footerColLink}>
-                      Product
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#faq" className={styles.footerColLink}>
-                      Reviews
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div className={styles.footerCol}>
-                <p className={styles.footerColTitle}>Company</p>
-                <ul className={styles.footerColList}>
-                  <li>
-                    <a href="#" className={styles.footerColLink}>
-                      About
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className={styles.footerColLink}>
-                      Contact
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className={styles.footerColLink}>
-                      Careers
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <div className={styles.footerCol}>
-                <p className={styles.footerColTitle}>Legal</p>
-                <ul className={styles.footerColList}>
-                  <li>
-                    <a href="#" className={styles.footerColLink}>
-                      Privacy Policy
-                    </a>
-                  </li>
-                  <li>
-                    <a href="#" className={styles.footerColLink}>
-                      Terms of Service
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.footerBottom}>
-            <p className={styles.footerBottomText}>
-              &copy; {new Date().getFullYear()} InstituteSathi. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

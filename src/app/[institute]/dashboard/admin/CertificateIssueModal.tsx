@@ -6,6 +6,7 @@ import { api, ApiError, Batch, CertSheetRow, CertTemplate, IssueResult, User } f
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 import Modal from "../Modal";
+import CertificateEmailProgress from "./CertificateEmailProgress";
 import { useDebounced } from "./useDebounced";
 import { errMsg, pdfName, saveBlob, ymd } from "./certificateUtils";
 
@@ -119,6 +120,15 @@ export default function CertificateIssueModal({
   const [number, setNumber] = useState("");
   const [allowDuplicate, setAllowDuplicate] = useState(false);
 
+  // after issuing
+  const [makeBatch, setMakeBatch] = useState(true);
+  const [batchNameInput, setBatchNameInput] = useState("");
+  const [showQr, setShowQr] = useState(true);
+  const [sendEmail, setSendEmail] = useState(false);
+  const [senderReady, setSenderReady] = useState<boolean | null>(null);
+  const [emailJobId, setEmailJobId] = useState("");
+  const [emailMsg, setEmailMsg] = useState("");
+
   // pick students
   const [batches, setBatches] = useState<Batch[]>([]);
   const [batch, setBatch] = useState("");
@@ -138,6 +148,13 @@ export default function CertificateIssueModal({
   const [result, setResult] = useState<IssueResult | null>(null);
 
   const batchName = useMemo(() => new Map(batches.map((b) => [b._id, b.name])), [batches]);
+
+  useEffect(() => {
+    api
+      .getEmailSettings()
+      .then((r) => setSenderReady(r.hasCredentials))
+      .catch(() => setSenderReady(null));
+  }, []);
 
   useEffect(() => {
     api
@@ -202,11 +219,26 @@ export default function CertificateIssueModal({
   const count = mode === "pick" ? picked.size : rows.length;
   const dateIso = new Date(`${date}T12:00:00`).toISOString();
 
+  const template = templates.find((t) => t._id === templateId);
+  const qrOnTemplate = template?.qr.enabled !== false;
+  const defaultBatchName = `${template?.name || "Certificates"} – ${new Date(`${date}T12:00:00`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  })}`;
+  // Students always have an email; a sheet only for the rows that list one.
+  const withEmail = mode === "pick" ? picked.size : rows.filter((r) => r.email.trim()).length;
+
   const submit = async () => {
     setError("");
     if (!templateId) return setError("Choose a template");
     if (!count) return setError(mode === "pick" ? "Select at least one student" : "Upload a sheet with recipients");
     setBusy(true);
+    const issueOptions = {
+      batchName: makeBatch ? batchNameInput.trim() || defaultBatchName : "",
+      qrEnabled: qrOnTemplate && showQr,
+      sendEmail: sendEmail && withEmail > 0,
+    };
     try {
       const r =
         mode === "pick"
@@ -218,14 +250,18 @@ export default function CertificateIssueModal({
               grade: grade.trim() || undefined,
               certificateNo: picked.size === 1 && number.trim() ? number.trim() : undefined,
               allowDuplicate,
+              ...issueOptions,
             })
           : await api.issueCertificatesSheet({
               templateId,
               rows,
               defaults: { course: course.trim() || undefined, grade: grade.trim() || undefined, date: dateIso },
               allowDuplicate,
+              ...issueOptions,
             });
       setResult(r);
+      if (r.emailJob && "jobId" in r.emailJob) setEmailJobId(r.emailJob.jobId);
+      else if (r.emailJob && "error" in r.emailJob) setEmailMsg(r.emailJob.error);
       onDone();
     } catch (err) {
       if (err instanceof ApiError && err.status === 409) {
@@ -255,6 +291,21 @@ export default function CertificateIssueModal({
 
   const templateName = templates.find((t) => t._id === templateId)?.name;
 
+  // For people issued without choosing "email everyone": email them now.
+  const emailAllNow = async () => {
+    if (!result) return;
+    setBusy(true);
+    setEmailMsg("");
+    try {
+      const r = await api.emailCertificates({ ids: result.certificates.map((c) => c._id) });
+      setEmailJobId(r.jobId);
+    } catch (err) {
+      setEmailMsg(errMsg(err, "Could not start emailing"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   /* ---------------------------------------------------------- result view */
   if (result) {
     return (
@@ -276,11 +327,35 @@ export default function CertificateIssueModal({
             }}
           >
             {result.certificates.length} certificate{result.certificates.length === 1 ? "" : "s"} created from “{templateName}”.
+            {result.batch && <span style={{ fontWeight: 400 }}> Saved in certificate batch “{result.batch.name}”.</span>}
           </div>
           <p className={adminStyles.sectionSubtitle} style={{ margin: 0 }}>
-            Students with an account were notified and can download theirs from <em>My Certificates</em>. Download the PDF to
-            print or share the rest.
+            Students with an account were notified and can download theirs from <em>My Certificates</em>. Anyone who scans the QR
+            code (or opens the link in the email) can also download theirs from the verification page.
           </p>
+
+          <div style={card}>
+            <h3 style={stepTitle}>Email</h3>
+            {emailJobId ? (
+              <CertificateEmailProgress jobId={emailJobId} />
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                {emailMsg && <p className={adminStyles.messageError}>{emailMsg}</p>}
+                <p className={adminStyles.sectionSubtitle} style={{ margin: 0 }}>
+                  {sendEmail
+                    ? "No certificate had an email address, so nothing was emailed."
+                    : "Not emailed yet. You can email everyone now, or one by one from the Issued certificates list."}
+                </p>
+                {!sendEmail && (
+                  <div>
+                    <button className={adminStyles.primaryButton} onClick={emailAllNow} disabled={busy}>
+                      Email all now
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className={adminStyles.tableWrap}>
             <table className={adminStyles.table}>
@@ -651,6 +726,72 @@ export default function CertificateIssueModal({
             {detailsForm}
           </section>
         </div>
+
+        <section style={card}>
+          <h3 style={stepTitle}>5 · After issuing</h3>
+          <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
+            <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontWeight: 600 }}>
+                <input style={{ marginTop: 3 }} type="checkbox" checked={makeBatch} onChange={(e) => setMakeBatch(e.target.checked)} />
+                Save these as a certificate batch
+              </label>
+              <input
+                className={adminStyles.input}
+                value={batchNameInput}
+                onChange={(e) => setBatchNameInput(e.target.value)}
+                placeholder={defaultBatchName}
+                maxLength={100}
+                disabled={!makeBatch}
+                aria-label="Certificate batch name"
+              />
+              <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
+                A batch groups this round of certificates so you can find, download or email them together later.
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontWeight: 600 }}>
+                <input
+                  style={{ marginTop: 3 }}
+                  type="checkbox"
+                  checked={qrOnTemplate && showQr}
+                  disabled={!qrOnTemplate}
+                  onChange={(e) => setShowQr(e.target.checked)}
+                />
+                Show QR code on these certificates
+              </label>
+              <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
+                {qrOnTemplate
+                  ? "Untick to leave the QR code off. The verification link still works, and you can change this later."
+                  : "This template has its QR code switched off in the layout editor."}
+              </span>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
+              <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontWeight: 600 }}>
+                <input
+                  style={{ marginTop: 3 }}
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                />
+                Email the certificate to everyone
+              </label>
+              <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>
+                {count === 0
+                  ? "The PDF is attached to an email from your institute's Gmail."
+                  : `${withEmail} of ${count} ${count === 1 ? "has" : "have"} an email address.`}{" "}
+                Up to 90 emails go out per day.
+              </span>
+              {sendEmail && senderReady === false && (
+                <span style={{ fontSize: "0.82rem", color: "var(--danger)" }}>
+                  Your sender email is not set up yet, so these would not be sent. Set it up in Settings first.
+                </span>
+              )}
+              <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Prefer to send one by one? Leave this off and use “Email” in the list.</span>
+            </div>
+          </div>
+        </section>
 
         {error && <p className={adminStyles.messageError}>{error}</p>}
         <div

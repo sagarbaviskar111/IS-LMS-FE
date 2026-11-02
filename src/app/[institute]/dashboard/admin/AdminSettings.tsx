@@ -9,12 +9,18 @@ import AdminVideoSettings from "./AdminVideoSettings";
 import AdminPasswordResetSettings from "./AdminPasswordResetSettings";
 import AdminSenderEmailSettings from "./AdminSenderEmailSettings";
 import AdminLeadIntegrations from "./AdminLeadIntegrations";
+import AdminRazorpaySettings from "./AdminRazorpaySettings";
 
 const TABS = [
   {
     key: "branding",
     label: "Branding",
     hint: "Your institute's own login address, logo and colors — shown to your students, teachers and telecallers.",
+  },
+  {
+    key: "payments",
+    label: "Online Payments",
+    hint: "Connect your own Razorpay account so students can pay fees online straight into it.",
   },
   {
     key: "youtube",
@@ -65,6 +71,7 @@ function AdminSettingsInner() {
       </div>
 
       {tab === "branding" && <AdminBrandingSettings />}
+      {tab === "payments" && <AdminRazorpaySettings />}
       {tab === "youtube" && <AdminVideoSettings />}
       {tab === "sender-email" && <AdminSenderEmailSettings />}
       {tab === "password-resets" && <AdminPasswordResetSettings onOpenSenderEmail={() => setTab("sender-email")} />}

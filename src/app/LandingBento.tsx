@@ -116,10 +116,10 @@ function FeesTile() {
         <span className={`${styles.switch} ${auto ? styles.switchOn : ""}`} aria-hidden="true">
           <span />
         </span>
-        <span>Daily WhatsApp reminders</span>
+        <span>Daily email reminders</span>
       </button>
       <p className={styles.bubble} data-off={!auto}>
-        {auto ? "✓ WhatsApp reminder sent: “Hi, Aarav's ₹1,500 fee is due on 5 Nov. Pay from your login.”" : "Reminders paused. Nothing will be sent."}
+        {auto ? "✓ Email reminder sent:“Hi, Aarav's ₹1,500 fee is due on 5 Nov. Pay from your login.”" : "Reminders paused. Nothing will be sent."}
       </p>
     </article>
   );

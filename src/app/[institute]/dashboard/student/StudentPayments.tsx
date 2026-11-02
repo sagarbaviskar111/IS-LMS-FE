@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, ApiError, Payment, StudentPaymentSummary } from "@/lib/api";
+import { api, ApiError, PaidReceipt, Payment, StudentPaymentSummary } from "@/lib/api";
+import { payWithRazorpay, PaymentOrder, RazorpayProof } from "@/lib/razorpay";
 import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "../admin/admin.module.css";
 import studentStyles from "./student.module.css";
@@ -118,6 +119,7 @@ export default function StudentPayments() {
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState("");
   const [receiptId, setReceiptId] = useState<string | null>(null);
+  const [paidNotice, setPaidNotice] = useState<{ payment: PaidReceipt; excess: number } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
@@ -138,33 +140,46 @@ export default function StudentPayments() {
       .finally(() => setLoading(false));
   }, [page, reloadKey]);
 
-  const handlePay = async () => {
+  // Opens Razorpay, then asks the server to confirm and record the payment. If the
+  // money was taken but the confirmation did not reach us, say so clearly: the
+  // server finishes it in the background, so the student must not pay twice.
+  const runPayment = async (
+    open: () => Promise<PaymentOrder>,
+    confirm: (proof?: RazorpayProof) => Promise<{ payment: PaidReceipt; excess: number }>,
+    description: string
+  ) => {
     setPayError("");
+    setPaidNotice(null);
     setPaying(true);
+    let proof: RazorpayProof | undefined;
     try {
-      await api.payDues();
+      const order = await open();
+      if (order.mode === "gateway") {
+        proof = await payWithRazorpay(order, { title: "Fee payment", description });
+      }
+      const res = await confirm(proof);
+      setPaidNotice({ payment: res.payment, excess: res.excess });
       setPage(1);
       setReloadKey((k) => k + 1);
     } catch (err) {
-      setPayError(err instanceof ApiError ? err.message : "Payment failed. Please try again.");
+      const message = err instanceof Error ? err.message : "Payment failed. Please try again.";
+      if (proof) {
+        setPayError(
+          `Your payment went through on Razorpay, but we could not confirm it just yet (${message}). Please do NOT pay again — it will be recorded automatically within a few minutes. Reference: ${proof.paymentId}`
+        );
+        setReloadKey((k) => k + 1);
+      } else {
+        setPayError(message);
+      }
     } finally {
       setPaying(false);
     }
   };
 
-  const handlePayNext = async () => {
-    setPayError("");
-    setPaying(true);
-    try {
-      await api.payNextInstallment();
-      setPage(1);
-      setReloadKey((k) => k + 1);
-    } catch (err) {
-      setPayError(err instanceof ApiError ? err.message : "Payment failed. Please try again.");
-    } finally {
-      setPaying(false);
-    }
-  };
+  const handlePay = () => runPayment(() => api.createDuesOrder(), (proof) => api.payDues(undefined, proof), "Dues");
+
+  const handlePayNext = () =>
+    runPayment(() => api.createNextInstallmentOrder(), (proof) => api.payNextInstallment(proof), "Next installment");
 
   const balanceDue = summary?.balanceDue ?? 0;
   const fullyPaid = !!summary?.feeStatus?.fullyPaid;
@@ -245,6 +260,24 @@ export default function StudentPayments() {
           </span>
           <button className={adminStyles.primaryButton} type="button" onClick={handlePayNext} disabled={paying}>
             {paying ? "Processing..." : `Pay next installment (₹${summary.installmentAmount})`}
+          </button>
+        </div>
+      )}
+      {!loading && summary?.onlinePayment === false && (
+        <p className={adminStyles.sectionSubtitle} style={{ marginBottom: 16 }}>
+          Online payment isn&apos;t set up by your institute yet. Please pay at the institute — they will record it for you.
+        </p>
+      )}
+      {paidNotice && (
+        <div className={studentStyles.noticeSuccess} style={{ marginBottom: 20 }}>
+          <span>
+            <strong>Payment received — ₹{paidNotice.payment.amount}.</strong> Receipt {paidNotice.payment.receiptNo}. It is saved in your payment
+            history below.
+            {paidNotice.excess > 0 &&
+              ` You paid ₹${paidNotice.excess} more than was due — your institute will adjust or refund it.`}
+          </span>
+          <button className={adminStyles.smallButton} type="button" onClick={() => setReceiptId(paidNotice.payment._id)}>
+            View receipt
           </button>
         </div>
       )}

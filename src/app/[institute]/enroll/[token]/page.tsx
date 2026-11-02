@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Detection, FaceDetector as MPFaceDetector } from "@mediapipe/tasks-vision";
 import { api, ApiError, CourseRegistrationInfo } from "@/lib/api";
+import { payWithRazorpay } from "@/lib/razorpay";
 import s from "./enroll.module.css";
 import { clearDraft, FileSlot, loadFile, loadText, saveFile, saveText } from "./enrollDraft";
 
@@ -212,7 +213,7 @@ export default function EnrollPage() {
       return go("verify");
     }
     if (step === "verify") {
-      if (!signature) return setError("Add your digital signature (draw it or upload it)");
+      if (!signature) return setError("Upload your digital signature image");
       if (!selfie) return setError("Complete the live facial verification by taking your photo");
       if (skipPayment) return submit();
       return go("payment");
@@ -246,6 +247,23 @@ export default function EnrollPage() {
       form.append("selfie", selfie, "selfie.jpg");
       form.append("signature", signature, "signature.png");
       if (profilePhoto) form.append("profilePhoto", profilePhoto);
+      // Fee goes to the institute's own Razorpay account: pay first, then send the proof with the form.
+      if (!skipPayment && info?.paymentMode === "gateway") {
+        const order = await api.createRegistrationOrder(token, { slug, plan, email: email.trim(), name: name.trim() });
+        if (order.mode === "gateway") {
+          const proof = await payWithRazorpay(order, {
+            title: info.institute.name,
+            description: info.course.name,
+            phone: phone.trim(),
+          });
+          form.append("razorpayOrderId", proof.orderId);
+          form.append("razorpayPaymentId", proof.paymentId);
+          form.append("razorpaySignature", proof.signature);
+        } else if (order.mode === "paid") {
+          // A payment made on an earlier attempt that never finished registering: no second charge.
+          form.append("razorpayOrderId", order.orderId);
+        }
+      }
       const res = await api.submitCourseRegistration(token, form);
       setDone(res);
       clearDraft(draftKey); // registered — don't keep the documents around
@@ -568,9 +586,19 @@ export default function EnrollPage() {
                     <p className={s.sectionHint}>The amount is fixed by {inst.name}.</p>
                   </div>
 
-                  <p className={s.notice}>
-                    Online payment is not connected yet — pressing &quot;Payment done&quot; only records this payment. No money is charged.
-                  </p>
+                  {info.paymentMode === "gateway" && (
+                    <p className={s.notice}>You will pay securely on Razorpay. Your registration completes as soon as the payment goes through.</p>
+                  )}
+                  {info.paymentMode === "dev" && (
+                    <p className={s.notice}>
+                      Test mode — online payment is not connected on this server, so &quot;Payment done&quot; only records the payment. No money is charged.
+                    </p>
+                  )}
+                  {info.paymentMode === "none" && (
+                    <p className={s.error}>
+                      {inst.name} has not set up online payment yet. Please contact the institute to pay and complete your registration.
+                    </p>
+                  )}
 
                   {c.oneTimeEnabled && c.installmentEnabled && (
                     <div style={{ display: "grid", gap: 10 }}>
@@ -606,8 +634,19 @@ export default function EnrollPage() {
                     <button className={`${s.btn} ${s.btnGhost}`} type="button" onClick={() => go("verify")} disabled={busy}>
                       ← Back
                     </button>
-                    <button className={`${s.btn} ${s.btnBig} ${s.btnGreen}`} type="button" onClick={submit} disabled={busy}>
-                      {busy ? "Completing registration..." : `Payment done · ${inr(payNow)}`}
+                    <button
+                      className={`${s.btn} ${s.btnBig} ${s.btnGreen}`}
+                      type="button"
+                      onClick={submit}
+                      disabled={busy || info.paymentMode === "none"}
+                    >
+                      {busy
+                        ? info.paymentMode === "gateway"
+                          ? "Opening payment..."
+                          : "Completing registration..."
+                        : info.paymentMode === "gateway"
+                          ? `Pay ${inr(payNow)} & register`
+                          : `Payment done · ${inr(payNow)}`}
                     </button>
                   </div>
                 </>
@@ -759,79 +798,139 @@ function DocCard({
   );
 }
 
-// ---- digital signature: draw it or upload an image of it ------------------
+// ---- digital signature: an image of the signature --------------------------
+
+// Turns a photo or scan of a signature into a clean image: crops to the ink,
+// evens out the paper colour and shadows, and saves it as a PNG. Returns an
+// error message instead when no signature can be found in the picture.
+async function cleanSignature(file: File): Promise<{ blob: Blob } | { error: string }> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("load"));
+      el.src = url;
+    });
+    const scale = Math.min(1, 1400 / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return { error: "Your browser could not read this image." };
+    ctx.fillStyle = "#fff"; // transparent PNGs are read as ink on white
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const data = ctx.getImageData(0, 0, w, h);
+    const px = data.data;
+
+    const lum = new Uint8Array(w * h);
+    const hist = new Uint32Array(256);
+    for (let i = 0; i < w * h; i++) {
+      const v = Math.round(0.299 * px[i * 4] + 0.587 * px[i * 4 + 1] + 0.114 * px[i * 4 + 2]);
+      lum[i] = v;
+      hist[v]++;
+    }
+    // Paper brightness = what most of the picture is.
+    let seen = 0;
+    let paper = 255;
+    for (let v = 0; v < 256; v++) {
+      seen += hist[v];
+      if (seen >= w * h * 0.6) {
+        paper = v;
+        break;
+      }
+    }
+    paper = Math.max(paper, 120);
+    const inkLimit = paper - 55;
+
+    // Where is the ink? (ignore a thin border, where scanner / phone shadows sit)
+    const mx = Math.round(w * 0.02);
+    const my = Math.round(h * 0.02);
+    let minX = w;
+    let minY = h;
+    let maxX = -1;
+    let maxY = -1;
+    let ink = 0;
+    for (let y = my; y < h - my; y++) {
+      for (let x = mx; x < w - mx; x++) {
+        if (lum[y * w + x] < inkLimit) {
+          ink++;
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+    if (ink < 60 || maxX < 0) {
+      return { error: "We could not see a signature in this picture. Sign in dark ink on plain white paper and take a clear, well-lit photo." };
+    }
+    if (ink > w * h * 0.5) {
+      return { error: "This picture is too dark or busy. Sign on plain white paper and take the photo in good light." };
+    }
+
+    const padX = Math.round((maxX - minX) * 0.06) + 8;
+    const padY = Math.round((maxY - minY) * 0.12) + 8;
+    const x0 = Math.max(0, minX - padX);
+    const y0 = Math.max(0, minY - padY);
+    const x1 = Math.min(w, maxX + padX);
+    const y1 = Math.min(h, maxY + padY);
+    const out = document.createElement("canvas");
+    out.width = x1 - x0;
+    out.height = y1 - y0;
+    const octx = out.getContext("2d");
+    if (!octx) return { error: "Your browser could not read this image." };
+    const result = octx.createImageData(out.width, out.height);
+    const lo = 45;
+    for (let y = 0; y < out.height; y++) {
+      for (let x = 0; x < out.width; x++) {
+        const l = lum[(y + y0) * w + (x + x0)];
+        // paper -> white, ink stays dark; faint shadows are pushed to white
+        let v = ((l - lo) * 255) / Math.max(1, paper - lo);
+        v = v >= 215 ? 255 : Math.max(0, v);
+        const o = (y * out.width + x) * 4;
+        result.data[o] = result.data[o + 1] = result.data[o + 2] = v;
+        result.data[o + 3] = 255;
+      }
+    }
+    octx.putImageData(result, 0, 0);
+    const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve, "image/png"));
+    return blob ? { blob } : { error: "Could not prepare the signature image." };
+  } catch {
+    return { error: "We could not open that file. Upload a JPG or PNG picture of your signature." };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
 
 function SignatureBox({ value, onChange }: { value: Blob | null; onChange: (b: Blob | null) => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const drawing = useRef(false);
-  const [mode, setMode] = useState<"draw" | "upload">("draw");
-  const [hasInk, setHasInk] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!value) return;
+    if (!value) {
+      setPreview(null);
+      return;
+    }
     const url = URL.createObjectURL(value);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [value]);
 
-  const pos = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    return {
-      x: ((e.clientX - r.left) * e.currentTarget.width) / r.width,
-      y: ((e.clientY - r.top) * e.currentTarget.height) / r.height,
-    };
-  };
-  const down = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const ctx = e.currentTarget.getContext("2d");
-    if (!ctx) return;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    drawing.current = true;
-    const { x, y } = pos(e);
-    ctx.lineWidth = 3;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.strokeStyle = "#0f172a";
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
-  const move = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!drawing.current) return;
-    const ctx = e.currentTarget.getContext("2d");
-    if (!ctx) return;
-    const { x, y } = pos(e);
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    setHasInk(true);
-  };
-  const up = () => {
-    drawing.current = false;
-  };
-  const clear = () => {
-    const c = canvasRef.current;
-    c?.getContext("2d")?.clearRect(0, 0, c.width, c.height);
-    setHasInk(false);
-  };
-  const saveDrawn = () => {
-    const c = canvasRef.current;
-    if (!c || !hasInk) return;
-    const out = document.createElement("canvas");
-    out.width = c.width;
-    out.height = c.height;
-    const ctx = out.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, out.width, out.height);
-    ctx.drawImage(c, 0, 0);
-    out.toBlob((b) => b && onChange(b), "image/png");
-  };
-  const onUpload = (file: File | undefined) => {
+  const onUpload = async (file: File | undefined) => {
     if (!file) return;
-    if (!file.type.startsWith("image/")) return setErr("Upload your signature as a photo (JPG or PNG)");
-    if (file.size > MAX_FILE) return setErr("Signature image is too large (max 5 MB)");
     setErr("");
-    onChange(file);
+    if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) return setErr("Upload your signature as a JPG or PNG picture.");
+    if (file.size > MAX_FILE) return setErr("This picture is too large (max 5 MB).");
+    setBusy(true);
+    const res = await cleanSignature(file);
+    setBusy(false);
+    if ("error" in res) return setErr(res.error);
+    onChange(res.blob);
   };
 
   return (
@@ -844,51 +943,43 @@ function SignatureBox({ value, onChange }: { value: Blob | null; onChange: (b: B
           <span className={s.verifiedTag}>✓ Signature added</span>
           <div className={s.btnRow}>
             <button className={`${s.btn} ${s.btnGhost}`} type="button" onClick={() => onChange(null)}>
-              Change signature
+              Use a different picture
             </button>
           </div>
         </>
       ) : (
         <>
-          <div className={s.tabs} role="tablist">
-            <button type="button" className={`${s.tab} ${mode === "draw" ? s.tabOn : ""}`} onClick={() => setMode("draw")}>
-              ✍ Draw signature
-            </button>
-            <button type="button" className={`${s.tab} ${mode === "upload" ? s.tabOn : ""}`} onClick={() => setMode("upload")}>
-              ⬆ Upload signature
-            </button>
-          </div>
-
-          {mode === "draw" ? (
-            <>
-              <canvas
-                ref={canvasRef}
-                className={s.sigCanvas}
-                width={900}
-                height={260}
-                onPointerDown={down}
-                onPointerMove={move}
-                onPointerUp={up}
-                onPointerCancel={up}
-              />
-              <p className={s.help} style={{ margin: "6px 0 0" }}>
-                Sign inside the box using your finger or mouse.
-              </p>
-              <div className={s.btnRow}>
-                <button className={`${s.btn} ${s.btnGhost}`} type="button" onClick={clear}>
-                  Clear
-                </button>
-                <button className={s.btn} type="button" onClick={saveDrawn} disabled={!hasInk}>
-                  Save signature
-                </button>
-              </div>
-            </>
-          ) : (
-            <label className={s.field}>
-              Choose a photo of your signature (on white paper)
-              <input className={s.input} type="file" accept="image/*" onChange={(e) => onUpload(e.target.files?.[0])} />
-            </label>
-          )}
+          <label
+            style={{
+              display: "grid",
+              gap: 6,
+              justifyItems: "center",
+              textAlign: "center",
+              padding: "28px 16px",
+              border: "2px dashed var(--border, #cbd5e1)",
+              borderRadius: 12,
+              cursor: busy ? "wait" : "pointer",
+            }}
+          >
+            <strong>{busy ? "Preparing your signature…" : "Upload a picture of your signature"}</strong>
+            <span className={s.help} style={{ margin: 0 }}>
+              JPG or PNG, up to 5 MB
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={busy}
+              onChange={(e) => {
+                onUpload(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+              style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+            />
+          </label>
+          <p className={s.help} style={{ margin: "10px 0 0" }}>
+            Sign with a dark pen on plain white paper, then take a clear photo in good light (or scan it). We crop and clean the picture for
+            you.
+          </p>
           {err && (
             <p className={s.error} style={{ marginTop: 10 }}>
               {err}

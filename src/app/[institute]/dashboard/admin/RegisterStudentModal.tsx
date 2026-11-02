@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, ApiError, Course, PaidStatus, User } from "@/lib/api";
+import { ReactNode, useEffect, useState } from "react";
+import { api, ApiError, Course, EnrollmentSummary, PaidStatus, RegisterStudentPayload, User } from "@/lib/api";
 import styles from "./admin.module.css";
 import Modal from "../Modal";
 
@@ -17,18 +17,30 @@ function amounts(course: Course | undefined) {
   return { first, installmentTotal, full: course.oneTimeEnabled ? course.oneTimeAmount : installmentTotal };
 }
 
+// Used for Students > Register student, and (with `initial`, `loadCourses` and
+// `register` swapped in) when a lead is converted by an admin or telecaller.
 export default function RegisterStudentModal({
   onClose,
   onRegistered,
+  title = "Register student",
+  subtitle,
+  initial,
+  loadCourses,
+  register,
 }: {
   onClose: () => void;
-  onRegistered: (student: User) => void;
+  onRegistered: (student: User, enrollment?: EnrollmentSummary) => void;
+  title?: string;
+  subtitle?: ReactNode;
+  initial?: { name: string; email: string; phone: string };
+  loadCourses?: () => Promise<Course[]>;
+  register?: (payload: RegisterStudentPayload) => Promise<{ student: User; enrollment?: EnrollmentSummary }>;
 }) {
   const [courses, setCourses] = useState<Course[] | null>(null);
   const [f, setF] = useState({
-    name: "",
-    email: "",
-    phone: "",
+    name: initial?.name ?? "",
+    email: initial?.email ?? "",
+    phone: initial?.phone ?? "",
     courseId: "",
     paymentStatus: "unpaid" as PaidStatus,
     method: "cash" as "cash" | "upi" | "other",
@@ -39,10 +51,11 @@ export default function RegisterStudentModal({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    api
-      .listCourses({ limit: 500 })
-      .then((res) => setCourses(res.courses.filter((c) => c.isActive)))
+    const load = loadCourses ?? (async () => (await api.listCourses({ limit: 500 })).courses.filter((c) => c.isActive));
+    load()
+      .then(setCourses)
       .catch(() => setCourses([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const course = courses?.find((c) => c._id === f.courseId);
@@ -70,7 +83,8 @@ export default function RegisterStudentModal({
 
     setBusy(true);
     try {
-      const res = await api.registerStudent({
+      const send = register ?? api.registerStudent;
+      const res = await send({
         name: f.name.trim(),
         email: f.email.trim(),
         phone: f.phone.trim(),
@@ -80,7 +94,7 @@ export default function RegisterStudentModal({
           ? { paymentMethod: f.method, amount: Number(f.amount), note: f.note.trim() }
           : {}),
       });
-      onRegistered(res.student);
+      onRegistered(res.student, res.enrollment);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Could not register the student");
       setBusy(false);
@@ -91,9 +105,13 @@ export default function RegisterStudentModal({
 
   return (
     <Modal onClose={onClose} dialogStyle={{ maxWidth: 640, width: "100%", maxHeight: "92vh", overflowY: "auto" }}>
-      <h2 className={styles.sectionTitle}>Register student</h2>
+      <h2 className={styles.sectionTitle}>{title}</h2>
       <p className={styles.sectionSubtitle}>
-        The student is created as <strong>inactive</strong>. Next you make them a private link to finish the rest (documents, signature, photo).
+        {subtitle ?? (
+          <>
+            The student is created as <strong>inactive</strong>. Next you make them a private link to finish the rest (documents, signature, photo).
+          </>
+        )}
       </p>
 
       <form className={styles.form} onSubmit={submit}>

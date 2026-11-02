@@ -3,7 +3,7 @@ import styles from "./landing.module.css";
 import heroStyles from "./LandingHero.module.css";
 
 const POINTS = [
-  "Fee reminders on WhatsApp, sent automatically",
+  "Fee reminders by email, sent automatically",
   "Batch-wise attendance, no paper register",
   "Your own logo and link: sunrise-classes.institutesathi.com",
 ];
@@ -86,7 +86,7 @@ export default function LandingHero() {
                 <strong>Aarav Sharma · Class 10th Math</strong>
                 <span>₹1,500 fee due · 5 Nov</span>
               </div>
-              <span className={heroStyles.sent}>✓ WhatsApp reminder sent</span>
+              <span className={heroStyles.sent}>✓ Email reminder sent</span>
             </div>
           </div>
           <p className={heroStyles.sample}>Sample data</p>

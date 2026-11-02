@@ -12,6 +12,8 @@ export default function VerifyCertificatePage() {
   const [data, setData] = useState<CertificateVerification | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
 
   useEffect(() => {
     api
@@ -24,6 +26,25 @@ export default function VerifyCertificatePage() {
   }, [code]);
 
   const valid = data?.status === "active";
+
+  const download = async () => {
+    if (!data) return;
+    setDownloading(true);
+    setDownloadError("");
+    try {
+      const blob = await api.verifyCertificatePdf(code);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${data.certificateNo.replace(/[^w.-]+/g, "_")}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setDownloadError(err instanceof ApiError ? err.message : "Could not download the certificate");
+    } finally {
+      setDownloading(false);
+    }
+  };
   const rows: [string, string][] = data
     ? [
         ["Awarded to", data.studentName],
@@ -74,6 +95,31 @@ export default function VerifyCertificatePage() {
                   </div>
                 ))}
             </dl>
+            {valid && (
+              <>
+                <button
+                  type="button"
+                  onClick={download}
+                  disabled={downloading}
+                  style={{
+                    marginTop: 22,
+                    width: "100%",
+                    padding: "12px 16px",
+                    border: 0,
+                    borderRadius: 10,
+                    background: "#047857",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: "1rem",
+                    cursor: downloading ? "wait" : "pointer",
+                    opacity: downloading ? 0.7 : 1,
+                  }}
+                >
+                  {downloading ? "Preparing PDF…" : "Download certificate (PDF)"}
+                </button>
+                {downloadError && <p style={{ color: "#b91c1c", margin: "10px 0 0", fontSize: "0.9rem" }}>{downloadError}</p>}
+              </>
+            )}
           </>
         )}
       </div>

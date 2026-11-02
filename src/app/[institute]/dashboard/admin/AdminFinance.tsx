@@ -14,6 +14,8 @@ import dashboardStyles from "../dashboard.module.css";
 import adminStyles from "./admin.module.css";
 import Modal from "../Modal";
 import Pagination from "../Pagination";
+import PaymentsAttention from "./PaymentsAttention";
+import SenderEmailWarning from "./SenderEmailWarning";
 import { useDebounced } from "./useDebounced";
 
 const PAGE_SIZE = 15;
@@ -205,6 +207,9 @@ export default function AdminFinance() {
       <p className={dashboardStyles.pageSubtitle}>
         Every rupee in and out. Student fee payments are added automatically; record everything else here.
       </p>
+
+      <SenderEmailWarning />
+      <PaymentsAttention />
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
         {(
