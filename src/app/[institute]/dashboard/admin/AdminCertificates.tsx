@@ -44,6 +44,36 @@ const CSS_FONT: Record<CertField["font"], string> = {
   unicode: "system-ui, sans-serif",
 };
 
+// Same rules as the PDF: text stays inside its "max width" box and 2% away from the page edge,
+// and longer text is made smaller instead of running past the end.
+const PAGE_MARGIN_PCT = 2;
+const fitBox = (f: CertField) => {
+  const room =
+    f.align === "left"
+      ? 100 - PAGE_MARGIN_PCT - Math.min(100 - PAGE_MARGIN_PCT, Math.max(PAGE_MARGIN_PCT, f.x))
+      : f.align === "right"
+        ? Math.min(100 - PAGE_MARGIN_PCT, Math.max(PAGE_MARGIN_PCT, f.x)) - PAGE_MARGIN_PCT
+        : 2 * Math.min(Math.min(100 - PAGE_MARGIN_PCT, Math.max(PAGE_MARGIN_PCT, f.x)) - PAGE_MARGIN_PCT, 100 - PAGE_MARGIN_PCT - Math.min(100 - PAGE_MARGIN_PCT, Math.max(PAGE_MARGIN_PCT, f.x)));
+  const width = Math.max(1, Math.min(f.maxWidth > 0 ? f.maxWidth : Infinity, room));
+  const x = Math.min(100 - PAGE_MARGIN_PCT, Math.max(PAGE_MARGIN_PCT, f.x));
+  const left = f.align === "left" ? x : f.align === "right" ? x - width : x - width / 2;
+  return { width, left };
+};
+
+const titleCase = (t: string) => t.toLowerCase().replace(/(^|[\s.'-])(\p{L})/gu, (_m, a: string, b: string) => a + b.toUpperCase());
+const shownText = (t: string, transform: CertField["transform"]) =>
+  transform === "upper" ? t.toUpperCase() : transform === "title" ? titleCase(t) : t;
+
+let measureCtx: CanvasRenderingContext2D | null = null;
+const textWidthPct = (text: string, f: CertField, size: number, canvasPx: number) => {
+  if (!canvasPx) return 0;
+  measureCtx = measureCtx || document.createElement("canvas").getContext("2d");
+  if (!measureCtx) return 0;
+  const px = (size / 100) * canvasPx;
+  measureCtx.font = `${f.italic ? "italic " : ""}${f.bold ? "bold " : ""}${px}px ${CSS_FONT[f.font]}`;
+  return (measureCtx.measureText(text).width / canvasPx) * 100;
+};
+
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
@@ -329,6 +359,8 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [previewName, setPreviewName] = useState("Aarav Sharma");
+  const [canvasPx, setCanvasPx] = useState(0);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const drag = useRef<number | "qr" | null>(null);
@@ -350,6 +382,16 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
       })
       .catch((err) => setError(errMsg(err, "Could not load the template")));
   }, [id]);
+
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const update = () => setCanvasPx(el.getBoundingClientRect().width);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tpl]);
 
   const touch = () => {
     setDirty(true);
@@ -491,34 +533,63 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                 overflow: "hidden",
               }}
             >
-              {fields.map((f, i) => (
-                <div
-                  key={i}
-                  onPointerDown={startDrag(i)}
-                  style={{
-                    position: "absolute",
-                    left: `${f.x}%`,
-                    top: `${f.y}%`,
-                    transform: `translate(${f.align === "left" ? "0" : f.align === "right" ? "-100%" : "-50%"}, -50%)`,
-                    fontSize: `${f.fontSize}cqw`,
-                    lineHeight: 1.1,
-                    whiteSpace: "nowrap",
-                    maxWidth: f.maxWidth > 0 ? `${f.maxWidth}cqw` : undefined,
-                    overflow: "hidden",
-                    color: f.color,
-                    fontFamily: CSS_FONT[f.font],
-                    fontWeight: f.bold ? 700 : 400,
-                    fontStyle: f.italic ? "italic" : "normal",
-                    textTransform: f.transform === "upper" ? "uppercase" : f.transform === "title" ? "capitalize" : "none",
-                    cursor: "grab",
-                    outline: selected === i ? "2px solid #2563eb" : "1px dashed rgba(37,99,235,0.55)",
-                    outlineOffset: 2,
-                    background: "rgba(255,255,255,0.15)",
-                  }}
-                >
-                  {f.key === "custom" ? f.text || "Custom text" : SAMPLE[f.key]}
-                </div>
-              ))}
+              {typeof selected === "number" && fields[selected] && (() => {
+                const f = fields[selected];
+                const { width, left } = fitBox(f);
+                return (
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      position: "absolute",
+                      left: `${left}%`,
+                      width: `${width}%`,
+                      top: `${f.y}%`,
+                      height: `${f.fontSize * 1.9}cqw`,
+                      transform: "translateY(-50%)",
+                      border: "1.5px dashed #16a34a",
+                      background: "rgba(22,163,74,0.08)",
+                      borderRadius: 3,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    <span style={{ position: "absolute", left: 2, top: -16, fontSize: 11, color: "#15803d", background: "rgba(255,255,255,0.9)", padding: "0 4px", borderRadius: 3, whiteSpace: "nowrap", fontFamily: "system-ui, sans-serif" }}>
+                      Text stays inside this box
+                    </span>
+                  </div>
+                );
+              })()}
+              {fields.map((f, i) => {
+                const raw = f.key === "custom" ? f.text || "Custom text" : f.key === "student_name" ? previewName || SAMPLE.student_name : SAMPLE[f.key];
+                const text = shownText(raw, f.transform);
+                const { width: boxPct } = fitBox(f);
+                const natural = textWidthPct(text, f, f.fontSize, canvasPx);
+                const size = natural > boxPct && natural > 0 ? f.fontSize * (boxPct / natural) : f.fontSize;
+                return (
+                  <div
+                    key={i}
+                    onPointerDown={startDrag(i)}
+                    style={{
+                      position: "absolute",
+                      left: `${f.x}%`,
+                      top: `${f.y}%`,
+                      transform: `translate(${f.align === "left" ? "0" : f.align === "right" ? "-100%" : "-50%"}, -50%)`,
+                      fontSize: `${size}cqw`,
+                      lineHeight: 1.1,
+                      whiteSpace: "nowrap",
+                      color: f.color,
+                      fontFamily: CSS_FONT[f.font],
+                      fontWeight: f.bold ? 700 : 400,
+                      fontStyle: f.italic ? "italic" : "normal",
+                      cursor: "grab",
+                      outline: selected === i ? "2px solid #2563eb" : "1px dashed rgba(37,99,235,0.55)",
+                      outlineOffset: 2,
+                      background: "rgba(255,255,255,0.15)",
+                    }}
+                  >
+                    {text}
+                  </div>
+                );
+              })}
               {qr.enabled && (
                 <div
                   onPointerDown={startDrag("qr")}
@@ -559,6 +630,18 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                 }}
                 maxLength={80}
               />
+            </label>
+
+            <label className={adminStyles.label}>
+              Preview name
+              <input
+                className={adminStyles.input}
+                value={previewName}
+                onChange={(e) => setPreviewName(e.target.value)}
+                maxLength={60}
+                placeholder="Type a real (long or short) name"
+              />
+              <span className={adminStyles.sectionSubtitle}>Only for this screen, so you can check how a long or short name fits.</span>
             </label>
 
             <div>
@@ -674,7 +757,7 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                     </select>
                   </label>
                   <label className={adminStyles.label}>
-                    Max width %
+                    Box width %
                     <input
                       className={adminStyles.input}
                       type="number"
@@ -682,7 +765,7 @@ function TemplateEditor({ id, onClose }: { id: string; onClose: () => void }) {
                       max="100"
                       value={sel.maxWidth}
                       onChange={(e) => patchField(selected, { maxWidth: Number(e.target.value) || 0 })}
-                      title="Long text shrinks to fit. 0 = no limit"
+                      title="The width of the green box. Longer text becomes smaller to fit inside it. 0 = as wide as the page allows"
                     />
                   </label>
                 </div>
