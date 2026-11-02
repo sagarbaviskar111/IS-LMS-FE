@@ -16,6 +16,7 @@ import StudentDetailsModal from "./StudentDetailsModal";
 import ListToolbar from "./ListToolbar";
 import RowMenu, { MenuItem } from "./RowMenu";
 import { useDebounced } from "./useDebounced";
+import { can } from "@/lib/permissions";
 
 const PAGE_SIZE = 10;
 
@@ -32,6 +33,9 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
   const { institute } = useParams<{ institute: string }>();
   const singular = label.slice(0, -1);
   const usesBatches = role === "student" || role === "teacher";
+  // A sub-admin with view-only access sees the list but not the change buttons.
+  const canChange = can(user, role === "student" ? "students" : "team", "manage");
+  const canSeeFees = can(user, "fees");
 
   const [team, setTeam] = useState<User[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -138,12 +142,12 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
     if (u.archivedAt) return [{ label: "Restore student", onClick: () => restoreMember(u) }];
     const incomplete = role === "student" && u.registrationComplete === false;
     return [
-      { label: "Edit name / phone", onClick: () => startEdit(u), hidden: role === "student" ? false : true },
-      { label: "Payments", onClick: () => setPaymentStudent(u), hidden: role !== "student" },
-      { label: "Access & recordings", onClick: () => setAccessStudent(u), hidden: role !== "student" },
-      { label: "Reset password", onClick: () => setResetPasswordUser(u) },
-      { label: u.isActive ? "Deactivate" : "Activate", onClick: () => toggleActive(u), hidden: incomplete },
-      { label: role === "student" ? "Archive" : "Delete", onClick: () => removeMember(u), danger: true },
+      { label: "Edit name / phone", onClick: () => startEdit(u), hidden: role === "student" ? !canChange : true },
+      { label: "Payments", onClick: () => setPaymentStudent(u), hidden: role !== "student" || !canSeeFees },
+      { label: "Access & recordings", onClick: () => setAccessStudent(u), hidden: role !== "student" || !canChange },
+      { label: "Reset password", onClick: () => setResetPasswordUser(u), hidden: !canChange },
+      { label: u.isActive ? "Deactivate" : "Activate", onClick: () => toggleActive(u), hidden: incomplete || !canChange },
+      { label: role === "student" ? "Archive" : "Delete", onClick: () => removeMember(u), danger: true, hidden: !canChange },
     ];
   };
 
@@ -283,7 +287,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
       </p>
 
       <div className={styles.grid}>
-        {role !== "student" && (
+        {role !== "student" && canChange && (
           <>
         <section className={styles.section}>
           <div className={styles.sectionHead}>
@@ -378,7 +382,7 @@ export default function TeamSection({ role, label }: { role: TeamRole; label: st
                 {stateF === "archived" ? `${total} archived. Restore a student from the row menu.` : `${total} total, active and deactivated.`}
               </p>
             </div>
-            {role === "student" && (
+            {role === "student" && canChange && (
               <div className={styles.rowActions}>
                 <button className={styles.smallButton} type="button" onClick={() => setBulkUploadOpen(true)}>
                   Bulk upload

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { api, Role } from "@/lib/api";
+import { canOpenPage } from "@/lib/permissions";
 import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import BrandStyle from "@/components/BrandStyle";
@@ -91,6 +92,7 @@ function getNavSections(
           title: "Workspace",
           items: [
             { href: `${base}/dashboard/admin/tools`, label: "Tools" },
+            { href: `${base}/dashboard/admin/subadmins`, label: "Sub-admins" },
             { href: `${base}/dashboard/admin/settings`, label: "Settings" },
             notifications,
           ],
@@ -225,7 +227,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     return <div className={styles.loading}>Loading...</div>;
   }
 
-  const navSections = getNavSections(base, user.role, pendingCount, unreadCount, chatUnreadCount);
+  // A sub-admin only sees the pages their admin gave them.
+  const navSections = getNavSections(base, user.role, pendingCount, unreadCount, chatUnreadCount)
+    .map((section) => ({ ...section, items: section.items.filter((item) => canOpenPage(user, item.href)) }))
+    .filter((section) => section.items.length > 0);
   const baseHref = `${base}/dashboard/${user.role}`;
 
   const initials = user.name
@@ -282,7 +287,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
           <div className={styles.userInfo}>
             <div className={styles.userName}>{user.name}</div>
-            <div className={styles.userRole}>{user.role}</div>
+            <div className={styles.userRole}>{user.subadmin ? "sub-admin" : user.role}</div>
           </div>
         </button>
         <button className={styles.logoutButton} onClick={logout}>
@@ -353,7 +358,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <main className={styles.main}>{children}</main>
+          <main className={styles.main}>
+            {canOpenPage(user, pathname) ? (
+              children
+            ) : (
+              <div>
+                <h1 className={styles.pageTitle}>No access</h1>
+                <p className={styles.pageSubtitle}>
+                  Your sub-admin account can&apos;t open this page. Ask {user.subadmin?.adminName || "the admin"} if you need it.
+                </p>
+              </div>
+            )}
+          </main>
         </div>
       </div>
 

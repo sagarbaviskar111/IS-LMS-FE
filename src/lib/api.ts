@@ -73,6 +73,9 @@ export interface User {
   recordingBlockTo?: string | null;
   // Admins only — which recording flow the superadmin enabled for them.
   videoFlow?: VideoFlow;
+  // Set when the signed-in person is a sub-admin (a helper of this institute's admin).
+  // They arrive with role "admin" so the admin pages work; this says what they may use.
+  subadmin?: { permissions: Record<string, "view" | "manage">; adminId: string; adminName: string };
   createdAt: string;
   updatedAt: string;
 }
@@ -413,6 +416,37 @@ export interface Payment {
   note?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Subadmin {
+  _id: string;
+  name: string;
+  email: string;
+  phone: string;
+  isActive: boolean;
+  permissions: Record<string, "view" | "manage">;
+  createdAt: string;
+}
+
+export interface SubadminModule {
+  key: string;
+  label: string;
+  hint: string;
+}
+
+export interface SubadminPreset {
+  key: string;
+  label: string;
+  permissions: Record<string, "view" | "manage">;
+}
+
+export interface SubadminActivityRow {
+  _id: string;
+  who: string;
+  module: string | null;
+  method: string;
+  path: string;
+  at: string;
 }
 
 export interface InstallmentItem {
@@ -2255,6 +2289,22 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ...payload, razorpay }),
     }),
+  subadminModules: () => request<{ modules: SubadminModule[]; presets: SubadminPreset[] }>("/api/subadmins/modules"),
+  listSubadmins: () => request<{ subadmins: Subadmin[] }>("/api/subadmins"),
+  createSubadmin: (payload: { name: string; email: string; password: string; phone?: string; permissions: Subadmin["permissions"] }) =>
+    request<{ subadmin: Subadmin }>("/api/subadmins", { method: "POST", body: JSON.stringify(payload) }),
+  updateSubadmin: (
+    id: string,
+    payload: { name?: string; phone?: string; isActive?: boolean; password?: string; permissions?: Subadmin["permissions"] }
+  ) => request<{ subadmin: Subadmin }>(`/api/subadmins/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteSubadmin: (id: string) => request<{ message: string }>(`/api/subadmins/${id}`, { method: "DELETE" }),
+  subadminActivity: (opts?: { page?: number; subadmin?: string }) => {
+    const params = new URLSearchParams();
+    if (opts?.page) params.set("page", String(opts.page));
+    if (opts?.subadmin) params.set("subadmin", opts.subadmin);
+    const qs = params.toString();
+    return request<PageMeta & { activity: SubadminActivityRow[] }>(`/api/subadmins/activity${qs ? `?${qs}` : ""}`);
+  },
   getFeeRules: () => request<{ rules: FeeRules }>("/api/fee-rules"),
   previewFeeRules: (rules: Partial<FeeRules>) =>
     request<{ rules: FeeRules; preview: FeeRulesPreview }>("/api/fee-rules/preview", { method: "POST", body: JSON.stringify(rules) }),
