@@ -10,6 +10,7 @@ import AdminPasswordResetSettings from "./AdminPasswordResetSettings";
 import AdminSenderEmailSettings from "./AdminSenderEmailSettings";
 import AdminLeadIntegrations from "./AdminLeadIntegrations";
 import AdminRazorpaySettings from "./AdminRazorpaySettings";
+import AdminFeeRulesSettings from "./AdminFeeRulesSettings";
 
 const TABS = [
   {
@@ -21,6 +22,11 @@ const TABS = [
     key: "payments",
     label: "Online Payments",
     hint: "Connect your own Razorpay account so students can pay fees online straight into it.",
+  },
+  {
+    key: "fee-rules",
+    label: "Fee Rules",
+    hint: "Your grace period, late fee and sibling discount. Changes show who they would affect before they are saved.",
   },
   {
     key: "youtube",
@@ -72,6 +78,7 @@ function AdminSettingsInner() {
 
       {tab === "branding" && <AdminBrandingSettings />}
       {tab === "payments" && <AdminRazorpaySettings />}
+      {tab === "fee-rules" && <AdminFeeRulesSettings />}
       {tab === "youtube" && <AdminVideoSettings />}
       {tab === "sender-email" && <AdminSenderEmailSettings />}
       {tab === "password-resets" && <AdminPasswordResetSettings onOpenSenderEmail={() => setTab("sender-email")} />}

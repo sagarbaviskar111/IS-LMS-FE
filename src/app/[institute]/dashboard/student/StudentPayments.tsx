@@ -121,6 +121,8 @@ export default function StudentPayments() {
   const [receiptId, setReceiptId] = useState<string | null>(null);
   const [paidNotice, setPaidNotice] = useState<{ payment: PaidReceipt; excess: number } | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [partItem, setPartItem] = useState("");
+  const [partAmount, setPartAmount] = useState("");
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -180,6 +182,26 @@ export default function StudentPayments() {
 
   const handlePayNext = () =>
     runPayment(() => api.createNextInstallmentOrder(), (proof) => api.payNextInstallment(proof), "Next installment");
+
+  // What a part payment can go towards: one chosen installment, or anything owed.
+  const partChoices = (() => {
+    const open = (summary?.schedule || [])
+      .filter((i) => i.status !== "paid")
+      .map((i) => ({ id: i._id, label: i.label, left: Math.round((i.amount - i.paid) * 100) / 100 }));
+    if (open.length > 0) return [{ id: "", label: "Any", left: Math.round(open.reduce((a, c) => a + c.left, 0) * 100) / 100 }, ...open];
+    return (summary?.balanceDue ?? 0) > 0 ? [{ id: "", label: "Dues", left: summary?.balanceDue ?? 0 }] : [];
+  })();
+  const partMax = partChoices.find((c) => c.id === partItem)?.left ?? partChoices[0]?.left ?? 0;
+
+  const handlePayPart = () => {
+    const payload = { amount: Number(partAmount), itemId: partItem || undefined };
+    runPayment(
+      () => api.createCustomOrder(payload),
+      (proof) => api.payCustom(payload, proof),
+      "Part payment"
+    );
+    setPartAmount("");
+  };
 
   const balanceDue = summary?.balanceDue ?? 0;
   const fullyPaid = !!summary?.feeStatus?.fullyPaid;
@@ -283,6 +305,58 @@ export default function StudentPayments() {
       )}
       {payError && <p className={adminStyles.messageError}>{payError}</p>}
 
+      {!loading && !fullyPaid && summary?.onlinePayment !== false && partChoices.length > 0 && (
+        <section className={adminStyles.section} style={{ marginBottom: 20 }}>
+          <div className={adminStyles.sectionHead}>
+            <div>
+              <h2 className={adminStyles.sectionTitle}>Pay a different amount</h2>
+              <p className={adminStyles.sectionSubtitle}>
+                Pay a part of what you owe, or pick the installment you want to pay.
+              </p>
+            </div>
+          </div>
+          <div className={adminStyles.inviteRow} style={{ flexWrap: "wrap" }}>
+            {summary?.schedule && summary.schedule.length > 0 && (
+              <select
+                className={adminStyles.select}
+                value={partItem}
+                onChange={(e) => {
+                  setPartItem(e.target.value);
+                  const left = partChoices.find((c) => c.id === e.target.value)?.left;
+                  setPartAmount(left ? String(left) : "");
+                }}
+              >
+                <option value="">Any — earliest installment first</option>
+                {partChoices
+                  .filter((c) => c.id)
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label} — ₹{c.left} left
+                    </option>
+                  ))}
+              </select>
+            )}
+            <input
+              className={adminStyles.input}
+              type="number"
+              min={1}
+              max={partMax || undefined}
+              placeholder={`Amount (up to ₹${partMax})`}
+              value={partAmount}
+              onChange={(e) => setPartAmount(e.target.value)}
+            />
+            <button
+              className={adminStyles.primaryButton}
+              type="button"
+              disabled={paying || !(Number(partAmount) >= 1)}
+              onClick={handlePayPart}
+            >
+              {paying ? "Processing..." : `Pay ₹${Number(partAmount) >= 1 ? Number(partAmount) : ""}`}
+            </button>
+          </div>
+        </section>
+      )}
+
       {!loading && summary?.schedule && summary.schedule.length > 0 && (
         <section className={adminStyles.section} style={{ marginBottom: 20 }}>
           <div className={adminStyles.sectionHead}>
@@ -305,7 +379,10 @@ export default function StudentPayments() {
                 {summary.schedule.map((it) => (
                   <tr key={it._id}>
                     <td>{it.label}</td>
-                    <td>₹{it.amount}</td>
+                    <td>
+                      ₹{it.amount}
+                      {!!it.fine && <span className={adminStyles.sectionSubtitle}> (incl. ₹{it.fine} late fee)</span>}
+                    </td>
                     <td>{formatDateTime(it.dueDate)}</td>
                     <td>
                       {it.status === "paid" ? (
@@ -321,6 +398,19 @@ export default function StudentPayments() {
               </tbody>
             </table>
           </div>
+        </section>
+      )}
+
+      {!loading && !!summary?.adjustments?.length && (
+        <section className={adminStyles.section} style={{ marginBottom: 20 }}>
+          <h2 className={adminStyles.sectionTitle}>Discounts &amp; late fees</h2>
+          <ul className={adminStyles.sectionSubtitle} style={{ paddingLeft: 18 }}>
+            {summary.adjustments.map((a, i) => (
+              <li key={a._id || i}>
+                {a.amount < 0 ? "−" : "+"}₹{Math.abs(a.amount)} · {a.note || a.kind.replace("_", " ")} · {formatDate(a.createdAt)}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

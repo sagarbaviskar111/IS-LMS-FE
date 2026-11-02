@@ -420,8 +420,32 @@ export interface InstallmentItem {
   label: string;
   amount: number;
   paid: number;
+  // late fee already included in `amount`
+  fine?: number;
   dueDate: string;
   status: "paid" | "partial" | "pending";
+}
+
+export interface FeeAdjustment {
+  _id?: string;
+  kind: "late_fee" | "scholarship" | "discount" | "sibling";
+  // + adds to the fee (late fee), - takes off (scholarship / discount)
+  amount: number;
+  note?: string;
+  createdAt: string;
+}
+
+export interface FeeRules {
+  graceDays: number;
+  lateFee: { mode: "none" | "flat" | "daily"; amount: number; maxAmount: number };
+  siblingDiscountPercent: number;
+}
+
+export interface FeeRulesPreview {
+  deactivated: { _id: string; name: string; email: string; balanceDue: number; dueDate: string; deadline: string }[];
+  deactivatedCount: number;
+  alreadyDue: number;
+  lateFee: { students: number; total: number };
 }
 
 export interface Receipt {
@@ -463,8 +487,10 @@ export interface StudentPaymentSummary {
   balanceDue?: number;
   nextDueDate?: string | null;
   paymentGraceUntil?: string | null;
-  // When an unpaid account gets deactivated (due date + 3 extra days, or an admin extension).
+  // When an unpaid account gets deactivated (due date + the institute's grace days, or an admin extension).
   paymentDeadline?: string | null;
+  graceDays?: number;
+  adjustments?: FeeAdjustment[];
   // Set for students on a course plan; fullyPaid once the whole course fee is in.
   feeStatus?: { planTotal: number; totalPaid: number; remaining: number; fullyPaid: boolean } | null;
   // Where the due date moves to if the next installment is paid early.
@@ -483,7 +509,9 @@ export interface AdminPaymentStudent {
   deactivatedForPayment: boolean;
   paymentPending: boolean;
   paymentDeadline?: string | null;
+  graceDays?: number;
   schedule?: InstallmentItem[];
+  adjustments?: FeeAdjustment[];
 }
 
 export interface Session {
@@ -2218,6 +2246,30 @@ export const api = {
     request<{ nextDueDate: string; payment: PaidReceipt; excess: number }>("/api/student/payments/next-installment", {
       method: "POST",
       body: JSON.stringify({ razorpay }),
+    }),
+  // Part payment: any amount, optionally for one chosen installment.
+  createCustomOrder: (payload: { amount: number; itemId?: string }) =>
+    request<PaymentOrder>("/api/student/payments/custom/order", { method: "POST", body: JSON.stringify(payload) }),
+  payCustom: (payload: { amount: number; itemId?: string }, razorpay?: RazorpayProof) =>
+    request<{ payment: PaidReceipt; excess: number }>("/api/student/payments/custom", {
+      method: "POST",
+      body: JSON.stringify({ ...payload, razorpay }),
+    }),
+  getFeeRules: () => request<{ rules: FeeRules }>("/api/fee-rules"),
+  previewFeeRules: (rules: Partial<FeeRules>) =>
+    request<{ rules: FeeRules; preview: FeeRulesPreview }>("/api/fee-rules/preview", { method: "POST", body: JSON.stringify(rules) }),
+  saveFeeRules: (rules: Partial<FeeRules>, confirm = false) =>
+    request<{ rules: FeeRules; preview: FeeRulesPreview }>("/api/fee-rules", {
+      method: "PUT",
+      body: JSON.stringify({ ...rules, confirm }),
+    }),
+  addConcession: (
+    studentId: string,
+    payload: { kind: "scholarship" | "discount" | "sibling"; mode?: "percent" | "flat"; value?: number; note?: string }
+  ) =>
+    request<{ student: AdminPaymentStudent }>(`/api/payments/students/${studentId}/concession`, {
+      method: "POST",
+      body: JSON.stringify(payload),
     }),
   createNextInstallmentOrder: () =>
     request<PaymentOrder>("/api/student/payments/next-installment/order", { method: "POST" }),

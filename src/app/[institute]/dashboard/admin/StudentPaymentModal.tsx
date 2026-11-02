@@ -55,6 +55,14 @@ export default function StudentPaymentModal({
   const [savingItem, setSavingItem] = useState<string | null>(null);
   const [scheduleError, setScheduleError] = useState("");
 
+  const [concKind, setConcKind] = useState<"scholarship" | "discount" | "sibling">("scholarship");
+  const [concMode, setConcMode] = useState<"percent" | "flat">("percent");
+  const [concValue, setConcValue] = useState("");
+  const [concNote, setConcNote] = useState("");
+  const [concError, setConcError] = useState("");
+  const [concSuccess, setConcSuccess] = useState("");
+  const [concSubmitting, setConcSubmitting] = useState(false);
+
   const [extendDays, setExtendDays] = useState("");
   const [extendError, setExtendError] = useState("");
   const [extendSuccess, setExtendSuccess] = useState("");
@@ -149,6 +157,34 @@ export default function StudentPaymentModal({
       setScheduleError(err instanceof ApiError ? err.message : "Could not update the due date");
     } finally {
       setSavingItem(null);
+    }
+  };
+
+  const submitConcession = async () => {
+    setConcError("");
+    setConcSuccess("");
+    const value = Number(concValue);
+    if (concKind !== "sibling" && !(value > 0)) {
+      setConcError(concMode === "percent" ? "Enter a percentage" : "Enter an amount");
+      return;
+    }
+    setConcSubmitting(true);
+    try {
+      await api.addConcession(student._id, {
+        kind: concKind,
+        mode: concKind === "sibling" ? undefined : concMode,
+        value: concKind === "sibling" ? undefined : value,
+        note: concNote.trim() || undefined,
+      });
+      setConcSuccess("Applied. The unpaid fee is now lower.");
+      setConcValue("");
+      setConcNote("");
+      load();
+      onChanged();
+    } catch (err) {
+      setConcError(err instanceof ApiError ? err.message : "Could not apply the discount");
+    } finally {
+      setConcSubmitting(false);
     }
   };
 
@@ -300,7 +336,10 @@ export default function StudentPaymentModal({
                 {summary?.schedule?.map((it) => (
                   <tr key={it._id}>
                     <td>{it.label}</td>
-                    <td>₹{it.amount}</td>
+                    <td>
+                      ₹{it.amount}
+                      {!!it.fine && <span className={adminStyles.sectionSubtitle}> (incl. ₹{it.fine} late fee)</span>}
+                    </td>
                     <td>
                       <span className={it.status === "paid" ? adminStyles.badgeSuccess : adminStyles.badgePending}>
                         {it.status === "paid" ? "Paid" : `₹${it.paid} paid`}
@@ -391,7 +430,7 @@ export default function StudentPaymentModal({
           Extend deadline
         </h3>
         <p className={adminStyles.sectionSubtitle}>
-          Extra days are added on top of the due date and the 3 grace days.
+          Extra days are added on top of the due date and your {summary?.graceDays ?? 3} grace days.
           {summary?.paymentDeadline
             ? ` Account is blocked after ${new Date(summary.paymentDeadline).toLocaleString()} if unpaid.`
             : ""}
@@ -416,6 +455,59 @@ export default function StudentPaymentModal({
         </div>
         {extendError && <p className={adminStyles.messageError}>{extendError}</p>}
         {extendSuccess && <p className={adminStyles.messageSuccess}>{extendSuccess}</p>}
+      </section>
+
+      <section className={adminStyles.section} style={{ marginTop: 16 }}>
+        <h3 className={adminStyles.sectionTitle} style={{ fontSize: "0.95rem" }}>
+          Discounts &amp; scholarship
+        </h3>
+        <p className={adminStyles.sectionSubtitle}>
+          Takes money off what is still unpaid{hasSchedule ? ", spread over the remaining installments" : " (of one installment, for every cycle from now on)"}.
+        </p>
+        <div className={adminStyles.inviteRow} style={{ flexWrap: "wrap" }}>
+          <select className={adminStyles.select} value={concKind} onChange={(e) => setConcKind(e.target.value as typeof concKind)}>
+            <option value="scholarship">Scholarship</option>
+            <option value="discount">Discount</option>
+            <option value="sibling">Sibling discount (institute %)</option>
+          </select>
+          {concKind !== "sibling" && (
+            <>
+              <select className={adminStyles.select} value={concMode} onChange={(e) => setConcMode(e.target.value as typeof concMode)}>
+                <option value="percent">Percent (%)</option>
+                <option value="flat">Amount (₹)</option>
+              </select>
+              <input
+                className={adminStyles.input}
+                type="number"
+                min={1}
+                placeholder={concMode === "percent" ? "e.g. 10" : "e.g. 2000"}
+                value={concValue}
+                onChange={(e) => setConcValue(e.target.value)}
+              />
+            </>
+          )}
+          <input
+            className={adminStyles.input}
+            placeholder="Reason (optional)"
+            value={concNote}
+            onChange={(e) => setConcNote(e.target.value)}
+          />
+          <button className={adminStyles.smallButton} type="button" onClick={submitConcession} disabled={concSubmitting}>
+            {concSubmitting ? "Applying..." : "Apply"}
+          </button>
+        </div>
+        {concError && <p className={adminStyles.messageError}>{concError}</p>}
+        {concSuccess && <p className={adminStyles.messageSuccess}>{concSuccess}</p>}
+        {!!summary?.adjustments?.length && (
+          <ul className={adminStyles.sectionSubtitle} style={{ marginTop: 8, paddingLeft: 18 }}>
+            {summary.adjustments.map((a, i) => (
+              <li key={a._id || i}>
+                {a.amount < 0 ? "−" : "+"}₹{Math.abs(a.amount)} · {a.note || a.kind.replace("_", " ")} ·{" "}
+                {new Date(a.createdAt).toLocaleDateString()}
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       {summary && !summary.isActive && (
