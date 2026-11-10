@@ -232,6 +232,8 @@ export interface Course {
   installments: CourseInstallment[];
   installmentCharge: number;
   syllabus: string;
+  // Structured topics teachers tick off per batch (optional: older courses have none).
+  syllabusItems?: SyllabusItem[];
   terms: string;
   registrationToken?: string;
   isActive: boolean;
@@ -1200,6 +1202,79 @@ export interface SubscriptionsOverview {
   recentPayments: { _id: string; institute: string; planName: string; interval: string; total: number; paidAt: string; mode: string }[];
 }
 export type BillingPlanPayload = Partial<Omit<BillingPlan, "_id" | "key" | "subscribers">> & { key?: string };
+
+// ---- Syllabus tracking ----
+export interface SyllabusItem {
+  _id?: string;
+  unit: string;
+  title: string;
+}
+export interface SyllabusTopicState {
+  _id: string;
+  title: string;
+  done: boolean;
+  completedAt: string | null;
+}
+export interface SyllabusView {
+  batch: { _id: string; name: string };
+  course: { _id: string; name: string };
+  syllabusText: string;
+  units: { name: string; items: SyllabusTopicState[] }[];
+  total: number;
+  done: number;
+  percent: number;
+  lastCompletedAt: string | null;
+  nextTopic: { _id: string; title: string; unit: string } | null;
+}
+export interface CourseProgressRow {
+  batch: { _id: string; name: string };
+  done: number;
+  total: number;
+  percent: number;
+  lastCompletedAt: string | null;
+  nextTopic: { _id: string; title: string; unit: string } | null;
+}
+
+// ---- Demo requests (public lead form + superadmin list) ----
+export type DemoStudentBand = "under_50" | "50_150" | "150_300" | "300_750" | "750_1500" | "1500_plus";
+export type DemoStatus = "new" | "contacted" | "demo_scheduled" | "demo_done" | "won" | "lost" | "spam";
+export interface DemoRequestPayload {
+  name: string;
+  phone: string;
+  instituteName: string;
+  city: string;
+  studentCount: DemoStudentBand;
+  email?: string;
+  currentTool?: string;
+  preferredTime?: string;
+  source?: string;
+  website?: string; // honeypot: must stay empty
+}
+export interface DemoRequest {
+  _id: string;
+  name: string;
+  phone: string;
+  email: string;
+  instituteName: string;
+  city: string;
+  studentCount: DemoStudentBand | "";
+  currentTool: string;
+  preferredTime: string;
+  message: string;
+  source: string;
+  status: DemoStatus;
+  followUpAt: string | null;
+  note: string;
+  createdAt: string;
+}
+export interface DemoRequestList {
+  requests: DemoRequest[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  counts: Record<DemoStatus, number>;
+}
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -2485,6 +2560,32 @@ export const api = {
   deleteTestimonial: (id: string) => request<{ message: string }>(`/api/testimonials/${id}`, { method: "DELETE" }),
   importTestimonials: (items: TestimonialPayload[]) =>
     request<{ testimonials: Testimonial[] }>("/api/testimonials/import", { method: "POST", body: JSON.stringify({ items }) }),
+  // ---- Syllabus tracking ----
+  teacherSyllabus: (batchId: string) =>
+    request<{ syllabus: SyllabusView | null; message?: string }>(`/api/teacher/batches/${batchId}/syllabus`),
+  teacherMarkTopic: (batchId: string, topicId: string, done: boolean) =>
+    request<{ syllabus: SyllabusView }>(`/api/teacher/batches/${batchId}/syllabus/${topicId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ done }),
+    }),
+  studentSyllabus: () => request<{ syllabus: SyllabusView | null; message?: string }>("/api/student/syllabus"),
+  courseProgress: (courseId: string) =>
+    request<{ total: number; batches: CourseProgressRow[] }>(`/api/courses/${courseId}/progress`),
+  // ---- Demo requests ----
+  requestDemo: (payload: DemoRequestPayload) =>
+    request<{ ok: boolean }>("/api/demo-requests", { method: "POST", body: JSON.stringify(payload) }),
+  saDemoRequests: (params: { status?: string; q?: string; page?: number; limit?: number; due?: boolean } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.status) qs.set("status", params.status);
+    if (params.q) qs.set("q", params.q);
+    if (params.page) qs.set("page", String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    if (params.due) qs.set("due", "1");
+    return request<DemoRequestList>(`/api/demo-requests?${qs.toString()}`);
+  },
+  saUpdateDemoRequest: (id: string, payload: { status?: DemoStatus; note?: string; followUpAt?: string | null }) =>
+    request<{ request: DemoRequest }>(`/api/demo-requests/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  saDeleteDemoRequest: (id: string) => request<{ ok: boolean }>(`/api/demo-requests/${id}`, { method: "DELETE" }),
   // ---- Platform billing ----
   billingPlans: () => request<{ plans: BillingPlan[]; settings: BillingSettings }>("/api/billing/plans"),
   institutesSignup: (payload: { instituteName: string; email: string; phone: string; password: string; planId?: string }) =>

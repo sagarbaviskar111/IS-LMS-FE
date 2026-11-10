@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { api, ApiError, Course, CourseLevel, CourseMode, CourseRegistrationRow, DurationUnit } from "@/lib/api";
+import { api, ApiError, Course, CourseLevel, CourseMode, CourseRegistrationRow, DurationUnit, SyllabusItem } from "@/lib/api";
 import dashboardStyles from "../dashboard.module.css";
 import styles from "./admin.module.css";
 import Modal from "../Modal";
@@ -10,6 +10,8 @@ import Pagination from "../Pagination";
 import ListToolbar from "./ListToolbar";
 import RowMenu from "./RowMenu";
 import { useDebounced } from "./useDebounced";
+import SyllabusEditor from "./SyllabusEditor";
+import CourseProgress from "./CourseProgress";
 
 
 
@@ -38,6 +40,7 @@ type FormState = {
   installments: InstallmentDraft[];
   installmentCharge: string;
   syllabus: string;
+  syllabusItems: SyllabusItem[];
   terms: string;
   isActive: boolean;
 };
@@ -67,6 +70,7 @@ const emptyForm = (): FormState => ({
   installments: [],
   installmentCharge: "",
   syllabus: "",
+  syllabusItems: [],
   terms: "",
   isActive: true,
 });
@@ -90,6 +94,7 @@ const fromCourse = (c: Course): FormState => ({
   })),
   installmentCharge: c.installmentCharge ? String(c.installmentCharge) : "",
   syllabus: c.syllabus || "",
+  syllabusItems: (c.syllabusItems || []).map((t) => ({ _id: t._id, unit: t.unit, title: t.title })),
   terms: c.terms || "",
   isActive: c.isActive,
 });
@@ -438,6 +443,7 @@ function CourseFormModal({
         : [],
       installmentCharge: f.installmentEnabled ? installmentCharge : 0,
       syllabus: f.syllabus.trim(),
+      syllabusItems: f.syllabusItems,
       terms: f.terms.trim(),
       isActive: f.isActive,
     };
@@ -638,6 +644,14 @@ function CourseFormModal({
           )}
         </div>
 
+        {/* ---- syllabus topics (tracked per batch) ---- */}
+        <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0, marginTop: 6, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
+          Syllabus topics — tracked per batch
+        </h3>
+        <div style={full}>
+          <SyllabusEditor value={f.syllabusItems} onChange={(items) => set("syllabusItems", items)} />
+        </div>
+
         {/* ---- syllabus ---- */}
         <h3 className={styles.formSectionTitle} style={{ ...full, padding: 0, marginTop: 6, borderBottom: "1px solid var(--border)", paddingBottom: 6 }}>
           Syllabus — what will be covered
@@ -754,9 +768,24 @@ function CourseDetailModal({ course: c, onClose }: { course: Course; onClose: ()
       <h3 className={styles.sectionTitle} style={{ fontSize: "1rem" }}>
         Syllabus
       </h3>
+      {(c.syllabusItems || []).length > 0 && (
+        <>
+          {Array.from(new Set((c.syllabusItems || []).map((t) => t.unit))).map((unit) => (
+            <div key={unit || "_"} style={{ marginBottom: 8 }}>
+              {unit && <strong>{unit}</strong>}
+              <ul style={{ margin: "4px 0 0", paddingLeft: 20 }}>
+                {(c.syllabusItems || []).filter((t) => t.unit === unit).map((t) => (
+                  <li key={t._id || t.title}>{t.title}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+          <CourseProgress courseId={c._id} hasTopics />
+        </>
+      )}
       {c.syllabus ? (
         <p style={{ whiteSpace: "pre-wrap", margin: 0 }}>{c.syllabus}</p>
-      ) : (
+      ) : (c.syllabusItems || []).length ? null : (
         <p className={styles.empty}>No syllabus added yet.</p>
       )}
 

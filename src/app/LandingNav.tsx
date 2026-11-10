@@ -98,6 +98,9 @@ export default function LandingNav() {
           ))}
         </nav>
         <div className={navStyles.sheetActions}>
+          <Link href="/demo" className={styles.buttonSecondary} onClick={close}>
+            Book a demo
+          </Link>
           <Link href="/login" className={styles.buttonSecondary} onClick={close}>
             Log in
           </Link>

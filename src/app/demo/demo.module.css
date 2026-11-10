@@ -1,0 +1,62 @@
+.intro {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-border);
+  font-size: 0.86rem;
+  color: var(--foreground);
+  line-height: 1.5;
+}
+
+.intro ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  color: var(--muted);
+}
+
+.optional {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+/* Honeypot: off-screen so people never see it, but bots fill it. */
+.trap {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.done {
+  display: grid;
+  gap: 10px;
+}
+
+.doneTitle {
+  margin: 0;
+  font-size: 1.35rem;
+  color: var(--foreground);
+}
+
+.doneText {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.doneLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 0.9rem;
+}
+
+.doneLinks a {
+  color: var(--brand);
+  font-weight: 600;
+}

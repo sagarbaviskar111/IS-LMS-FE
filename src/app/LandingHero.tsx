@@ -31,8 +31,8 @@ export default function LandingHero() {
             <Link href="/get-started" className={styles.buttonPrimary}>
               Start free trial
             </Link>
-            <Link href="#showcase" className={styles.buttonSecondary}>
-              See it in action
+            <Link href="/demo" className={styles.buttonSecondary}>
+              Book a demo
             </Link>
           </div>
 

@@ -115,6 +115,9 @@ export default async function LandingTestimonials() {
               <Link href="/get-started" className={styles.ctaButton}>
                 Start free trial
               </Link>
+              <Link href="/demo" className={styles.ctaButtonGhost}>
+                Book a demo
+              </Link>
               <Link href="/login" className={styles.ctaButtonGhost}>
                 Log in
               </Link>

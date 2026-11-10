@@ -302,3 +302,14 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Inputs have an intrinsic width; without this a two-column row can push the second field out of the card. */
+.row > * {
+  min-width: 0;
+}
+
+.row .input,
+.row .select {
+  width: 100%;
+  box-sizing: border-box;
+}

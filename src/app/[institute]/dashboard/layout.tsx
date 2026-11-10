@@ -48,6 +48,7 @@ function getNavSections(
           items: [
             { href: `${base}/dashboard/superadmin/pricing`, label: "Plans & Pricing" },
             { href: `${base}/dashboard/superadmin/institutes`, label: "Institutes & Billing" },
+            { href: `${base}/dashboard/superadmin/demo-requests`, label: "Demo Requests" },
           ],
         },
         {
@@ -116,6 +117,7 @@ function getNavSections(
           items: [
             { href: `${base}/dashboard/teacher/sessions`, label: "Sessions" },
             { href: `${base}/dashboard/teacher/attendance`, label: "Attendance" },
+            { href: `${base}/dashboard/teacher/syllabus`, label: "Syllabus" },
             { href: `${base}/dashboard/teacher/materials/recordings`, label: "Session Recording" },
             { href: `${base}/dashboard/teacher/materials/study`, label: "Study Material" },
           ],
@@ -138,6 +140,7 @@ function getNavSections(
         {
           title: "Learning",
           items: [
+            { href: `${base}/dashboard/student/syllabus`, label: "Syllabus" },
             { href: `${base}/dashboard/student/materials/recordings`, label: "Session Recording" },
             { href: `${base}/dashboard/student/materials/study`, label: "Study Material" },
             { href: `${base}/dashboard/student/assignments`, label: "Assignments" },

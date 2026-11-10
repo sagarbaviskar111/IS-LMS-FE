@@ -205,3 +205,15 @@
   line-height: 1.6;
   font-size: 0.95rem;
 }
+
+.demoLine {
+  margin: 24px 0 0;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.demoLine a {
+  color: var(--brand);
+  font-weight: 600;
+}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import sharedStyles from "./landing.module.css";
 import styles from "./LandingPricing.module.css";
 import PricingCards, { PricingPlan, PricingSettings } from "./PricingCards";
@@ -34,6 +35,9 @@ export default async function LandingPricing({ standalone = false }: { standalon
           </p>
         </div>
         <PricingCards plans={data.plans} settings={data.settings} />
+        <p className={styles.demoLine}>
+          Not sure which plan fits? <Link href="/demo">Book a 20-minute demo</Link> and we will go through it with you.
+        </p>
       </div>
     </section>
   );
