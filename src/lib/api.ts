@@ -1096,6 +1096,111 @@ async function fetchBlob(path: string, options: RequestInit = {}): Promise<Blob>
   return res.blob();
 }
 
+// ---- Platform billing (institute subscriptions) ----
+export interface BillingPlan {
+  _id: string;
+  key: string;
+  name: string;
+  tagline: string;
+  priceMonthly: number;
+  priceYearly: number;
+  studentLimit: number; // 0 = unlimited
+  features: string[];
+  isPopular: boolean;
+  isActive: boolean;
+  order: number;
+  subscribers?: number;
+}
+export interface BillingSettings {
+  pricingMode: "plan" | "per_student";
+  perStudentPrice: number;
+  perStudentMin: number;
+  yearlyDiscountPercent: number;
+  trialDays: number;
+  trialStudentLimit: number;
+  gstPercent: number;
+  enforceLimits: boolean;
+  signupOpen: boolean;
+}
+export type BillingInterval = "monthly" | "yearly";
+export interface BillingAccess {
+  state: "legacy" | "trial" | "active" | "expired";
+  plan: BillingPlan | null;
+  interval: BillingInterval | null;
+  status: string | null;
+  end: string | null;
+  daysLeft: number | null;
+  used: number;
+  limit: number; // 0 = unlimited
+  canAddStudents: boolean;
+  reason: string | null;
+  customPrice: number | null;
+}
+export interface BillingInvoice {
+  _id: string;
+  planName: string;
+  interval: BillingInterval;
+  base: number;
+  gst: number;
+  total: number;
+  paidAt: string;
+  periodStart: string;
+  periodEnd: string;
+  mode: string;
+}
+export interface BillingQuote {
+  base: number;
+  gst: number;
+  total: number;
+  gstPercent: number;
+  students: number;
+  pricingMode: "plan" | "per_student";
+}
+export interface BillingOrder {
+  mode: "gateway" | "dev";
+  orderId: string;
+  amount: number;
+  total: number;
+  currency?: string;
+  keyId?: string;
+  name?: string;
+  email?: string;
+}
+export interface InstituteSubscriptionRow {
+  adminId: string;
+  name: string;
+  email: string;
+  phone: string;
+  slug: string;
+  joined: string;
+  state: "legacy" | "trial" | "active" | "expired" | "cancelled";
+  planId: string | null;
+  planName: string | null;
+  interval: BillingInterval | null;
+  end: string | null;
+  students: number;
+  limit: number | null;
+  customPrice: number | null;
+  studentLimitOverride: number | null;
+  note: string;
+  paidTotal: number;
+  lastPaidAt: string | null;
+}
+export interface SubscriptionsOverview {
+  summary: {
+    institutes: number;
+    trial: number;
+    active: number;
+    expired: number;
+    legacy: number;
+    revenueTotal: number;
+    revenueThisMonth: number;
+  };
+  institutes: InstituteSubscriptionRow[];
+  recentPayments: { _id: string; institute: string; planName: string; interval: string; total: number; paidAt: string; mode: string }[];
+}
+export type BillingPlanPayload = Partial<Omit<BillingPlan, "_id" | "key" | "subscribers">> & { key?: string };
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -2380,6 +2485,41 @@ export const api = {
   deleteTestimonial: (id: string) => request<{ message: string }>(`/api/testimonials/${id}`, { method: "DELETE" }),
   importTestimonials: (items: TestimonialPayload[]) =>
     request<{ testimonials: Testimonial[] }>("/api/testimonials/import", { method: "POST", body: JSON.stringify({ items }) }),
+  // ---- Platform billing ----
+  billingPlans: () => request<{ plans: BillingPlan[]; settings: BillingSettings }>("/api/billing/plans"),
+  institutesSignup: (payload: { instituteName: string; email: string; phone: string; password: string; planId?: string }) =>
+    request<{ user: User; institute: Institute | null }>("/api/billing/signup", { method: "POST", body: JSON.stringify(payload) }),
+  myBilling: () =>
+    request<{ access: BillingAccess; settings: BillingSettings; plans: BillingPlan[]; mode: "gateway" | "dev" | "none"; payments: BillingInvoice[] }>("/api/billing/me"),
+  billingQuote: (planId: string, interval: BillingInterval) =>
+    request<{ quote: BillingQuote }>("/api/billing/quote", { method: "POST", body: JSON.stringify({ planId, interval }) }),
+  billingOrder: (planId: string, interval: BillingInterval) =>
+    request<BillingOrder>("/api/billing/order", { method: "POST", body: JSON.stringify({ planId, interval }) }),
+  billingVerify: (payload: { orderId: string; paymentId?: string; signature?: string }) =>
+    request<{ ok: boolean; access: BillingAccess }>("/api/billing/verify", { method: "POST", body: JSON.stringify(payload) }),
+  saBillingSettings: () =>
+    request<{ settings: BillingSettings; razorpay: { mode: "gateway" | "dev" | "none"; configured: boolean } }>("/api/billing/superadmin/settings"),
+  saUpdateBillingSettings: (payload: Partial<BillingSettings>) =>
+    request<{ settings: BillingSettings }>("/api/billing/superadmin/settings", { method: "PUT", body: JSON.stringify(payload) }),
+  saBillingPlans: () => request<{ plans: BillingPlan[] }>("/api/billing/superadmin/plans"),
+  saCreateBillingPlan: (payload: BillingPlanPayload) =>
+    request<{ plan: BillingPlan }>("/api/billing/superadmin/plans", { method: "POST", body: JSON.stringify(payload) }),
+  saUpdateBillingPlan: (id: string, payload: BillingPlanPayload) =>
+    request<{ plan: BillingPlan }>(`/api/billing/superadmin/plans/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  saDeleteBillingPlan: (id: string) => request<{ ok: boolean }>(`/api/billing/superadmin/plans/${id}`, { method: "DELETE" }),
+  saSubscriptions: () => request<SubscriptionsOverview>("/api/billing/superadmin/subscriptions"),
+  saUpdateSubscription: (
+    adminId: string,
+    payload: {
+      planId?: string | null;
+      interval?: BillingInterval;
+      status?: "trial" | "active" | "cancelled";
+      extendDays?: number;
+      customPrice?: number | null;
+      studentLimitOverride?: number | null;
+      note?: string;
+    }
+  ) => request<{ ok: boolean }>(`/api/billing/superadmin/subscriptions/${adminId}`, { method: "PATCH", body: JSON.stringify(payload) }),
   // ---- Certificates ----
   certTemplates: () => request<{ templates: CertTemplate[] }>("/api/certificates/templates"),
   createCertTemplate: async (payload: { name: string; image: File; prefix?: string }) => {

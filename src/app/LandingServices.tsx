@@ -7,8 +7,6 @@ const painPoints: string[] = [
   "Fee follow-ups mean calling or WhatsApping parents one by one, every month.",
   "No visibility into which batch is falling behind until it's too late.",
   "Admin staff buried in paperwork just to answer \"has my child submitted homework?\"",
-  "Parents call in for every small update because there's no self-serve portal.",
-  "Study material shared over WhatsApp/Telegram links that get buried and lost.",
 ];
 
 const resolutions: string[] = [
@@ -16,8 +14,6 @@ const resolutions: string[] = [
   "Fee collection and dues tracked online, with optional Razorpay collection at signup.",
   "A single dashboard view shows batch progress, so problems surface early.",
   "Assignments, submissions and results live in one place students and parents can check themselves.",
-  "A self-serve student portal answers the routine questions before the phone rings.",
-  "Notes, PDFs and recordings live in one in-app library that never gets buried.",
 ];
 
 export default function LandingServices() {
@@ -25,12 +21,10 @@ export default function LandingServices() {
     <>
       <section id="services" className={sharedStyles.section}>
         <div className={sharedStyles.container}>
-          <div className={sharedStyles.sectionHeadCenter}>
-            <span className={sharedStyles.eyebrow}>Platform</span>
-            <h2 className={sharedStyles.sectionTitle}>Everything your institute needs, in one place.</h2>
+          <div className={sharedStyles.sectionHead}>
+            <h2 className={sharedStyles.sectionTitle}>Attendance, fees, assignments and results in one login.</h2>
             <p className={sharedStyles.sectionSubtitle}>
-              From admissions to exams, InstituteSathi replaces the spreadsheets, registers and
-              WhatsApp groups with one dashboard built for coaching institutes.
+              Replace the paper register, the fee spreadsheet and the parents' WhatsApp group with one dashboard your staff and students both use.
             </p>
           </div>
           <LandingBento />
@@ -39,13 +33,12 @@ export default function LandingServices() {
 
       <section id="how-it-works" className={sharedStyles.sectionAlt}>
         <div className={sharedStyles.container}>
-          <div className={sharedStyles.sectionHeadCenter}>
-            <span className={sharedStyles.eyebrow}>How it works</span>
+          <div className={sharedStyles.sectionHead}>
             <h2 className={sharedStyles.sectionTitle}>
-              From spreadsheet chaos to one dashboard.
+              A normal week, before and after.
             </h2>
             <p className={sharedStyles.sectionSubtitle}>
-              The daily grind of running a coaching institute, before and after InstituteSathi.
+              What changes in the daily routine once the register and the spreadsheet are gone.
             </p>
           </div>
           <div className={sharedStyles.grid2}>

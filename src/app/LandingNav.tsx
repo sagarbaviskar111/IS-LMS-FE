@@ -9,10 +9,10 @@ import styles from "./landing.module.css";
 import navStyles from "./LandingNav.module.css";
 
 const NAV_LINKS = [
-  { href: "/#services", label: "Services" },
+  { href: "/#services", label: "Features" },
   { href: "/#how-it-works", label: "How it works" },
   { href: "/#showcase", label: "Product" },
-  { href: "/#reviews", label: "Reviews" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/student-portfolio", label: "Student Portfolio" },
   { href: "/#faq", label: "FAQ" },
 ];
@@ -68,8 +68,8 @@ export default function LandingNav() {
           <Link href="/login" className={`${styles.buttonSecondary} ${navStyles.navCta} ${navStyles.loginCta}`}>
             Log in
           </Link>
-          <Link href="/signup" className={`${styles.buttonPrimary} ${navStyles.navCta}`}>
-            Get started free
+          <Link href="/get-started" className={`${styles.buttonPrimary} ${navStyles.navCta}`}>
+            Start free trial
           </Link>
           <button
             type="button"
@@ -101,8 +101,8 @@ export default function LandingNav() {
           <Link href="/login" className={styles.buttonSecondary} onClick={close}>
             Log in
           </Link>
-          <Link href="/signup" className={styles.buttonPrimary} onClick={close}>
-            Get started free
+          <Link href="/get-started" className={styles.buttonPrimary} onClick={close}>
+            Start free trial
           </Link>
         </div>
       </div>

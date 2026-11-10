@@ -24,13 +24,12 @@ export default function LandingHero() {
             Run your coaching institute like a business, not a pile of spreadsheets and registers.
           </h1>
           <p className={heroStyles.subtitle}>
-            InstituteSathi brings students, teachers, batches, attendance, fees, exams, assignments, study material and
-            admissions into one branded dashboard, with your own logo, your own colors and your own portal link.
+            Attendance, fee reminders, assignments and results for every batch, under your own logo and your own link.
           </p>
 
           <div className={styles.buttonRow}>
-            <Link href="/signup" className={styles.buttonPrimary}>
-              Get started free →
+            <Link href="/get-started" className={styles.buttonPrimary}>
+              Start free trial
             </Link>
             <Link href="#showcase" className={styles.buttonSecondary}>
               See it in action

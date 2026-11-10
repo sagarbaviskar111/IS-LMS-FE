@@ -2,28 +2,20 @@ import Link from "next/link";
 import SiteFooter from "@/components/SiteFooter";
 import sharedStyles from "./landing.module.css";
 import styles from "./LandingTestimonials.module.css";
-import { DEFAULT_TESTIMONIALS, TestimonialItem } from "@/lib/defaultTestimonials";
+import { TestimonialItem } from "@/lib/defaultTestimonials";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000").replace(/\/+$/, "");
 
-const initialsOf = (name: string) =>
-  name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase())
-    .join("");
-
-// Superadmin-managed reviews; if there are none (or the API is down) the
-// built-in ones keep the section filled.
+// Superadmin-managed reviews. With none (or the API down) the section is hidden
+// rather than showing invented ones.
 async function loadTestimonials(): Promise<TestimonialItem[]> {
   try {
     const res = await fetch(`${API_URL}/api/testimonials`, { next: { revalidate: 60 } });
-    if (!res.ok) return DEFAULT_TESTIMONIALS;
+    if (!res.ok) return [];
     const data = (await res.json()) as { testimonials?: TestimonialItem[] };
-    return data.testimonials?.length ? data.testimonials : DEFAULT_TESTIMONIALS;
+    return data.testimonials || [];
   } catch {
-    return DEFAULT_TESTIMONIALS;
+    return [];
   }
 }
 
@@ -60,61 +52,42 @@ const faqs: { question: string; answer: string }[] = [
   },
 ];
 
-function Stars() {
-  return (
-    <div className={styles.starRow} aria-hidden="true">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <span key={i} className={styles.star}>
-          &#9733;
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export default async function LandingTestimonials() {
   const testimonials = await loadTestimonials();
   return (
     <>
-      <section id="reviews" className={sharedStyles.section}>
-        <div className={sharedStyles.container}>
-          <div className={sharedStyles.sectionHeadCenter}>
-            <span className={sharedStyles.eyebrow}>Reviews</span>
-            <h2 className={sharedStyles.sectionTitle}>Trusted by institutes across India.</h2>
-            <p className={sharedStyles.sectionSubtitle}>
-              A few examples of the kind of everyday difference institutes tell us InstituteSathi
-              makes.
-            </p>
-          </div>
+      {testimonials.length > 0 && (
+        <section id="reviews" className={sharedStyles.section}>
+          <div className={sharedStyles.container}>
+            <div className={sharedStyles.sectionHead}>
+              <span className={sharedStyles.eyebrow}>Reviews</span>
+              <h2 className={sharedStyles.sectionTitle}>What institutes say</h2>
+            </div>
 
-          <div className={sharedStyles.grid3}>
-            {testimonials.map((t, i) => (
-              <div key={`${t.name}-${i}`} className={sharedStyles.card}>
-                <Stars />
-                <p className={styles.quote}>&ldquo;{t.quote}&rdquo;</p>
-                <div className={styles.cardFooter}>
-                  <div className={styles.avatarCircle}>{initialsOf(t.name)}</div>
-                  <div className={styles.footerText}>
-                    <p className={styles.footerName}>{t.name}</p>
-                    <p className={styles.footerRole}>
-                      {[t.role, t.city].filter(Boolean).join(" · ")}
-                    </p>
+            <div className={sharedStyles.grid3}>
+              {testimonials.map((t, i) => (
+                <div
+                  key={`${t.name}-${i}`}
+                  className={i === 0 ? `${sharedStyles.card} ${styles.featuredCard}` : sharedStyles.card}
+                >
+                  <p className={i === 0 ? styles.featuredQuote : styles.quote}>&ldquo;{t.quote}&rdquo;</p>
+                  <div className={styles.cardFooter}>
+                    <div className={styles.footerText}>
+                      <p className={styles.footerName}>{t.name}</p>
+                      <p className={styles.footerRole}>{[t.role, t.city].filter(Boolean).join(" · ")}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <section id="faq" className={sharedStyles.sectionAlt}>
         <div className={sharedStyles.container}>
-          <div className={sharedStyles.sectionHeadCenter}>
-            <span className={sharedStyles.eyebrow}>FAQ</span>
-            <h2 className={sharedStyles.sectionTitle}>Frequently asked questions.</h2>
-            <p className={sharedStyles.sectionSubtitle}>
-              Everything institutes usually ask before switching to InstituteSathi.
-            </p>
+          <div className={sharedStyles.sectionHead}>
+            <h2 className={sharedStyles.sectionTitle}>Questions institutes ask first</h2>
           </div>
 
           <div className={styles.faqList}>
@@ -134,14 +107,13 @@ export default async function LandingTestimonials() {
       <section className={sharedStyles.section}>
         <div className={sharedStyles.container}>
           <div className={styles.ctaPanel}>
-            <h2 className={styles.ctaTitle}>Ready to run your institute the modern way?</h2>
+            <h2 className={styles.ctaTitle}>Set up your institute's portal today.</h2>
             <p className={styles.ctaSubtitle}>
-              Set up your branded portal, add your batches and start collecting fees online in
-              under a day.
+              Free trial, no card. Add your logo, batches and first students, and share the link.
             </p>
             <div className={styles.ctaButtonRow}>
-              <Link href="/signup" className={styles.ctaButton}>
-                Get started free
+              <Link href="/get-started" className={styles.ctaButton}>
+                Start free trial
               </Link>
               <Link href="/login" className={styles.ctaButtonGhost}>
                 Log in

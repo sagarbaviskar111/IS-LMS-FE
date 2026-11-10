@@ -119,8 +119,8 @@
   margin: 0 auto;
   padding: 56px 40px;
   border-radius: var(--radius-lg);
-  background: #18181b;
-  color: #fff;
+  background: var(--foreground);
+  color: var(--background);
   box-shadow: var(--shadow-lg);
 }
 
@@ -129,12 +129,13 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   margin: 0 0 12px;
-  color: #fff;
+  color: var(--background);
 }
 
 .ctaSubtitle {
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.88);
+  color: var(--background);
+  opacity: 0.85;
   margin: 0 0 32px;
   line-height: 1.6;
 }
@@ -176,8 +177,8 @@
   gap: 8px;
   padding: 13px 26px;
   background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  color: var(--background);
+  border: 1px solid var(--background);
   border-radius: var(--radius-sm);
   font-size: 0.98rem;
   font-weight: 700;
@@ -188,8 +189,7 @@
 }
 
 .ctaButtonGhost:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: #fff;
+  opacity: 0.8;
 }
 
 /* ---- Footer ---- */
@@ -381,4 +381,15 @@
   .ctaButtonGhost {
     transition: none;
   }
+}
+
+.featuredCard {
+  grid-column: 1 / -1;
+  padding: 32px;
+}
+
+.featuredQuote {
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  line-height: 1.5;
+  margin: 0 0 20px;
 }

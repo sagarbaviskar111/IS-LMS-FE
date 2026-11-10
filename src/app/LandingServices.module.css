@@ -3,8 +3,6 @@
 
 .beforeCard {
   background: var(--surface-alt);
-  filter: saturate(0.7);
-  opacity: 0.85;
 }
 
 .afterCard {

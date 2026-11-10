@@ -10,6 +10,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import BrandLogo from "@/components/BrandLogo";
 import BrandStyle from "@/components/BrandStyle";
 import TableCards from "./TableCards";
+import BillingBanner from "./BillingBanner";
 import ProfileEditModal from "./ProfileEditModal";
 import styles from "./dashboard.module.css";
 
@@ -42,6 +43,13 @@ function getNavSections(
     case "superadmin":
       return [
         { items: [{ href: `${base}/dashboard/superadmin`, label: "Overview" }] },
+        {
+          title: "Business",
+          items: [
+            { href: `${base}/dashboard/superadmin/pricing`, label: "Plans & Pricing" },
+            { href: `${base}/dashboard/superadmin/institutes`, label: "Institutes & Billing" },
+          ],
+        },
         {
           title: "Website",
           items: [
@@ -94,6 +102,7 @@ function getNavSections(
           items: [
             { href: `${base}/dashboard/admin/tools`, label: "Tools" },
             { href: `${base}/dashboard/admin/subadmins`, label: "Sub-admins" },
+            { href: `${base}/dashboard/admin/billing`, label: "Plan & Billing" },
             { href: `${base}/dashboard/admin/settings`, label: "Settings" },
             notifications,
           ],
@@ -419,6 +428,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
 
           <main className={styles.main}>
+            <BillingBanner base={base} role={user.role} />
             {canOpenPage(user, pathname) ? (
               children
             ) : (
